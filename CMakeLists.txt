@@ -14,7 +14,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../lib)
 find_package(PNG REQUIRED)
 
 # Add the executable
-add_executable(raydar src/main.c)
+add_executable(raydar src/main.cpp)
 
 # Include directories
 target_include_directories(raydar PRIVATE include ${PNG_INCLUDE_DIRS})
