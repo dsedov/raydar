@@ -6,18 +6,18 @@ ImagePNG::ImagePNG(int width, int height) : Image(width, height) {
     _row_size = width * _channels;
     
     _image_buffer = std::vector<png_byte>(height * _row_size);
-}
-void ImagePNG::save(const char * filename) {
-    // Fill the image buffer with green color
     for (int y = 0; y < height_; y++) {
         png_bytep row = _image_buffer.data() + y * _row_size;
         for (int x = 0; x < width_; x++) {
             png_bytep pixel = row + x * _channels;
             pixel[0] = 0;   // Red channel
-            pixel[1] = 255; // Green channel
+            pixel[1] = 0;   // Green channel
             pixel[2] = 0;   // Blue channel
         }
     }
+
+}
+void ImagePNG::save(const char * filename) {
 
     // Create the PNG file
     FILE* file = fopen(filename, "wb");

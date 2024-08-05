@@ -7,6 +7,7 @@
 int main() {
 
     ImagePNG image(2048, 1024);
+    
     image.save("output.png");
     return 0;
 }
