@@ -10,6 +10,5 @@ public:
     void save(const char * filename) override;
 private:
     std::vector<png_byte> _image_buffer;
-    int _channels; 
-    int _row_size;
+
 };

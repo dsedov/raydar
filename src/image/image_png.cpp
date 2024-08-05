@@ -1,23 +1,23 @@
 #include "image_png.h"
 
-ImagePNG::ImagePNG(int width, int height) : Image(width, height) {
-
-    _channels = 3; // RGB
-    _row_size = width * _channels;
-    
-    _image_buffer = std::vector<png_byte>(height * _row_size);
-    for (int y = 0; y < height_; y++) {
-        png_bytep row = _image_buffer.data() + y * _row_size;
-        for (int x = 0; x < width_; x++) {
-            png_bytep pixel = row + x * _channels;
-            pixel[0] = 0;   // Red channel
-            pixel[1] = 0;   // Green channel
-            pixel[2] = 0;   // Blue channel
-        }
-    }
+ImagePNG::ImagePNG(int width, int height) : Image(width, height, 3) {
 
 }
 void ImagePNG::save(const char * filename) {
+
+    _image_buffer = std::vector<png_byte>(height_ * row_size_);
+    for (int y = 0; y < height_; y++) {
+        png_bytep row = _image_buffer.data() + y * row_size_;
+        float * f_row = image_buffer_.data() + y * row_size_;
+
+        for (int x = 0; x < width_; x++) {
+            png_bytep pixel = row + x * 3;
+            float * f_pixel = f_row + x * channels_;
+            pixel[0] = int(255.999 * f_pixel[0]);   // Red channel
+            pixel[1] = int(255.999 * f_pixel[1]);   // Green channel
+            pixel[2] = int(255.999 * f_pixel[2]);   // Blue channel
+        }
+    }
 
     // Create the PNG file
     FILE* file = fopen(filename, "wb");
@@ -62,7 +62,7 @@ void ImagePNG::save(const char * filename) {
 
     std::vector<png_bytep> row_pointers(height_);
     for (int y = 0; y < height_; y++) {
-        row_pointers[y] = _image_buffer.data() + y * _row_size;
+        row_pointers[y] = _image_buffer.data() + y * row_size_;
     }
     png_write_image(png, row_pointers.data());
 
