@@ -3,6 +3,8 @@
 #include <vector>
 
 #include "image/image_png.h"
+#include <pxr/usd/usd/stage.h>
+#include <pxr/usd/usdGeom/sphere.h>
 
 int main() {
 

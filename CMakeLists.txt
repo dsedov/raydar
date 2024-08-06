@@ -4,6 +4,7 @@ project(raydar)
 # Specify the C++ standard
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(USD_ROOT /Users/dennissedov/Documents/Dev/pxr)
 
 # Set output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
@@ -44,12 +45,16 @@ add_executable(raydar src/main.cpp)
 # Include directories
 target_include_directories(raydar PRIVATE include ${PNG_INCLUDE_DIR})
 target_include_directories(raydar PRIVATE src)
+include_directories(${USD_ROOT}/include)
+link_directories(${USD_ROOT}/lib)
 
 target_sources(raydar PRIVATE src/image/image.cpp)
 target_sources(raydar PRIVATE src/image/image_png.cpp)
-
+find_library(USD_LIB usd PATHS ${USD_ROOT}/lib)
+find_library(USD_USDGeom_LIB usdGeom PATHS ${USD_ROOT}/lib)
 # Link libraries
-target_link_libraries(raydar PRIVATE ${PNG_LIBRARY})
+target_link_libraries(raydar PRIVATE ${PNG_LIBRARY} ${USD_LIB} ${USD_USDGeom_LIB})
+
 
 # Add compile definitions if needed
 target_compile_definitions(raydar PRIVATE ${PNG_DEFINITIONS})
