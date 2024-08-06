@@ -19,3 +19,4 @@ int main() {
     image.save("output.png");
     return 0;
 }
+

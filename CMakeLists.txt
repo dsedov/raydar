@@ -2,9 +2,10 @@ cmake_minimum_required(VERSION 3.10)
 project(raydar)
 
 # Specify the C++ standard
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(USD_ROOT /Users/dennissedov/Documents/Dev/pxr)
+
+
 
 # Set output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
@@ -39,21 +40,28 @@ message(STATUS "PNG_INCLUDE_DIRS: ${PNG_INCLUDE_DIRS}")
 message(STATUS "PNG_LIBRARIES: ${PNG_LIBRARIES}")
 message(STATUS "PNG_VERSION_STRING: ${PNG_VERSION_STRING}")
 
+set(USD_ROOT /Users/dennissedov/Documents/Dev/pxr)
+include_directories(${USD_ROOT}/include)
+link_directories(${USD_ROOT}/lib)
+find_library(USD_LIB usd_usd PATHS ${USD_ROOT}/lib)
+find_library(USD_USDGeom_LIB usd_usdGeom PATHS ${USD_ROOT}/lib)
+find_package(Python3 3.12 REQUIRED COMPONENTS Development)
+find_package(Boost REQUIRED COMPONENTS python312)
+include_directories(${Python3_INCLUDE_DIRS})
+include_directories(/opt/homebrew/include)
 # Add the executable
 add_executable(raydar src/main.cpp)
 
 # Include directories
 target_include_directories(raydar PRIVATE include ${PNG_INCLUDE_DIR})
 target_include_directories(raydar PRIVATE src)
-include_directories(${USD_ROOT}/include)
-link_directories(${USD_ROOT}/lib)
+
 
 target_sources(raydar PRIVATE src/image/image.cpp)
 target_sources(raydar PRIVATE src/image/image_png.cpp)
-find_library(USD_LIB usd PATHS ${USD_ROOT}/lib)
-find_library(USD_USDGeom_LIB usdGeom PATHS ${USD_ROOT}/lib)
+
 # Link libraries
-target_link_libraries(raydar PRIVATE ${PNG_LIBRARY} ${USD_LIB} ${USD_USDGeom_LIB})
+target_link_libraries(raydar PRIVATE ${PNG_LIBRARY} ${USD_LIB} ${USD_USDGeom_LIB} Boost::python312 ${Python3_LIBRARIES})
 
 
 # Add compile definitions if needed
