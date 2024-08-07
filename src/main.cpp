@@ -1,9 +1,7 @@
 #include <cstdio>
 #include <png.h>
 #include <vector>
-#include "data/color.h"
-#include "data/vec3.h"
-#include "data/ray.h"
+#include "raydar.h"
 
 #include "image/image_png.h"
 #include <pxr/usd/usd/stage.h>
