@@ -3,29 +3,18 @@
 #include <vector>
 #include "raydar.h"
 
+#include "data/hittable.h"
+#include "data/hittable_list.h"
+#include "data/sphere.h"
+
 #include "image/image_png.h"
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usdGeom/sphere.h>
 
-double hit_sphere(const point3& center, double radius, const ray& r) {
-    vec3 oc = center - r.origin();
-    auto a = r.direction().length_squared();
-    auto h = dot(r.direction(), oc);
-    auto c = oc.length_squared() - radius*radius;
-    auto discriminant = h*h - a*c;
-
-    if (discriminant < 0) {
-        return -1.0;
-    } else {
-        return (h - std::sqrt(discriminant)) / a;
-    }
-}
-
-color ray_color(const ray& r) {
-    auto t = hit_sphere(point3(0,0,-1), 0.5, r);
-    if (t > 0.0) {
-        vec3 N = unit_vector(r.at(t) - vec3(0,0,-1));
-        return 0.5*color(N.x()+1, N.y()+1, N.z()+1);
+color ray_color(const ray& r, const hittable& world) {
+    hit_record rec;
+    if (world.hit(r, interval(0, infinity), rec)) { 
+        return 0.5 * (rec.normal + color(1,1,1));
     }
 
     vec3 unit_direction = unit_vector(r.direction());
@@ -37,6 +26,13 @@ int main() {
 
     int image_width = 2048;
     int image_height = 1024;
+
+    // World
+
+    hittable_list world;
+
+    world.add(make_shared<sphere>(point3(0,0,-1), 0.5));
+    world.add(make_shared<sphere>(point3(0,-100.5,-1), 100));
 
     // Camera
 
@@ -64,12 +60,13 @@ int main() {
     // Render
 
     for (int j = 0; j < image_height; j++) {
+        std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
         for (int i = 0; i < image_width; i++) {
             auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
             auto ray_direction = pixel_center - camera_center;
             ray r(camera_center, ray_direction);
 
-            color pixel_color = ray_color(r);
+            color pixel_color = ray_color(r, world);
             image.set_pixel(i, j, pixel_color);
         }
     }
