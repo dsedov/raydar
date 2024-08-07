@@ -45,10 +45,7 @@ include_directories(${USD_ROOT}/include)
 link_directories(${USD_ROOT}/lib)
 find_library(USD_LIB usd_usd PATHS ${USD_ROOT}/lib)
 find_library(USD_USDGeom_LIB usd_usdGeom PATHS ${USD_ROOT}/lib)
-find_package(Python3 3.12 REQUIRED COMPONENTS Development)
-find_package(Boost REQUIRED COMPONENTS python312)
-include_directories(${Python3_INCLUDE_DIRS})
-include_directories(/opt/homebrew/include)
+
 # Add the executable
 add_executable(raydar src/main.cpp)
 
@@ -61,7 +58,7 @@ target_sources(raydar PRIVATE src/image/image.cpp)
 target_sources(raydar PRIVATE src/image/image_png.cpp)
 
 # Link libraries
-target_link_libraries(raydar PRIVATE ${PNG_LIBRARY} ${USD_LIB} ${USD_USDGeom_LIB} Boost::python312 ${Python3_LIBRARIES})
+target_link_libraries(raydar PRIVATE ${PNG_LIBRARY} ${USD_LIB} ${USD_USDGeom_LIB})
 
 
 # Add compile definitions if needed
