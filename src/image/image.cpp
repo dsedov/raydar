@@ -15,3 +15,6 @@ void Image::set_pixel(int x, int y, float r, float g, float b) {
         image_buffer_[index + 1] = g;
         image_buffer_[index + 2] = b;
 }
+void Image::set_pixel(int x, int y, color color) {
+    set_pixel(x, y, color.x(), color.y(), color.z());
+}
