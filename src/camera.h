@@ -5,7 +5,7 @@
 #include "data/interval.h"
 #include "data/hittable.h"
 #include "image/image.h"
-
+#include <thread>
 class camera {
   public:
     /* Public Camera Parameters Here */
@@ -15,6 +15,8 @@ class camera {
 
     void render(const hittable& world) {
         initialize();
+        auto start_time = std::chrono::high_resolution_clock::now();
+
         for (int j = 0; j < image_buffer.height(); j++) {
             std::clog << "\rScanlines remaining: " << (image_buffer.height() - j) << ' ' << std::flush;
             for (int i = 0; i < image_buffer.width(); i++) {
@@ -25,11 +27,46 @@ class camera {
                 }
                 pixel_color *= pixel_samples_scale;
                 image_buffer.set_pixel(i, j, pixel_color);
-                
             }
         }
-    }
 
+        auto end_time = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
+        std::cout << "\nRendering time: " << duration.count() << " seconds" << std::endl;
+    }
+    void mt_render(const hittable& world) {
+        initialize();
+        auto start_time = std::chrono::high_resolution_clock::now();
+
+        std::vector<std::thread> threads;
+        std::atomic<int> scanlines_remaining(image_buffer.height());
+        std::mutex cout_mutex;
+
+        auto render_scanline = [&](int j) {
+            for (int i = 0; i < image_buffer.width(); i++) {
+                color pixel_color(0,0,0);
+                for (int sample = 0; sample < samples_per_pixel; sample++) {
+                    ray r = get_ray(i, j);
+                    pixel_color += ray_color(r, world);
+                }
+                pixel_color *= pixel_samples_scale;
+                image_buffer.set_pixel(i, j, pixel_color);
+            }
+
+        };
+
+        for (int j = 0; j < image_buffer.height(); j++) {
+            threads.emplace_back(render_scanline, j);
+        }
+
+        for (auto& thread : threads) {
+            thread.join();
+        }
+
+        auto end_time = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
+        std::cout << "\nRendering time: " << duration.count() << " seconds" << std::endl;
+    }
   private:
     /* Private Camera Variables Here */
     Image & image_buffer;
