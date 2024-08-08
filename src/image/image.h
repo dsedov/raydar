@@ -11,9 +11,7 @@ public:
 
     void set_pixel(int x, int y, float r, float g, float b);
     void set_pixel(int x, int y, color color);
-
-    int width() { return width_;}
-    int height() { return height_;}
+    
 protected:
     int width_;
     int height_;
