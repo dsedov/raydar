@@ -2,6 +2,7 @@
 #define SPHERE_H
 
 #include "hittable.h"
+#include "interval.h"
 #include "vec3.h"
 
 class sphere : public hittable {

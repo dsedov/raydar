@@ -54,9 +54,6 @@ target_include_directories(raydar PRIVATE include ${PNG_INCLUDE_DIR})
 target_include_directories(raydar PRIVATE src)
 
 
-target_sources(raydar PRIVATE src/image/image.cpp)
-target_sources(raydar PRIVATE src/image/image_png.cpp)
-
 # Link libraries
 target_link_libraries(raydar PRIVATE ${PNG_LIBRARY} ${USD_LIB} ${USD_USDGeom_LIB})
 
