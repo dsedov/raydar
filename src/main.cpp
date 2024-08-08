@@ -7,7 +7,9 @@
 #include "data/hittable_list.h"
 #include "data/sphere.h"
 
+
 #include "camera.h"
+#include "material.h"
 #include "image/image_png.h"
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usdGeom/sphere.h>
@@ -21,13 +23,17 @@ int main() {
     ImagePNG image(image_width, image_height);
 
     camera camera(image);
-    camera.samples_per_pixel = 256;
+    camera.samples_per_pixel = 64;
     camera.max_depth = 10;
 
     hittable_list world;
 
-    world.add(make_shared<sphere>(point3(0,0,-1), 0.5));
-    world.add(make_shared<sphere>(point3(0,-100.5,-1), 100));
+    auto material_metal  = make_shared<metal>(color(0.8, 0.8, 0.8),0.2);
+    auto material_ground = make_shared<lambertian>(color(0.9, 0.5, 0.5));
+    auto material_ground2 = make_shared<lambertian>(color(0.9, 0.0, 0.2));
+
+    world.add(make_shared<sphere>(point3(0,0,-1), 0.5,material_ground));
+    world.add(make_shared<sphere>(point3(0,-100.5,-1), 100,material_ground2));
 
     camera.mt_render(world);
 
