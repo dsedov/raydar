@@ -12,6 +12,7 @@ class camera {
 
     int samples_per_pixel = 64;
     int max_depth         = 10;
+    double vfov            = 60;
     /* Public Camera Parameters Here */
     camera(Image & image_buffer) : image_buffer(image_buffer) {
        
@@ -84,7 +85,10 @@ class camera {
     void initialize() {
 
         auto focal_length = 1.0;
-        auto viewport_height = 2.0;
+        auto theta = degrees_to_radians(vfov);
+        auto h = std::tan(theta/2);
+        auto viewport_height = 2 * h * focal_length;
+
         auto viewport_width = viewport_height * (double(image_buffer.width())/image_buffer.height());
         pixel_samples_scale = 1.0 / samples_per_pixel;
         camera_center = point3(0, 0, 0);
