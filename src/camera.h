@@ -48,7 +48,7 @@ class camera {
 
         std::vector<std::thread> threads;
         std::atomic<int> scanlines_remaining(image_buffer.height());
-        std::mutex cout_mutex;
+
 
         auto render_scanline = [&](int j) {
             for (int i = 0; i < image_buffer.width(); i++) {
