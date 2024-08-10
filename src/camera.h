@@ -49,7 +49,6 @@ class camera {
         std::vector<std::thread> threads;
         std::atomic<int> scanlines_remaining(image_buffer.height());
 
-
         auto render_scanline = [&](int j) {
             for (int i = 0; i < image_buffer.width(); i++) {
                 color pixel_color(0,0,0);
@@ -60,7 +59,8 @@ class camera {
                 pixel_color *= pixel_samples_scale;
                 image_buffer.set_pixel(i, j, pixel_color);
             }
-
+            int remaining = scanlines_remaining.fetch_sub(1) - 1;
+            std::cout << "\rScanlines remaining: " << remaining << "           " << std::flush;
         };
 
         for (int j = 0; j < image_buffer.height(); j++) {
@@ -70,6 +70,7 @@ class camera {
         for (auto& thread : threads) {
             thread.join();
         }
+
 
         auto end_time = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
