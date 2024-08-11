@@ -159,7 +159,7 @@ public:
     mesh(const pxr::UsdGeomMesh& usdMesh, shared_ptr<material> mat, const pxr::GfMatrix4d& transform)
         : mat(mat), transform(transform) {
         // std::cout << "Adding mesh to scene with path: " << usdMesh.GetPath().GetString() << std::endl;
-        //std::cout << "Transform: " << transform << std::endl;
+        std::cout << "Transform: " << transform << std::endl;
         loadFromUsdMesh(usdMesh);
     }
 

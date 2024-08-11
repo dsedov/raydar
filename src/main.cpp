@@ -15,6 +15,7 @@
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usd/primRange.h>
 #include <pxr/usd/usdGeom/camera.h>
+#include <pxr/usd/usdGeom/xformable.h>
 #include <pxr/base/gf/vec3f.h>
 #include <pxr/base/gf/vec3d.h>
 #include <pxr/base/gf/rotation.h>
@@ -106,60 +107,22 @@ pxr::UsdGeomCamera findFirstCamera(const pxr::UsdStageRefPtr& stage) {
     // If no camera is found, return an invalid camera
     return pxr::UsdGeomCamera();
 }
-// Helper function to get the local transform of a prim
-pxr::GfMatrix4d getLocalTransform(const pxr::UsdPrim& prim) {
-    if (prim.IsA<pxr::UsdGeomXformable>()) {
-        pxr::UsdGeomXformable xformable(prim);
-        bool resetsXformStack;
-        std::vector<pxr::UsdGeomXformOp> xformOps = xformable.GetOrderedXformOps(&resetsXformStack);
-        for (const auto& op : xformOps) {
-            std::cout << "Xform Op: " << op.GetOpName() << std::endl;
-            std::cout << "Xform Op Transform: " << op.GetOpTransform(pxr::UsdTimeCode::Default()) << std::endl;
-        }
-        
-        pxr::GfMatrix4d localTransform(1); // Identity matrix
-        for (const auto& op : xformOps) {
-            pxr::GfMatrix4d mat = op.GetOpTransform(pxr::UsdTimeCode::Default());
-            localTransform = localTransform * mat;
-        }
-        return localTransform;
-    }
-    return pxr::GfMatrix4d(1); // Identity matrix for non-transformable prims
-}
 
 // Recursive function to traverse the USD hierarchy and extract meshes
-void traverseStageAndExtractMeshes(const pxr::UsdPrim& prim, 
-                                   const pxr::GfMatrix4d& parentTransform, 
-                                   std::vector<std::shared_ptr<mesh>>& meshes,
-                                   std::shared_ptr<material> mat) {
-
-
-    pxr::GfMatrix4d localTransform = getLocalTransform(prim);
-    pxr::GfMatrix4d fullTransform = parentTransform * localTransform;
+void traverseStageAndExtractMeshes(const pxr::UsdPrim& prim, std::vector<std::shared_ptr<mesh>>& meshes, std::shared_ptr<material> mat) {
     std::cout << std::endl << "Prim Path: " << prim.GetPath().GetString() << std::endl;
-    std::cout << "Parent Transform: " << parentTransform << std::endl;
-    std::cout << "Local Transform: " << localTransform << std::endl;
-    std::cout << "Full Transform: " << fullTransform << std::endl;
     if (prim.IsA<pxr::UsdGeomMesh>()) {
         pxr::UsdGeomMesh usdMesh(prim);
-        
-        // Create a new mesh object with the accumulated transform
-        auto newMesh = std::make_shared<mesh>(usdMesh, mat, fullTransform);
+        pxr::GfMatrix4d xform = pxr::UsdGeomXformable(usdMesh).ComputeLocalToWorldTransform(pxr::UsdTimeCode::Default());
+        auto newMesh = std::make_shared<mesh>(usdMesh, mat, xform);
         meshes.push_back(newMesh);
     }
-    
-    // Recurse through children
-    for (const auto& child : prim.GetChildren()) {
-        traverseStageAndExtractMeshes(child, fullTransform, meshes, mat);
-    }
+    for (const auto& child : prim.GetChildren()) traverseStageAndExtractMeshes(child, meshes, mat);
 }
 std::vector<std::shared_ptr<mesh>> extractMeshesFromUsdStage(const pxr::UsdStageRefPtr& stage, std::shared_ptr<material> mat) {
     std::vector<std::shared_ptr<mesh>> meshes;
     pxr::UsdPrim rootPrim = stage->GetPseudoRoot();
-    pxr::GfMatrix4d rootTransform(1); // Start with identity matrix
-
-    traverseStageAndExtractMeshes(rootPrim, rootTransform, meshes, mat);
-
+    traverseStageAndExtractMeshes(rootPrim, meshes, mat);
     return meshes;
 }
 
