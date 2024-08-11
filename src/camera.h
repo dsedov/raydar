@@ -12,10 +12,10 @@ class camera {
 
     int samples_per_pixel = 64;
     int max_depth         = 10;
-    double vfov           = 60;
-    point3 lookfrom       = point3(0,0,0);   // Point camera is looking from
-    point3 lookat         = point3(0,0,-1);  // Point camera is looking at
-    vec3   vup            = vec3(0,1,0);
+    double fov;
+    point3 lookfrom;   // Point camera is looking from
+    point3 lookat;  // Point camera is looking at
+    vec3   vup;
     /* Public Camera Parameters Here */
     camera(Image & image_buffer) : image_buffer(image_buffer) {
        
@@ -87,14 +87,21 @@ class camera {
     
     double pixel_samples_scale;
 
-    void initialize() {
-
-
+    void initialize(bool is_vertical_fov = false, bool fov_in_degrees = true) {
         auto focal_length = (lookfrom - lookat).length();
-        auto theta = degrees_to_radians(vfov);
-        auto h = std::tan(theta/2);
-        auto viewport_height = 2 * h * focal_length;
-        auto viewport_width = viewport_height * (double(image_buffer.width())/image_buffer.height());
+        
+        // Convert FOV to radians if it's in degrees
+        double fov_radians = fov_in_degrees ? degrees_to_radians(fov) : fov;
+        
+        // Calculate viewport dimensions based on FOV type
+        double viewport_height, viewport_width;
+        if (is_vertical_fov) {
+            viewport_height = 2.0 * focal_length * tan(fov_radians / 2.0);
+            viewport_width = viewport_height * (double(image_buffer.width()) / image_buffer.height());
+        } else {
+            viewport_width = 2.0 * focal_length * tan(fov_radians / 2.0);
+            viewport_height = viewport_width / (double(image_buffer.width()) / image_buffer.height());
+        }
 
         pixel_samples_scale = 1.0 / samples_per_pixel;
         camera_center = lookfrom;

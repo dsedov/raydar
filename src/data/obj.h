@@ -9,6 +9,10 @@
 #include <fstream>
 #include <sstream>
 
+#include <pxr/usd/usd/stage.h>
+#include <pxr/usd/usdGeom/mesh.h>
+#include <pxr/base/vt/array.h>
+
 class Triangle {
 public:
     Triangle(const point3& v0, const point3& v1, const point3& v2, shared_ptr<material> mat)
@@ -150,5 +154,76 @@ private:
         std::cout << "Loaded " << vertices.size() << " vertices and " << triangles.size() << " triangles from " << filename << std::endl;
     }
 };
+class mesh : public hittable {
+public:
+    mesh(const pxr::UsdGeomMesh& usdMesh, shared_ptr<material> mat, const pxr::GfMatrix4d& transform)
+        : mat(mat), transform(transform) {
+        loadFromUsdMesh(usdMesh);
+    }
 
+    bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
+        bool hit_anything = false;
+        auto closest_so_far = ray_t.max;
+
+        for (const auto& triangle : triangles) {
+            if (triangle.hit(r, interval(ray_t.min, closest_so_far), rec)) {
+                hit_anything = true;
+                closest_so_far = rec.t;
+            }
+        }
+
+        return hit_anything;
+    }
+
+private:
+    std::vector<Triangle> triangles;
+    pxr::GfMatrix4d transform;
+    shared_ptr<material> mat;
+
+    void loadFromUsdMesh(const pxr::UsdGeomMesh& usdMesh) {
+        pxr::VtArray<pxr::GfVec3f> points;
+        pxr::VtArray<int> faceVertexCounts;
+        pxr::VtArray<int> faceVertexIndices;
+
+        usdMesh.GetPointsAttr().Get(&points);
+        usdMesh.GetFaceVertexCountsAttr().Get(&faceVertexCounts);
+        usdMesh.GetFaceVertexIndicesAttr().Get(&faceVertexIndices);
+
+        std::vector<point3> vertices;
+        for (const auto& point : points) {
+            // Apply transformation to each point
+            pxr::GfVec3d transformedPoint = transform.Transform(pxr::GfVec3d(point));
+            vertices.emplace_back(transformedPoint[0], transformedPoint[1], transformedPoint[2]);
+        }
+
+        size_t index = 0;
+        for (int faceVertexCount : faceVertexCounts) {
+            if (faceVertexCount < 3) {
+                std::cerr << "Error: face with less than 3 vertices" << std::endl;
+                index += faceVertexCount;
+                continue;
+            }
+
+            // Triangulate the face if it has more than 3 vertices
+            for (int i = 1; i < faceVertexCount - 1; ++i) {
+                int v0 = faceVertexIndices[index];
+                int v1 = faceVertexIndices[index + i];
+                int v2 = faceVertexIndices[index + i + 1];
+
+                if (v0 < 0 || v0 >= vertices.size() ||
+                    v1 < 0 || v1 >= vertices.size() ||
+                    v2 < 0 || v2 >= vertices.size()) {
+                    std::cerr << "Error: invalid vertex index" << std::endl;
+                    continue;
+                }
+
+                triangles.emplace_back(vertices[v0], vertices[v1], vertices[v2], mat);
+            }
+
+            index += faceVertexCount;
+        }
+
+        std::cout << "Loaded " << vertices.size() << " vertices and " << triangles.size() << " triangles from USD Mesh" << std::endl;
+    }
+};
 #endif
