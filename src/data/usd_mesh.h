@@ -4,6 +4,7 @@
 #include "hittable.h"
 #include "interval.h"
 #include "vec3.h"
+#include "aabb.h"
 #include <vector>
 #include <string>
 #include <fstream>
@@ -21,7 +22,9 @@ public:
         edge2 = v2 - v0;
         normal = unit_vector( cross(edge1, edge2) );
     }
-
+    aabb bounding_box() const {
+        return aabb(v0, v1, v2);
+    }
     bool hit(const ray& r, interval ray_t, hit_record& rec) const {
         const float EPSILON = 0.0000001;
         vec3 h = cross(r.direction(), edge2);
@@ -70,98 +73,88 @@ private:
     shared_ptr<material> mat;
 };
 
-class obj : public hittable {
+class usd_mesh : public hittable {
 public:
-    obj(const std::string& filename, shared_ptr<material> mat) : mat(mat) {
-        loadFromFile(filename);        
-    }
-
-    bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
-        bool hit_anything = false;
-        auto closest_so_far = ray_t.max;
-
+    usd_mesh(std::vector<Triangle> triangles, shared_ptr<material> mat){
+        this->triangles = triangles;
+        this->mat = mat;
         for (const auto& triangle : triangles) {
-            if (triangle.hit(r, interval(ray_t.min, closest_so_far), rec)) {
-                hit_anything = true;
-                closest_so_far = rec.t;
-            }
+            bbox = aabb(bbox, triangle.bounding_box());
         }
-
-        return hit_anything;
+        // padd bbox by 0.01
+        bbox.pad(0.000001);
     }
-
-private:
-    std::vector<Triangle> triangles;
-    shared_ptr<material> mat;
-
-    void loadFromFile(const std::string& filename) {
-        std::ifstream file(filename);
-        if (!file.is_open()) {
-            throw std::runtime_error("Failed to open file: " + filename);
-        }
-
-        std::vector<point3> vertices;
-        std::string line;
-        int line_number = 0;
-
-        while (std::getline(file, line)) {
-            line_number++;
-            std::istringstream iss(line);
-            std::string type;
-            iss >> type;
-
-            if (type == "v") {
-                double x, y, z;
-                if (!(iss >> x >> y >> z)) {
-                    std::cerr << "Error parsing vertex on line " << line_number << ": " << line << std::endl;
-                    continue;
-                }
-                vertices.emplace_back(x, y, z);
-            } else if (type == "f") {
-                std::vector<int> face_vertices;
-                std::string vertex;
-                while (iss >> vertex) {
-                    std::istringstream vertex_iss(vertex);
-                    int v;
-                    if (vertex_iss >> v) {
-                        face_vertices.push_back(v);
-                    }
-                }
-
-                if (face_vertices.size() < 3) {
-                    std::cerr << "Error: face with less than 3 vertices on line " << line_number << ": " << line << std::endl;
-                    continue;
-                }
-
-                // Triangulate the face if it has more than 3 vertices
-                for (size_t i = 1; i < face_vertices.size() - 1; ++i) {
-                    int v0 = face_vertices[0] - 1;  // OBJ files use 1-based indexing
-                    int v1 = face_vertices[i] - 1;
-                    int v2 = face_vertices[i+1] - 1;
-
-                    if (v0 < 0 || v0 >= vertices.size() ||
-                        v1 < 0 || v1 >= vertices.size() ||
-                        v2 < 0 || v2 >= vertices.size()) {
-                        std::cerr << "Error: invalid vertex index on line " << line_number << ": " << line << std::endl;
-                        continue;
-                    }
-
-                    triangles.emplace_back(vertices[v0], vertices[v1], vertices[v2], mat);
-                }
-            }
-        }
-
-        std::cout << "Loaded " << vertices.size() << " vertices and " << triangles.size() << " triangles from " << filename << std::endl;
-    }
-};
-class mesh : public hittable {
-public:
-    mesh(const pxr::UsdGeomMesh& usdMesh, shared_ptr<material> mat, const pxr::GfMatrix4d& transform)
+    usd_mesh(const pxr::UsdGeomMesh& usdMesh, shared_ptr<material> mat, const pxr::GfMatrix4d& transform)
         : mat(mat), transform(transform) {
-        // std::cout << "Adding mesh to scene with path: " << usdMesh.GetPath().GetString() << std::endl;
         std::cout << "Transform: " << transform << std::endl;
         loadFromUsdMesh(usdMesh);
     }
+    int get_num_triangles() const {
+        return triangles.size();
+    }
+    // Split in the middle along the given axis. Return two new meshes with the split triangles.
+    std::vector<usd_mesh> & split(std::vector<usd_mesh> & meshes) {
+        
+        if(triangles.size() == 0) {
+            std::cout << "No triangles to split" << std::endl;
+            return meshes;
+        }
+        if(triangles.size() <= 10) {
+            std::cout << "Terminating mesh with " << triangles.size() << " triangles to meshes" << std::endl;
+            meshes.push_back(*this);
+            return meshes;
+        }
+        std::cout << "Splitting mesh with " << triangles.size() << " triangles" << std::endl;
+
+        // Find the middle point along the given axis
+        // Find the longest axis
+        int axis = 0;
+        double max_length = bbox.x.size();
+        
+        if (bbox.y.size() > max_length) {
+            axis = 1;
+            max_length = bbox.y.size();
+        }
+        
+        if (bbox.z.size() > max_length) {
+            axis = 2;
+        }
+        double mid = (bbox.axis_interval(axis).min + bbox.axis_interval(axis).max) / 2.0;
+
+        std::vector<Triangle> left_triangles, right_triangles;
+
+        // Sort triangles into left and right based on their center point
+        for (const auto& triangle : triangles) {
+            aabb triangle_bbox = triangle.bounding_box();
+            interval axis_interval = triangle_bbox.axis_interval(axis);
+            double mid_point = (axis_interval.min + axis_interval.max) / 2.0;
+            if (mid_point < mid) {
+                left_triangles.push_back(triangle);
+            } else {
+                right_triangles.push_back(triangle);
+            }
+        }
+        if (left_triangles.size() > 0) { 
+            if (left_triangles.size() == triangles.size()) {
+                std::cout << "Terminating mesh with " << left_triangles.size() << " triangles to meshes" << std::endl;
+                meshes.push_back(*this);
+                return meshes;
+            }
+            usd_mesh left_mesh(left_triangles, mat);
+            meshes = left_mesh.split(meshes);
+        }
+        if (right_triangles.size() > 0) {
+            if (right_triangles.size() == triangles.size()) {
+                std::cout << "Terminating mesh with " << right_triangles.size() << " triangles to meshes" << std::endl;
+                meshes.push_back(*this);
+                return meshes;
+            }
+            usd_mesh right_mesh(right_triangles, mat);
+            meshes = right_mesh.split(meshes);
+        }
+        return meshes;
+
+    }
 
     bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
         bool hit_anything = false;
@@ -175,11 +168,16 @@ public:
         }
 
         return hit_anything;
+    }
+
+    aabb bounding_box() const override {
+        return bbox;
     }
 
 private:
     std::vector<Triangle> triangles;
     pxr::GfMatrix4d transform;
+    aabb bbox;
     shared_ptr<material> mat;
 
     void loadFromUsdMesh(const pxr::UsdGeomMesh& usdMesh) {
@@ -192,11 +190,24 @@ private:
         usdMesh.GetFaceVertexIndicesAttr().Get(&faceVertexIndices);
 
         std::vector<point3> vertices;
+        point3 min_point(infinity, infinity, infinity);
+        point3 max_point(-infinity, -infinity, -infinity);
+
         for (const auto& point : points) {
             // Apply transformation to each point
             pxr::GfVec3d transformedPoint = transform.Transform(pxr::GfVec3d(point));
-            vertices.emplace_back(transformedPoint[0], transformedPoint[1], transformedPoint[2]);
+            point3 vertex(transformedPoint[0], transformedPoint[1], transformedPoint[2]);
+            vertices.push_back(vertex);
+
+            // Update bounding box
+            for (int i = 0; i < 3; ++i) {
+                min_point[i] = std::min(min_point[i], vertex[i]);
+                max_point[i] = std::max(max_point[i], vertex[i]);
+            }
         }
+
+        // Set the bounding box
+        bbox = aabb(min_point, max_point);
 
         size_t index = 0;
         for (int faceVertexCount : faceVertexCounts) {
@@ -226,6 +237,7 @@ private:
         }
 
         std::cout << "Loaded " << vertices.size() << " vertices and " << triangles.size() << " triangles from USD Mesh" << std::endl;
+        std::cout << "Bounding box: min(" << min_point << "), max(" << max_point << ")" << std::endl;
     }
 };
 #endif

@@ -6,7 +6,8 @@
 #include "data/hittable.h"
 #include "data/hittable_list.h"
 #include "data/sphere.h"
-#include "data/obj.h"
+#include "data/usd_mesh.h"
+#include "data/bvh.h"
 
 
 #include "camera.h"
@@ -109,18 +110,18 @@ pxr::UsdGeomCamera findFirstCamera(const pxr::UsdStageRefPtr& stage) {
 }
 
 // Recursive function to traverse the USD hierarchy and extract meshes
-void traverseStageAndExtractMeshes(const pxr::UsdPrim& prim, std::vector<std::shared_ptr<mesh>>& meshes, std::shared_ptr<material> mat) {
+void traverseStageAndExtractMeshes(const pxr::UsdPrim& prim, std::vector<std::shared_ptr<usd_mesh>>& meshes, std::shared_ptr<material> mat) {
     std::cout << std::endl << "Prim Path: " << prim.GetPath().GetString() << std::endl;
     if (prim.IsA<pxr::UsdGeomMesh>()) {
         pxr::UsdGeomMesh usdMesh(prim);
         pxr::GfMatrix4d xform = pxr::UsdGeomXformable(usdMesh).ComputeLocalToWorldTransform(pxr::UsdTimeCode::Default());
-        auto newMesh = std::make_shared<mesh>(usdMesh, mat, xform);
+        auto newMesh = std::make_shared<usd_mesh>(usdMesh, mat, xform);
         meshes.push_back(newMesh);
     }
     for (const auto& child : prim.GetChildren()) traverseStageAndExtractMeshes(child, meshes, mat);
 }
-std::vector<std::shared_ptr<mesh>> extractMeshesFromUsdStage(const pxr::UsdStageRefPtr& stage, std::shared_ptr<material> mat) {
-    std::vector<std::shared_ptr<mesh>> meshes;
+std::vector<std::shared_ptr<usd_mesh>> extractMeshesFromUsdStage(const pxr::UsdStageRefPtr& stage, std::shared_ptr<material> mat) {
+    std::vector<std::shared_ptr<usd_mesh>> meshes;
     pxr::UsdPrim rootPrim = stage->GetPseudoRoot();
     traverseStageAndExtractMeshes(rootPrim, meshes, mat);
     return meshes;
@@ -153,7 +154,7 @@ int main(int argc, char *argv[]) {
 
     // TODO:LOAD GEOMETRY
     auto material_lambert= make_shared<lambertian>(color(0.5, 0.5, 0.5));
-    std::vector<std::shared_ptr<mesh>> sceneMeshes = extractMeshesFromUsdStage(stage, material_lambert);
+    std::vector<std::shared_ptr<usd_mesh>> sceneMeshes = extractMeshesFromUsdStage(stage, material_lambert);
     
 
     camera camera(image);
@@ -175,10 +176,15 @@ int main(int argc, char *argv[]) {
     auto material_ground2 = make_shared<lambertian>(color(0.5, 0.5, 0.5));
     // for each mesh in sceneMeshes
     for (const auto& mesh : sceneMeshes) {
-        world.add(mesh);
+        std::vector<usd_mesh> meshes;
+        meshes = mesh->split(meshes);
+        for(const auto& m : meshes) {   
+            world.add(make_shared<usd_mesh>(m));
+        }
     }
     
-    
+    world = hittable_list(make_shared<bvh_node>(world));
+
     camera.mt_render(world);
     image.save(settings.image_file.c_str());
     return 0;
