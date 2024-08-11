@@ -45,6 +45,15 @@ CameraProperties extractCameraProperties(const pxr::UsdGeomCamera& camera) {
     if (translateAttr) {
         translateAttr.Get(&props.translate);
     }
+    // Extract up
+    pxr::UsdAttribute upAttr = camera.GetPrim().GetAttribute(pxr::TfToken("primvars:arnold:up"));
+    if (upAttr) {
+        pxr::VtArray<pxr::GfVec3f> upArray;
+        upAttr.Get(&upArray);
+        if (!upArray.empty()) {
+            props.lookUp = pxr::GfVec3d(upArray[0][0], upArray[0][1], upArray[0][2]);
+        }
+    }
 
     // Extract FOV
     pxr::UsdAttribute fovAttr = camera.GetPrim().GetAttribute(pxr::TfToken("primvars:arnold:fov"));
@@ -81,7 +90,7 @@ CameraProperties extractCameraProperties(const pxr::UsdGeomCamera& camera) {
 
     // Set lookAt and lookUp
     props.lookAt = props.center - forward;
-    props.lookUp = up;
+
 
     return props;
 }
@@ -103,11 +112,14 @@ pxr::GfMatrix4d getLocalTransform(const pxr::UsdPrim& prim) {
         pxr::UsdGeomXformable xformable(prim);
         bool resetsXformStack;
         std::vector<pxr::UsdGeomXformOp> xformOps = xformable.GetOrderedXformOps(&resetsXformStack);
+        for (const auto& op : xformOps) {
+            std::cout << "Xform Op: " << op.GetOpName() << std::endl;
+            std::cout << "Xform Op Transform: " << op.GetOpTransform(pxr::UsdTimeCode::Default()) << std::endl;
+        }
         
         pxr::GfMatrix4d localTransform(1); // Identity matrix
         for (const auto& op : xformOps) {
-            pxr::GfMatrix4d mat;
-            op.GetOpTransform(pxr::UsdTimeCode::Default());
+            pxr::GfMatrix4d mat = op.GetOpTransform(pxr::UsdTimeCode::Default());
             localTransform = localTransform * mat;
         }
         return localTransform;
@@ -124,7 +136,10 @@ void traverseStageAndExtractMeshes(const pxr::UsdPrim& prim,
 
     pxr::GfMatrix4d localTransform = getLocalTransform(prim);
     pxr::GfMatrix4d fullTransform = parentTransform * localTransform;
-
+    std::cout << std::endl << "Prim Path: " << prim.GetPath().GetString() << std::endl;
+    std::cout << "Parent Transform: " << parentTransform << std::endl;
+    std::cout << "Local Transform: " << localTransform << std::endl;
+    std::cout << "Full Transform: " << fullTransform << std::endl;
     if (prim.IsA<pxr::UsdGeomMesh>()) {
         pxr::UsdGeomMesh usdMesh(prim);
         
@@ -132,7 +147,7 @@ void traverseStageAndExtractMeshes(const pxr::UsdPrim& prim,
         auto newMesh = std::make_shared<mesh>(usdMesh, mat, fullTransform);
         meshes.push_back(newMesh);
     }
-
+    
     // Recurse through children
     for (const auto& child : prim.GetChildren()) {
         traverseStageAndExtractMeshes(child, fullTransform, meshes, mat);
