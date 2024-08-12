@@ -17,7 +17,7 @@ class material {
         return false;
     }
 
-    virtual color emitted(double u, double v, const point3& p) const {
+    virtual color emitted() const {
         return color(0,0,0);
     }
 };
@@ -146,7 +146,7 @@ public:
         return true;
     }
 
-    color emitted(double u, double v, const point3& p) const override {
+    color emitted() const override {
         return emission_luminance * emission_color;
     }
 
