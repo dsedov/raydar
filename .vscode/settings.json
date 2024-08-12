@@ -64,7 +64,8 @@
         "unordered_set": "cpp",
         "variant": "cpp",
         "algorithm": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "queue": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

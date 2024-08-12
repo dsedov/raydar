@@ -93,40 +93,56 @@ public:
         return triangles.size();
     }
     // Split in the middle along the given axis. Return two new meshes with the split triangles.
-    std::vector<usd_mesh> & split(std::vector<usd_mesh> & meshes) {
-        
+    std::vector<usd_mesh> & split(std::vector<usd_mesh> & meshes, int level = 0) {
+        // padded string 
+        std::string padding = std::string(level, ' ');
         if(triangles.size() == 0) {
-            std::cout << "No triangles to split" << std::endl;
+            std::cout << padding << "No triangles to split" << std::endl;
             return meshes;
         }
         if(triangles.size() <= 10) {
-            std::cout << "Terminating mesh with " << triangles.size() << " triangles to meshes" << std::endl;
+            std::cout << padding << "Terminating mesh with " << triangles.size() << " triangles to meshes" << std::endl;
             meshes.push_back(*this);
             return meshes;
         }
-        std::cout << "Splitting mesh with " << triangles.size() << " triangles" << std::endl;
+        std::cout << padding << "Splitting mesh with " << triangles.size() << " triangles" << std::endl;
 
-        // Find the middle point along the given axis
-        // Find the longest axis
-        int axis = 0;
-        double max_length = bbox.x.size();
-        
-        if (bbox.y.size() > max_length) {
-            axis = 1;
-            max_length = bbox.y.size();
+        // Find the axis that allows for the most equal split
+        int best_axis = 0;
+        double best_balance = std::numeric_limits<double>::max();
+        double mid;
+
+        for (int axis = 0; axis < 3; ++axis) {
+            std::vector<double> centroids;
+            for (const auto& triangle : triangles) {
+                aabb triangle_bbox = triangle.bounding_box();
+                interval axis_interval = triangle_bbox.axis_interval(axis);
+                centroids.push_back((axis_interval.min + axis_interval.max) / 2.0);
+            }
+
+            std::nth_element(centroids.begin(), centroids.begin() + centroids.size()/2, centroids.end());
+            double median = centroids[centroids.size()/2];
+
+            int left_count = 0, right_count = 0;
+            for (double centroid : centroids) {
+                if (centroid < median) ++left_count;
+                else ++right_count;
+            }
+
+            double balance = std::abs(left_count - right_count);
+            if (balance < best_balance) {
+                best_balance = balance;
+                best_axis = axis;
+                mid = median;
+            }
         }
-        
-        if (bbox.z.size() > max_length) {
-            axis = 2;
-        }
-        double mid = (bbox.axis_interval(axis).min + bbox.axis_interval(axis).max) / 2.0;
 
         std::vector<Triangle> left_triangles, right_triangles;
 
         // Sort triangles into left and right based on their center point
         for (const auto& triangle : triangles) {
             aabb triangle_bbox = triangle.bounding_box();
-            interval axis_interval = triangle_bbox.axis_interval(axis);
+            interval axis_interval = triangle_bbox.axis_interval(best_axis);
             double mid_point = (axis_interval.min + axis_interval.max) / 2.0;
             if (mid_point < mid) {
                 left_triangles.push_back(triangle);
@@ -134,26 +150,26 @@ public:
                 right_triangles.push_back(triangle);
             }
         }
+
         if (left_triangles.size() > 0) { 
             if (left_triangles.size() == triangles.size()) {
-                std::cout << "Terminating mesh with " << left_triangles.size() << " triangles to meshes" << std::endl;
+                std::cout << padding << "Terminating mesh with " << left_triangles.size() << " triangles to meshes" << std::endl;
                 meshes.push_back(*this);
                 return meshes;
             }
             usd_mesh left_mesh(left_triangles, mat);
-            meshes = left_mesh.split(meshes);
+            meshes = left_mesh.split(meshes, level + 1);
         }
         if (right_triangles.size() > 0) {
             if (right_triangles.size() == triangles.size()) {
-                std::cout << "Terminating mesh with " << right_triangles.size() << " triangles to meshes" << std::endl;
+                std::cout << padding << "Terminating mesh with " << right_triangles.size() << " triangles to meshes" << std::endl;
                 meshes.push_back(*this);
                 return meshes;
             }
             usd_mesh right_mesh(right_triangles, mat);
-            meshes = right_mesh.split(meshes);
+            meshes = right_mesh.split(meshes, level + 1);
         }
         return meshes;
-
     }
 
     bool hit(const ray& r, interval ray_t, hit_record& rec) const override {

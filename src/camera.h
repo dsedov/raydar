@@ -7,6 +7,46 @@
 #include "image/image.h"
 #include "material.h"
 #include <thread>
+
+#include <atomic>
+#include <chrono>
+#include <iostream>
+#include <mutex>
+#include <vector>
+#include <random>
+#include <algorithm>
+
+class ProgressBar {
+public:
+    ProgressBar(int total) : total(total), last_printed(0) {}
+    
+    void update(int current) {
+        int last = last_printed.load();
+        if (current - last > total / 100) {  // Update every 1% progress
+            if (last_printed.compare_exchange_strong(last, current)) {
+                print(current);
+            }
+        }
+    }
+
+private:
+    void print(int current) {
+        float progress = static_cast<float>(current) / total;
+        int barWidth = 70;
+        std::cout << "\r[";
+        int pos = barWidth * progress;
+        for (int i = 0; i < barWidth; ++i) {
+            if (i < pos) std::cout << "=";
+            else if (i == pos) std::cout << ">";
+            else std::cout << " ";
+        }
+        std::cout << "] " << int(progress * 100.0) << "%" << std::flush;
+    }
+
+    int total;
+    std::atomic<int> last_printed;
+};
+
 class camera {
   public:
 
@@ -20,7 +60,9 @@ class camera {
     camera(Image & image_buffer) : image_buffer(image_buffer) {
        
     }
-
+    float color_variance(const color& c1, const color& c2) {
+    return (c1 - c2).length_squared() / 3.0f;
+}
     void render(const hittable& world) {
         initialize();
         auto start_time = std::chrono::high_resolution_clock::now();
@@ -47,7 +89,8 @@ class camera {
         auto start_time = std::chrono::high_resolution_clock::now();
 
         std::vector<std::thread> threads;
-        std::atomic<int> scanlines_remaining(image_buffer.height());
+        std::atomic<int> scanlines_completed(0);
+        ProgressBar progress_bar(image_buffer.height());
 
         auto render_scanline = [&](int j) {
             for (int i = 0; i < image_buffer.width(); i++) {
@@ -59,8 +102,9 @@ class camera {
                 pixel_color *= pixel_samples_scale;
                 image_buffer.set_pixel(i, j, pixel_color);
             }
-            int remaining = scanlines_remaining.fetch_sub(1) - 1;
-            std::cout << "\rScanlines remaining: " << remaining << "           " << std::flush;
+            
+            int completed = scanlines_completed.fetch_add(1) + 1;
+            progress_bar.update(completed);
         };
 
         for (int j = 0; j < image_buffer.height(); j++) {
@@ -71,11 +115,14 @@ class camera {
             thread.join();
         }
 
+        std::cout << std::endl; // Move to the next line after progress bar
 
         auto end_time = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
-        std::cout << "\nRendering time: " << duration.count() << " seconds" << std::endl;
+        std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
     }
+    
+    
   private:
     /* Private Camera Variables Here */
     Image & image_buffer;

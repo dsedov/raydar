@@ -25,6 +25,10 @@ public:
     void set_pixel(int x, int y, color color) {
         set_pixel(x, y, color.x(), color.y(), color.z());
     }
+    color get_pixel(int x, int y) {
+        int index = y * row_size_ + x * channels_;
+        return color(image_buffer_[index], image_buffer_[index + 1], image_buffer_[index + 2]);
+    }
 
     int width() { return width_;}
     int height() { return height_;}
