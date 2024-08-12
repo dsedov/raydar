@@ -24,8 +24,25 @@
 #include <pxr/usd/usdShade/material.h>
 #include <pxr/usd/usdShade/materialBindingAPI.h>
 #include <pxr/usd/usdShade/shader.h>
+#include <pxr/usd/usdLux/rectLight.h>
 #include "helpers/settings.h"
 
+struct AreaLight {
+    pxr::GfVec3f color;
+    float diffuse;
+    float exposure;
+    float height;
+    float width;
+    float intensity;
+    bool normalize;
+    pxr::GfVec3f shadowColor;
+    bool shadowEnable;
+    float specular;
+    std::vector<pxr::GfVec3f> vertices;
+    pxr::GfVec3f rotation;
+    pxr::GfVec3f scale;
+    pxr::GfVec3d translation;
+};
 struct MaterialProperties {
     std::string fullPath;
     float metallic = 0.0f;
@@ -255,6 +272,19 @@ std::unordered_map<std::string, std::shared_ptr<material>> loadMaterialsFromStag
     return materials;
 }
 
+std::vector<AreaLight> extractAreaLightsFromUsdStage(const pxr::UsdStageRefPtr& stage) {
+    std::vector<AreaLight> areaLights;
+    
+    for (const auto& prim : stage->TraverseAll()) {
+        if (prim.IsA<pxr::UsdLuxRectLight>()) {
+            std::cout << "RectLight: " << prim.GetPath().GetString() << std::endl;
+            AreaLight light = AreaLight();
+            areaLights.push_back(light);
+        }
+    }
+    
+    return areaLights;
+}
 int main(int argc, char *argv[]) {
 
     settings settings(argc, argv);
@@ -288,6 +318,8 @@ int main(int argc, char *argv[]) {
     // LOAD GEOMETRY
     std::vector<std::shared_ptr<usd_mesh>> sceneMeshes = extractMeshesFromUsdStage(stage, materials);
     
+    // LOAD AREA LIGHTS
+    std::vector<AreaLight> areaLights = extractAreaLightsFromUsdStage(stage);
 
     camera camera(image);
     camera.fov      = cameraProps.fov;
