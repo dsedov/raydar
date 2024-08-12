@@ -20,6 +20,14 @@ class material {
     virtual color emitted(double u, double v, const point3& p) const {
         return color(0,0,0);
     }
+    virtual bool is_visible() const {
+        return visible;
+    }
+    virtual void set_visible(bool v) {
+        visible = v;
+    }
+    private:
+        bool visible = true;
 };
 class lambertian : public material {
   public:
@@ -36,9 +44,30 @@ class lambertian : public material {
         attenuation = albedo;
         return true;
     }
+    
 
   private:
     color albedo;
+};
+class light : public material {
+  public:
+    light(const color& light_color, double light_intensity) : light_color(light_color), light_intensity(light_intensity) {
+        set_visible(false);
+    }
+
+    bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered)
+    const override {
+        return false; // Lights don't scatter; they only emit
+    }
+
+    color emitted(double u, double v, const point3& p) const override {
+        return light_color * light_intensity;
+    }
+
+  private:
+    color light_color;
+    double light_intensity;
+
 };
 class metal : public material {
   public:
@@ -111,37 +140,59 @@ public:
     bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered) const override {
         vec3 reflected = reflect(unit_vector(r_in.direction()), rec.normal);
         vec3 refracted = refract(unit_vector(r_in.direction()), rec.normal, 1.0 / specular_ior);
+
+        color weighted_base_color = base_color * base_weight;
         
         // Compute fresnel term (Schlick approximation)
         double cosTheta = std::fmin(dot(-unit_vector(r_in.direction()), rec.normal), 1.0);
         vec3 F0 = vec3(0.04, 0.04, 0.04);
-        F0 = vec3(F0.x() * (1.0 - base_metalness) + base_color.x() * base_metalness,
-                  F0.y() * (1.0 - base_metalness) + base_color.y() * base_metalness,
-                  F0.z() * (1.0 - base_metalness) + base_color.z() * base_metalness);
+        F0 = vec3(F0.x() * (1.0 - base_metalness) + weighted_base_color.x() * base_metalness,
+                  F0.y() * (1.0 - base_metalness) + weighted_base_color.y() * base_metalness,
+                  F0.z() * (1.0 - base_metalness) + weighted_base_color.z() * base_metalness);
         vec3 F = F0 + (vec3(1.0, 1.0, 1.0) - F0) * std::pow(1.0 - cosTheta, 5.0);
 
         // Compute roughness influence
         vec3 scatter_direction = reflected + specular_roughness * random_in_unit_sphere();
 
-        // Ensure the scatter direction is above the surface
-        if (scatter_direction.near_zero() || dot(scatter_direction, rec.normal) < 0)
-            scatter_direction = rec.normal;
+        // Handle scatter direction more accurately
+        if (scatter_direction.near_zero()) {
+            // If the scatter direction is too close to zero, use a random direction in the hemisphere
+            scatter_direction = random_on_hemisphere(rec.normal);
+        } else if (dot(scatter_direction, rec.normal) < 0) {
+            // If the scatter direction is below the surface, reflect it about the normal
+            scatter_direction = scatter_direction - 2 * dot(scatter_direction, rec.normal) * rec.normal;
+        }
+        // Normalize the scatter direction
+        scatter_direction = unit_vector(scatter_direction);
 
-        // Probabilistically choose between reflection, refraction, and diffuse scattering
+        // Calculate the total weight
+        double total_weight = base_weight + specular_weight + transmission_weight;
+
+        // Normalize weights
+        double norm_base_weight = base_weight / total_weight;
+        double norm_specular_weight = specular_weight / total_weight;
+        double norm_transmission_weight = transmission_weight / total_weight;
+
+        // Choose between reflection, refraction, and diffuse scattering
         double p = random_double();
-        if (p < base_weight) {
+        if (p < norm_base_weight) {
             // Diffuse scattering
             scattered = ray(rec.p, rec.normal + random_unit_vector());
-            attenuation = base_color * (1.0 - base_metalness);
-        } else if (p < base_weight + specular_weight) {
+            attenuation = base_color * (1.0 - base_metalness) * norm_base_weight;
+        } else if (p < norm_base_weight + norm_specular_weight) {
             // Specular reflection
             scattered = ray(rec.p, scatter_direction);
-            attenuation = specular_color * F;
+            attenuation = specular_color * F * norm_specular_weight;
         } else {
             // Transmission
             scattered = ray(rec.p, refracted);
-            attenuation = transmission_color;
+            attenuation = transmission_color * norm_transmission_weight;
         }
+
+        // Add contributions from all components
+        attenuation += base_color * (1.0 - base_metalness) * norm_base_weight;
+        attenuation += specular_color * F * norm_specular_weight;
+        attenuation += transmission_color * norm_transmission_weight;
 
         return true;
     }

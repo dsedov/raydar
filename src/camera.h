@@ -131,7 +131,7 @@ class camera {
     vec3 pixel_delta_u;
     vec3 pixel_delta_v;
     vec3 u, v, w;              // Camera frame basis vectors
-    
+    color background_color = color(0.0, 0.0, 0.0) ;
     double pixel_samples_scale;
 
     void initialize(bool is_vertical_fov = false, bool fov_in_degrees = true) {
@@ -193,18 +193,27 @@ class camera {
             return color(0,0,0);
 
         hit_record rec;
-        if (world.hit(r, interval(0.001, infinity), rec)) { 
-            ray scattered;
-            color attenuation;
-            color emitted = rec.mat->emitted(rec.u, rec.v, rec.p);
-            if (rec.mat->scatter(r, rec, attenuation, scattered))
-                return emitted + attenuation * ray_color(scattered, depth-1, world);
-            return color(0,0,0);
+        if (!world.hit(r, interval(0.001, infinity), rec)) { 
+            return background_color;
         }
 
-        vec3 unit_direction = unit_vector(r.direction());
-        auto a = 0.5*(unit_direction.y() + 1.0);
-        return (1.0-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
+        // For primary rays where depth is equal to max_depth
+        if (depth == max_depth && !rec.mat->is_visible()) {
+            // Continue ray in the same direction with a small bias
+            const double bias = 0.0001;
+            ray continued_ray(rec.p + bias * r.direction(), r.direction());
+            return ray_color(continued_ray, depth, world);
+        }
+
+        ray scattered;
+        color attenuation;
+        
+        color emitted = rec.mat->emitted(rec.u, rec.v, rec.p);
+
+        if (!rec.mat->scatter(r, rec, attenuation, scattered)){
+            return emitted;
+        }
+        return emitted + attenuation * ray_color(scattered, depth-1, world);
     }
 };
 

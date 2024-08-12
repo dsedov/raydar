@@ -6,6 +6,7 @@
 #include "data/hittable.h"
 #include "data/hittable_list.h"
 #include "data/sphere.h"
+#include "data/quad.h"
 #include "data/usd_mesh.h"
 #include "data/bvh.h"
 
@@ -38,10 +39,14 @@ struct AreaLight {
     pxr::GfVec3f shadowColor;
     bool shadowEnable;
     float specular;
-    std::vector<pxr::GfVec3f> vertices;
+    pxr::VtArray<pxr::GfVec3f> vertices;  // Changed from std::vector to pxr::VtArray
     pxr::GfVec3f rotation;
     pxr::GfVec3f scale;
     pxr::GfVec3d translation;
+
+    point3 Q;
+    vec3 u;
+    vec3 v;
 };
 struct MaterialProperties {
     std::string fullPath;
@@ -170,15 +175,18 @@ std::shared_ptr<material> createMaterialFromProperties(const MaterialProperties&
     // Implement this function based on your material system
     // For now, we'll return a lambertian material as a placeholder
     return std::make_shared<advanced_pbr_material>(
-        0.8, // base_weight (guessed)
+        0.5, // base_weight (guessed)
         color(props.diffuseColor[0], props.diffuseColor[1], props.diffuseColor[2]), // base_color
         props.metallic, // base_metalness
-        0.2, // specular_weight (guessed)
+
+        1.0, // specular_weight (guessed)
         color(1.0, 1.0, 1.0), // specular_color (guessed)
         props.roughness, // specular_roughness
         props.ior, // specular_ior
+
         0.0, // transmission_weight (guessed)
         color(1.0, 1.0, 1.0), // transmission_color (guessed)
+
         1.0, // emission_luminance (guessed)
         color(props.emissiveColor[0], props.emissiveColor[1], props.emissiveColor[2]) // emission_color
     );
@@ -272,13 +280,76 @@ std::unordered_map<std::string, std::shared_ptr<material>> loadMaterialsFromStag
     return materials;
 }
 
+AreaLight extractAreaLightProperties(const pxr::UsdPrim& prim, const pxr::GfMatrix4d& transform) {
+    AreaLight light;
+    
+    // Extract properties
+    pxr::UsdAttribute colorAttr = prim.GetAttribute(pxr::TfToken("inputs:color"));
+    if (colorAttr) colorAttr.Get(&light.color);
+    
+    pxr::UsdAttribute diffuseAttr = prim.GetAttribute(pxr::TfToken("inputs:diffuse"));
+    if (diffuseAttr) diffuseAttr.Get(&light.diffuse);
+    
+    pxr::UsdAttribute exposureAttr = prim.GetAttribute(pxr::TfToken("inputs:exposure"));
+    if (exposureAttr) exposureAttr.Get(&light.exposure);
+    
+    pxr::UsdAttribute heightAttr = prim.GetAttribute(pxr::TfToken("inputs:height"));
+    if (heightAttr) heightAttr.Get(&light.height);
+    
+    pxr::UsdAttribute widthAttr = prim.GetAttribute(pxr::TfToken("inputs:width"));
+    if (widthAttr) widthAttr.Get(&light.width);
+    
+    pxr::UsdAttribute intensityAttr = prim.GetAttribute(pxr::TfToken("inputs:intensity"));
+    if (intensityAttr) intensityAttr.Get(&light.intensity);
+    
+    pxr::UsdAttribute normalizeAttr = prim.GetAttribute(pxr::TfToken("inputs:normalize"));
+    if (normalizeAttr) normalizeAttr.Get(&light.normalize);
+    
+    pxr::UsdAttribute shadowColorAttr = prim.GetAttribute(pxr::TfToken("inputs:shadow:color"));
+    if (shadowColorAttr) shadowColorAttr.Get(&light.shadowColor);
+    
+    pxr::UsdAttribute shadowEnableAttr = prim.GetAttribute(pxr::TfToken("inputs:shadow:enable"));
+    if (shadowEnableAttr) shadowEnableAttr.Get(&light.shadowEnable);
+    
+    pxr::UsdAttribute specularAttr = prim.GetAttribute(pxr::TfToken("inputs:specular"));
+    if (specularAttr) specularAttr.Get(&light.specular);
+    
+    pxr::UsdAttribute verticesAttr = prim.GetAttribute(pxr::TfToken("primvars:arnold:vertices"));
+    if (verticesAttr) verticesAttr.Get(&light.vertices);
+
+    for(auto& v : light.vertices) {
+        std::cout << "Vertex: " << v << std::endl;
+        v = transform.Transform(v);
+        std::cout << "Vertex: " << v << std::endl;
+    }
+
+    light.Q = point3(light.vertices[0][0], light.vertices[0][1], light.vertices[0][2]);
+    light.v = vec3(light.vertices[1][0] - light.vertices[0][0],
+                   light.vertices[1][1] - light.vertices[0][1],
+                   light.vertices[1][2] - light.vertices[0][2]);
+    light.u = vec3(light.vertices[3][0] - light.vertices[0][0],
+                   light.vertices[3][1] - light.vertices[0][1],
+                   light.vertices[3][2] - light.vertices[0][2]);
+    
+    pxr::UsdAttribute rotateAttr = prim.GetAttribute(pxr::TfToken("xformOp:rotateXYZ"));
+    if (rotateAttr) rotateAttr.Get(&light.rotation);
+    
+    pxr::UsdAttribute scaleAttr = prim.GetAttribute(pxr::TfToken("xformOp:scale"));
+    if (scaleAttr) scaleAttr.Get(&light.scale);
+    
+    pxr::UsdAttribute translateAttr = prim.GetAttribute(pxr::TfToken("xformOp:translate"));
+    if (translateAttr) translateAttr.Get(&light.translation);
+    
+    return light;
+}
 std::vector<AreaLight> extractAreaLightsFromUsdStage(const pxr::UsdStageRefPtr& stage) {
     std::vector<AreaLight> areaLights;
     
     for (const auto& prim : stage->TraverseAll()) {
         if (prim.IsA<pxr::UsdLuxRectLight>()) {
             std::cout << "RectLight: " << prim.GetPath().GetString() << std::endl;
-            AreaLight light = AreaLight();
+            pxr::GfMatrix4d xform = pxr::UsdGeomXformable(prim).ComputeLocalToWorldTransform(pxr::UsdTimeCode::Default());
+            AreaLight light = extractAreaLightProperties(prim, xform);
             areaLights.push_back(light);
         }
     }
@@ -289,6 +360,8 @@ int main(int argc, char *argv[]) {
 
     settings settings(argc, argv);
     if(settings.error > 0) return 1;
+
+    hittable_list world;
     
     // IMAGE
     ImagePNG image(settings.image_width, settings.image_height);
@@ -312,6 +385,7 @@ int main(int argc, char *argv[]) {
 
     // LOAD MATERIALS
     auto error_material = make_shared<lambertian>(color(1.0, 0.0, 0.0));
+    auto light_material = make_shared<light>(color(1.0, 1.0, 1.0), 1.0);
     std::unordered_map<std::string, std::shared_ptr<material>> materials = loadMaterialsFromStage(stage);
     materials["error"] = error_material;
 
@@ -320,6 +394,11 @@ int main(int argc, char *argv[]) {
     
     // LOAD AREA LIGHTS
     std::vector<AreaLight> areaLights = extractAreaLightsFromUsdStage(stage);
+    for(const auto& light : areaLights) {
+        shared_ptr<quad> light_quad = make_shared<quad>(light.Q, light.u, light.v, light_material);
+
+        world.add(light_quad);
+    }
 
     camera camera(image);
     camera.fov      = cameraProps.fov;
@@ -331,7 +410,7 @@ int main(int argc, char *argv[]) {
 
 
 
-    hittable_list world;
+    
 
     auto material_metal  = make_shared<metal>(color(0.8, 0.8, 0.8),0.2);
     auto material_glass = make_shared<dielectric>(1.1, 0.00);
