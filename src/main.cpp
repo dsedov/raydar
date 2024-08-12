@@ -119,17 +119,19 @@ pxr::UsdGeomCamera findFirstCamera(const pxr::UsdStageRefPtr& stage) {
 }
 
 // Recursive function to traverse the USD hierarchy and extract meshes
-void traverseStageAndExtractMeshes(const pxr::UsdPrim& prim, std::vector<std::shared_ptr<usd_mesh>>& meshes, std::shared_ptr<material> mat) {
+void traverseStageAndExtractMeshes(const pxr::UsdPrim& prim, std::vector<std::shared_ptr<usd_mesh>>& meshes, std::unordered_map<std::string, std::shared_ptr<material>> materials) {
     
     if (prim.IsA<pxr::UsdGeomMesh>()) {
         std::cout << std::endl << "Prim Path: " << prim.GetPath().GetString() << std::endl;
         pxr::UsdGeomMesh usdMesh(prim);
         pxr::GfMatrix4d xform = pxr::UsdGeomXformable(usdMesh).ComputeLocalToWorldTransform(pxr::UsdTimeCode::Default());
         // Extract material name
+        std::shared_ptr<material> mat = materials["error"];
         std::string materialName = "No Material";
         pxr::UsdShadeMaterial boundMaterial = pxr::UsdShadeMaterialBindingAPI(usdMesh).ComputeBoundMaterial();
         if (boundMaterial) {
             materialName = boundMaterial.GetPrim().GetPath().GetString();
+            mat = materials[materialName];
         }
         
         std::cout << "Material Name: " << materialName << std::endl;
@@ -137,12 +139,12 @@ void traverseStageAndExtractMeshes(const pxr::UsdPrim& prim, std::vector<std::sh
         auto newMesh = std::make_shared<usd_mesh>(usdMesh, mat, xform);
         meshes.push_back(newMesh);
     }
-    for (const auto& child : prim.GetChildren()) traverseStageAndExtractMeshes(child, meshes, mat);
+    for (const auto& child : prim.GetChildren()) traverseStageAndExtractMeshes(child, meshes, materials);
 }
-std::vector<std::shared_ptr<usd_mesh>> extractMeshesFromUsdStage(const pxr::UsdStageRefPtr& stage, std::shared_ptr<material> mat) {
+std::vector<std::shared_ptr<usd_mesh>> extractMeshesFromUsdStage(const pxr::UsdStageRefPtr& stage, std::unordered_map<std::string, std::shared_ptr<material>> materials) {
     std::vector<std::shared_ptr<usd_mesh>> meshes;
     pxr::UsdPrim rootPrim = stage->GetPseudoRoot();
-    traverseStageAndExtractMeshes(rootPrim, meshes, mat);
+    traverseStageAndExtractMeshes(rootPrim, meshes, materials);
     return meshes;
 }
 
@@ -264,12 +266,12 @@ int main(int argc, char *argv[]) {
     std::cout << "FOV: " << cameraProps.fov << std::endl<< std::endl;
 
     // LOAD MATERIALS
+    auto error_material = make_shared<lambertian>(color(1.0, 0.0, 0.0));
     std::unordered_map<std::string, std::shared_ptr<material>> materials = loadMaterialsFromStage(stage);
+    materials["error"] = error_material;
 
     // LOAD GEOMETRY
-    auto material_lambert= make_shared<lambertian>(color(0.5, 0.5, 0.5));
-
-    std::vector<std::shared_ptr<usd_mesh>> sceneMeshes = extractMeshesFromUsdStage(stage, material_lambert);
+    std::vector<std::shared_ptr<usd_mesh>> sceneMeshes = extractMeshesFromUsdStage(stage, materials);
     
 
     camera camera(image);
@@ -288,7 +290,9 @@ int main(int argc, char *argv[]) {
     auto material_glass = make_shared<dielectric>(1.1, 0.00);
     auto material_glass_inside = make_shared<dielectric>(1.0/1.5);
     auto material_ground = make_shared<lambertian>(color(0.0, 0.5, 0.5));
-    auto material_ground2 = make_shared<lambertian>(color(0.5, 0.5, 0.5));
+
+
+    
 
     std::cout << "Scene meshes size: " << sceneMeshes.size() << std::endl;
     // for each mesh in sceneMeshes
