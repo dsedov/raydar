@@ -33,7 +33,7 @@ find_library(USD_TF_LIB usd_tf PATHS ${USD_ROOT}/lib)
 find_library(USD_SDF_LIB usd_sdf PATHS ${USD_ROOT}/lib)
 find_library(USD_VT_LIB usd_vt PATHS ${USD_ROOT}/lib)
 find_library(USD_GF_LIB usd_gf PATHS ${USD_ROOT}/lib)
-
+find_library(USD_USDShade_LIB usd_usdShade PATHS ${USD_ROOT}/lib)
 # Add the executable
 add_executable(raydar src/main.cpp)
 
@@ -51,7 +51,8 @@ target_link_libraries(raydar PRIVATE
                                 ${USD_TF_LIB} 
                                 ${USD_SDF_LIB}
                                 ${USD_VT_LIB}
-                                ${USD_GF_LIB})
+                                ${USD_GF_LIB}
+                                ${USD_USDShade_LIB})
 
 
 # Add compile definitions if needed

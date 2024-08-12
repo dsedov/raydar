@@ -86,7 +86,7 @@ public:
     }
     usd_mesh(const pxr::UsdGeomMesh& usdMesh, shared_ptr<material> mat, const pxr::GfMatrix4d& transform)
         : mat(mat), transform(transform) {
-        std::cout << "Transform: " << transform << std::endl;
+        //std::cout << "Transform: " << transform << std::endl;
         loadFromUsdMesh(usdMesh);
     }
     int get_num_triangles() const {
@@ -252,8 +252,8 @@ private:
             index += faceVertexCount;
         }
 
-        std::cout << "Loaded " << vertices.size() << " vertices and " << triangles.size() << " triangles from USD Mesh" << std::endl;
-        std::cout << "Bounding box: min(" << min_point << "), max(" << max_point << ")" << std::endl;
+        //std::cout << "Loaded " << vertices.size() << " vertices and " << triangles.size() << " triangles from USD Mesh" << std::endl;
+        //std::cout << "Bounding box: min(" << min_point << "), max(" << max_point << ")" << std::endl;
     }
 };
 #endif

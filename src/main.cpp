@@ -21,10 +21,19 @@
 #include <pxr/base/gf/vec3d.h>
 #include <pxr/base/gf/rotation.h>
 #include <pxr/base/gf/matrix4d.h>
-
-
+#include <pxr/usd/usdShade/material.h>
+#include <pxr/usd/usdShade/materialBindingAPI.h>
+#include <pxr/usd/usdShade/shader.h>
 #include "helpers/settings.h"
 
+struct MaterialProperties {
+    std::string fullPath;
+    float metallic = 0.0f;
+    float roughness = 0.5f;
+    pxr::GfVec3f diffuseColor = pxr::GfVec3f(0.8f, 0.8f, 0.8f);
+    pxr::GfVec3f emissiveColor = pxr::GfVec3f(0.0f, 0.0f, 0.0f);
+    float ior = 1.5f;
+};
 struct CameraProperties {
     pxr::GfVec3f rotateXYZ;
     pxr::GfVec3d translate;
@@ -111,10 +120,20 @@ pxr::UsdGeomCamera findFirstCamera(const pxr::UsdStageRefPtr& stage) {
 
 // Recursive function to traverse the USD hierarchy and extract meshes
 void traverseStageAndExtractMeshes(const pxr::UsdPrim& prim, std::vector<std::shared_ptr<usd_mesh>>& meshes, std::shared_ptr<material> mat) {
-    std::cout << std::endl << "Prim Path: " << prim.GetPath().GetString() << std::endl;
+    
     if (prim.IsA<pxr::UsdGeomMesh>()) {
+        std::cout << std::endl << "Prim Path: " << prim.GetPath().GetString() << std::endl;
         pxr::UsdGeomMesh usdMesh(prim);
         pxr::GfMatrix4d xform = pxr::UsdGeomXformable(usdMesh).ComputeLocalToWorldTransform(pxr::UsdTimeCode::Default());
+        // Extract material name
+        std::string materialName = "No Material";
+        pxr::UsdShadeMaterial boundMaterial = pxr::UsdShadeMaterialBindingAPI(usdMesh).ComputeBoundMaterial();
+        if (boundMaterial) {
+            materialName = boundMaterial.GetPrim().GetPath().GetString();
+        }
+        
+        std::cout << "Material Name: " << materialName << std::endl;
+
         auto newMesh = std::make_shared<usd_mesh>(usdMesh, mat, xform);
         meshes.push_back(newMesh);
     }
@@ -125,6 +144,98 @@ std::vector<std::shared_ptr<usd_mesh>> extractMeshesFromUsdStage(const pxr::UsdS
     pxr::UsdPrim rootPrim = stage->GetPseudoRoot();
     traverseStageAndExtractMeshes(rootPrim, meshes, mat);
     return meshes;
+}
+
+
+std::shared_ptr<material> createMaterialFromProperties(const MaterialProperties& props) {
+    // Implement this function based on your material system
+    // For now, we'll return a lambertian material as a placeholder
+    return std::make_shared<lambertian>(color(props.diffuseColor[0], props.diffuseColor[1], props.diffuseColor[2]));
+}
+
+pxr::UsdShadeShader findShaderInNodeGraph(const pxr::UsdPrim& nodeGraphPrim) {
+    for (const auto& child : nodeGraphPrim.GetChildren()) {
+        if (child.IsA<pxr::UsdShadeShader>()) {
+            return pxr::UsdShadeShader(child);
+        }
+    }
+    return pxr::UsdShadeShader();
+}
+
+MaterialProperties extractMaterialProperties(const pxr::UsdShadeMaterial& usdMaterial) {
+    MaterialProperties props;
+    props.fullPath = usdMaterial.GetPath().GetString();
+
+    // Look for MaterialX and UsdPreviewSurface NodeGraphs
+    pxr::UsdPrim materialXNodeGraph = usdMaterial.GetPrim().GetChild(pxr::TfToken("MaterialX"));
+    pxr::UsdPrim previewSurfaceNodeGraph = usdMaterial.GetPrim().GetChild(pxr::TfToken("UsdPreviewSurface"));
+
+    pxr::UsdShadeShader materialXShader, previewSurfaceShader;
+
+    if (materialXNodeGraph) {
+        materialXShader = findShaderInNodeGraph(materialXNodeGraph);
+    }
+
+    if (previewSurfaceNodeGraph) {
+        previewSurfaceShader = findShaderInNodeGraph(previewSurfaceNodeGraph);
+    }
+
+    // Prefer MaterialX if available, otherwise use UsdPreviewSurface
+    pxr::UsdShadeShader shaderToUse = materialXShader ? materialXShader : previewSurfaceShader;
+
+    if (shaderToUse) {
+        pxr::VtValue value;
+
+        if (shaderToUse.GetInput(pxr::TfToken("metallic")).Get(&value)) {
+            props.metallic = value.Get<float>();
+        }
+        if (shaderToUse.GetInput(pxr::TfToken("roughness")).Get(&value)) {
+            props.roughness = value.Get<float>();
+        }
+        if (shaderToUse.GetInput(pxr::TfToken("diffuseColor")).Get(&value)) {
+            props.diffuseColor = value.Get<pxr::GfVec3f>();
+        }
+        if (shaderToUse.GetInput(pxr::TfToken("emissiveColor")).Get(&value)) {
+            props.emissiveColor = value.Get<pxr::GfVec3f>();
+        }
+        if (shaderToUse.GetInput(pxr::TfToken("ior")).Get(&value)) {
+            props.ior = value.Get<float>();
+        }
+    }
+
+    return props;
+}
+
+void findMaterialsRecursive(const pxr::UsdPrim& prim, std::vector<pxr::UsdShadeMaterial>& materials) {
+    if (prim.IsA<pxr::UsdShadeMaterial>()) {
+        materials.push_back(pxr::UsdShadeMaterial(prim));
+    }
+    
+    for (const auto& child : prim.GetChildren()) {
+        findMaterialsRecursive(child, materials);
+    }
+}
+
+std::unordered_map<std::string, std::shared_ptr<material>> loadMaterialsFromStage(const pxr::UsdStageRefPtr& stage) {
+    std::unordered_map<std::string, std::shared_ptr<material>> materials;
+
+    std::vector<pxr::UsdShadeMaterial> usdMaterials;
+    findMaterialsRecursive(stage->GetPseudoRoot(), usdMaterials);
+
+    for (const auto& usdMaterial : usdMaterials) {
+        MaterialProperties props = extractMaterialProperties(usdMaterial);
+        std::shared_ptr<material> mat = createMaterialFromProperties(props);
+        materials[props.fullPath] = mat;
+
+        std::cout << "Loaded material: " << props.fullPath << std::endl;
+        std::cout << "  Metallic: " << props.metallic << std::endl;
+        std::cout << "  Roughness: " << props.roughness << std::endl;
+        std::cout << "  Diffuse Color: " << props.diffuseColor << std::endl;
+        std::cout << "  Emissive Color: " << props.emissiveColor << std::endl;
+        std::cout << "  IOR: " << props.ior << std::endl;
+    }
+
+    return materials;
 }
 
 int main(int argc, char *argv[]) {
@@ -152,8 +263,12 @@ int main(int argc, char *argv[]) {
     std::cout << "Look Up: " << cameraProps.lookUp << std::endl;
     std::cout << "FOV: " << cameraProps.fov << std::endl<< std::endl;
 
-    // TODO:LOAD GEOMETRY
+    // LOAD MATERIALS
+    std::unordered_map<std::string, std::shared_ptr<material>> materials = loadMaterialsFromStage(stage);
+
+    // LOAD GEOMETRY
     auto material_lambert= make_shared<lambertian>(color(0.5, 0.5, 0.5));
+
     std::vector<std::shared_ptr<usd_mesh>> sceneMeshes = extractMeshesFromUsdStage(stage, material_lambert);
     
 
