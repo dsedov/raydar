@@ -63,7 +63,7 @@ class camera {
     float color_variance(const color& c1, const color& c2) {
     return (c1 - c2).length_squared() / 3.0f;
 }
-    void render(const hittable& world) {
+    /*void render(const hittable& world) {
         initialize();
         auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -83,7 +83,7 @@ class camera {
         auto end_time = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
         std::cout << "\nRendering time: " << duration.count() << " seconds" << std::endl;
-    }
+    }*/
     void mt_render(const hittable& world) {
         initialize();
         auto start_time = std::chrono::high_resolution_clock::now();
@@ -95,10 +95,18 @@ class camera {
         auto render_scanline = [&](int j) {
             for (int i = 0; i < image_buffer.width(); i++) {
                 color pixel_color(0,0,0);
+                for (int s_j = 0; s_j < sqrt_spp; s_j++) {
+                    for (int s_i = 0; s_i < sqrt_spp; s_i++) {
+                        ray r = get_ray(i, j, s_i, s_j);
+                        pixel_color += ray_color(r, max_depth, world);
+                    }
+                }
+                /*
                 for (int sample = 0; sample < samples_per_pixel; sample++) {
                     ray r = get_ray(i, j);
                     pixel_color += ray_color(r, max_depth, world);
-                }
+                }*/
+
                 pixel_color *= pixel_samples_scale;
                 image_buffer.set_pixel(i, j, pixel_color);
             }
@@ -130,6 +138,8 @@ class camera {
     vec3 pixel00_loc;
     vec3 pixel_delta_u;
     vec3 pixel_delta_v;
+    int    sqrt_spp;             // Square root of number of samples per pixel
+    double recip_sqrt_spp;       // 1 / sqrt_spp
     vec3 u, v, w;              // Camera frame basis vectors
     color background_color = color(0.0, 0.0, 0.0) ;
     double pixel_samples_scale;
@@ -150,7 +160,12 @@ class camera {
             viewport_height = viewport_width / (double(image_buffer.width()) / image_buffer.height());
         }
 
-        pixel_samples_scale = 1.0 / samples_per_pixel;
+        //pixel_samples_scale = 1.0 / samples_per_pixel;
+
+        sqrt_spp = int(std::sqrt(samples_per_pixel));
+        pixel_samples_scale = 1.0 / (sqrt_spp * sqrt_spp);
+        recip_sqrt_spp = 1.0 / sqrt_spp;
+
         camera_center = lookfrom;
 
         // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
@@ -170,11 +185,12 @@ class camera {
         auto viewport_upper_left = camera_center - (focal_length * w) - viewport_u/2 - viewport_v/2;
         pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
     }
-    ray get_ray(int i, int j) const {
+    ray get_ray(int i, int j, int s_i, int s_j) const {
         // Construct a camera ray originating from the origin and directed at randomly sampled
         // point around the pixel location i, j.
 
-        auto offset = sample_square();
+        //auto offset = sample_square();
+        auto offset = sample_square_stratified(s_i, s_j);
         auto pixel_sample = pixel00_loc
                           + ((i + offset.x()) * pixel_delta_u)
                           + ((j + offset.y()) * pixel_delta_v);
@@ -183,6 +199,15 @@ class camera {
         auto ray_direction = pixel_sample - ray_origin;
 
         return ray(ray_origin, ray_direction);
+    }
+    vec3 sample_square_stratified(int s_i, int s_j) const {
+        // Returns the vector to a random point in the square sub-pixel specified by grid
+        // indices s_i and s_j, for an idealized unit square pixel [-.5,-.5] to [+.5,+.5].
+
+        auto px = ((s_i + random_double()) * recip_sqrt_spp) - 0.5;
+        auto py = ((s_j + random_double()) * recip_sqrt_spp) - 0.5;
+
+        return vec3(px, py, 0);
     }
     vec3 sample_square() const {
         // Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square.

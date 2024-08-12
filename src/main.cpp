@@ -408,17 +408,10 @@ int main(int argc, char *argv[]) {
     camera.samples_per_pixel = settings.samples;
     camera.max_depth = settings.max_depth;
 
-
-
-    
-
     auto material_metal  = make_shared<metal>(color(0.8, 0.8, 0.8),0.2);
     auto material_glass = make_shared<dielectric>(1.1, 0.00);
     auto material_glass_inside = make_shared<dielectric>(1.0/1.5);
     auto material_ground = make_shared<lambertian>(color(0.0, 0.5, 0.5));
-
-
-    
 
     std::cout << "Scene meshes size: " << sceneMeshes.size() << std::endl;
     // for each mesh in sceneMeshes
