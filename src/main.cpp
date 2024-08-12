@@ -152,7 +152,22 @@ std::vector<std::shared_ptr<usd_mesh>> extractMeshesFromUsdStage(const pxr::UsdS
 std::shared_ptr<material> createMaterialFromProperties(const MaterialProperties& props) {
     // Implement this function based on your material system
     // For now, we'll return a lambertian material as a placeholder
-    return std::make_shared<lambertian>(color(props.diffuseColor[0], props.diffuseColor[1], props.diffuseColor[2]));
+    return std::make_shared<advanced_pbr_material>(
+        0.8, // base_weight (guessed)
+        color(props.diffuseColor[0], props.diffuseColor[1], props.diffuseColor[2]), // base_color
+        props.metallic, // base_metalness
+        0.2, // specular_weight (guessed)
+        color(1.0, 1.0, 1.0), // specular_color (guessed)
+        props.roughness, // specular_roughness
+        props.ior, // specular_ior
+        0.0, // transmission_weight (guessed)
+        color(1.0, 1.0, 1.0), // transmission_color (guessed)
+        1.0, // emission_luminance (guessed)
+        color(props.emissiveColor[0], props.emissiveColor[1], props.emissiveColor[2]) // emission_color
+    );
+     return std::make_shared<lambertian>(color(props.diffuseColor[0], props.diffuseColor[1], props.diffuseColor[2]));
+
+    
 }
 
 pxr::UsdShadeShader findShaderInNodeGraph(const pxr::UsdPrim& nodeGraphPrim) {
