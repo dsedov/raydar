@@ -174,15 +174,21 @@ int main(int argc, char *argv[]) {
     auto material_glass_inside = make_shared<dielectric>(1.0/1.5);
     auto material_ground = make_shared<lambertian>(color(0.0, 0.5, 0.5));
     auto material_ground2 = make_shared<lambertian>(color(0.5, 0.5, 0.5));
+
+    std::cout << "Scene meshes size: " << sceneMeshes.size() << std::endl;
     // for each mesh in sceneMeshes
+    int bvh_meshes_size = 0;
     for (const auto& mesh : sceneMeshes) {
         std::vector<usd_mesh> meshes;
         meshes = mesh->split(meshes);
+        
         for(const auto& m : meshes) {   
             world.add(make_shared<usd_mesh>(m));
+            bvh_meshes_size++;
         }
     }
-    
+    std::cout << "BVH meshes size: " << bvh_meshes_size << std::endl;
+
     world = hittable_list(make_shared<bvh_node>(world));
 
     camera.mt_render(world);

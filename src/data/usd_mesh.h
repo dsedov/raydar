@@ -95,17 +95,17 @@ public:
     // Split in the middle along the given axis. Return two new meshes with the split triangles.
     std::vector<usd_mesh> & split(std::vector<usd_mesh> & meshes, int level = 0) {
         // padded string 
-        std::string padding = std::string(level, ' ');
+        //std::string padding = std::string(level, ' ');
         if(triangles.size() == 0) {
-            std::cout << padding << "No triangles to split" << std::endl;
+            //std::cout << padding << "No triangles to split" << std::endl;
             return meshes;
         }
         if(triangles.size() <= 10) {
-            std::cout << padding << "Terminating mesh with " << triangles.size() << " triangles to meshes" << std::endl;
+            //std::cout << padding << "Terminating mesh with " << triangles.size() << " triangles to meshes" << std::endl;
             meshes.push_back(*this);
             return meshes;
         }
-        std::cout << padding << "Splitting mesh with " << triangles.size() << " triangles" << std::endl;
+        //std::cout << padding << "Splitting mesh with " << triangles.size() << " triangles" << std::endl;
 
         // Find the axis that allows for the most equal split
         int best_axis = 0;
@@ -153,7 +153,7 @@ public:
 
         if (left_triangles.size() > 0) { 
             if (left_triangles.size() == triangles.size()) {
-                std::cout << padding << "Terminating mesh with " << left_triangles.size() << " triangles to meshes" << std::endl;
+                //std::cout << padding << "Terminating mesh with " << left_triangles.size() << " triangles to meshes" << std::endl;
                 meshes.push_back(*this);
                 return meshes;
             }
@@ -162,7 +162,7 @@ public:
         }
         if (right_triangles.size() > 0) {
             if (right_triangles.size() == triangles.size()) {
-                std::cout << padding << "Terminating mesh with " << right_triangles.size() << " triangles to meshes" << std::endl;
+                //std::cout << padding << "Terminating mesh with " << right_triangles.size() << " triangles to meshes" << std::endl;
                 meshes.push_back(*this);
                 return meshes;
             }
