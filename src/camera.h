@@ -60,31 +60,8 @@ class camera {
     camera(Image & image_buffer) : image_buffer(image_buffer) {
        
     }
-    float color_variance(const color& c1, const color& c2) {
-    return (c1 - c2).length_squared() / 3.0f;
-}
-    /*void render(const hittable& world) {
-        initialize();
-        auto start_time = std::chrono::high_resolution_clock::now();
 
-        for (int j = 0; j < image_buffer.height(); j++) {
-            std::clog << "\rScanlines remaining: " << (image_buffer.height() - j) << ' ' << std::flush;
-            for (int i = 0; i < image_buffer.width(); i++) {
-                color pixel_color(0,0,0);
-                for (int sample = 0; sample < samples_per_pixel; sample++) {
-                    ray r = get_ray(i, j);
-                    pixel_color += ray_color(r, max_depth, world);
-                }
-                pixel_color *= pixel_samples_scale;
-                image_buffer.set_pixel(i, j, pixel_color);
-            }
-        }
-
-        auto end_time = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
-        std::cout << "\nRendering time: " << duration.count() << " seconds" << std::endl;
-    }*/
-    void mt_render(const hittable& world) {
+    int mt_render(const hittable& world) {
         initialize();
         auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -93,20 +70,15 @@ class camera {
         ProgressBar progress_bar(image_buffer.height());
 
         auto render_scanline = [&](int j) {
+            
             for (int i = 0; i < image_buffer.width(); i++) {
                 color pixel_color(0,0,0);
-                for (int s_j = 0; s_j < sqrt_spp; s_j++) {
+                 for (int s_j = 0; s_j < sqrt_spp; s_j++) {
                     for (int s_i = 0; s_i < sqrt_spp; s_i++) {
                         ray r = get_ray(i, j, s_i, s_j);
                         pixel_color += ray_color(r, max_depth, world);
                     }
                 }
-                /*
-                for (int sample = 0; sample < samples_per_pixel; sample++) {
-                    ray r = get_ray(i, j);
-                    pixel_color += ray_color(r, max_depth, world);
-                }*/
-
                 pixel_color *= pixel_samples_scale;
                 image_buffer.set_pixel(i, j, pixel_color);
             }
@@ -128,8 +100,74 @@ class camera {
         auto end_time = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
         std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
+        return duration.count();
     }
-    
+    int adaptive_mt_render(const hittable& world) {
+        initialize();
+        auto start_time = std::chrono::high_resolution_clock::now();
+        std::vector<std::thread> threads;
+        std::atomic<int> scanlines_completed(0);
+        ProgressBar progress_bar(image_buffer.height());
+
+        const int min_samples = 4; // Minimum number of samples per pixel
+        const int max_samples = sqrt_spp * sqrt_spp; // Maximum number of samples per pixel
+        const float convergence_threshold = 0.001f; // Threshold for color change
+
+        auto render_scanline = [&](int j) {
+            for (int i = 0; i < image_buffer.width(); i++) {
+                color pixel_color(0,0,0);
+                color prev_pixel_color(0,0,0);
+                int samples = 0;
+                bool converged = false;
+
+                while (samples < max_samples && !converged) {
+                    color sample_color(0,0,0);
+                    int batch_size = std::min(8, max_samples - samples); // Sample in batches of 4
+
+                    for (int s = 0; s < batch_size; s++) {
+                        int s_i = samples % sqrt_spp;
+                        int s_j = samples / sqrt_spp;
+                        ray r = get_ray(i, j, s_i, s_j);
+                        sample_color += ray_color(r, max_depth, world);
+                        samples++;
+                    }
+
+                    pixel_color += sample_color;
+                    color current_average = pixel_color / samples;
+
+                    if (samples >= min_samples) {
+                        float color_diff = (current_average - prev_pixel_color).length();
+                        if (color_diff < convergence_threshold) {
+                            converged = true;
+                        }
+                    }
+
+                    prev_pixel_color = current_average;
+                }
+
+                pixel_color /= samples; // Normalize by actual number of samples
+                image_buffer.set_pixel(i, j, pixel_color);
+            }
+
+            int completed = scanlines_completed.fetch_add(1) + 1;
+            progress_bar.update(completed);
+        };
+
+        for (int j = 0; j < image_buffer.height(); j++) {
+            threads.emplace_back(render_scanline, j);
+        }
+
+        for (auto& thread : threads) {
+            thread.join();
+        }
+
+        std::cout << std::endl; // Move to the next line after progress bar
+
+        auto end_time = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
+        std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
+        return duration.count();
+    }
     
   private:
     /* Private Camera Variables Here */
@@ -160,7 +198,6 @@ class camera {
             viewport_height = viewport_width / (double(image_buffer.width()) / image_buffer.height());
         }
 
-        //pixel_samples_scale = 1.0 / samples_per_pixel;
 
         sqrt_spp = int(std::sqrt(samples_per_pixel));
         pixel_samples_scale = 1.0 / (sqrt_spp * sqrt_spp);
@@ -184,13 +221,15 @@ class camera {
         // Calculate the location of the upper left pixel.
         auto viewport_upper_left = camera_center - (focal_length * w) - viewport_u/2 - viewport_v/2;
         pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+
+
     }
     ray get_ray(int i, int j, int s_i, int s_j) const {
         // Construct a camera ray originating from the origin and directed at randomly sampled
         // point around the pixel location i, j.
 
-        //auto offset = sample_square();
-        auto offset = sample_square_stratified(s_i, s_j);
+
+        auto offset = sample_square_stratified_van_der_corput(s_i, s_j);
         auto pixel_sample = pixel00_loc
                           + ((i + offset.x()) * pixel_delta_u)
                           + ((j + offset.y()) * pixel_delta_v);
@@ -201,11 +240,32 @@ class camera {
         return ray(ray_origin, ray_direction);
     }
     vec3 sample_square_stratified(int s_i, int s_j) const {
-        // Returns the vector to a random point in the square sub-pixel specified by grid
-        // indices s_i and s_j, for an idealized unit square pixel [-.5,-.5] to [+.5,+.5].
 
         auto px = ((s_i + random_double()) * recip_sqrt_spp) - 0.5;
         auto py = ((s_j + random_double()) * recip_sqrt_spp) - 0.5;
+
+        return vec3(px, py, 0);
+    }
+
+    vec3 sample_square_stratified_van_der_corput(int s_i, int s_j) const {
+
+        auto van_der_corput = [](unsigned int n, unsigned int base) {
+            double q = 0, b = 1.0 / base;
+            while (n > 0) {
+                q += (n % base) * b;
+                n /= base;
+                b /= base;
+            }
+            return q;
+        };
+
+        unsigned int index = s_i * sqrt_spp + s_j;
+        double ldx = van_der_corput(index, 2);  // Base 2 for x
+        double ldy = van_der_corput(index, 3);  // Base 3 for y
+
+        // Map low-discrepancy sequence to the sub-pixel
+        auto px = ((s_i + ldx) * recip_sqrt_spp) - 0.5;
+        auto py = ((s_j + ldy) * recip_sqrt_spp) - 0.5;
 
         return vec3(px, py, 0);
     }

@@ -175,7 +175,7 @@ std::shared_ptr<material> createMaterialFromProperties(const MaterialProperties&
     // Implement this function based on your material system
     // For now, we'll return a lambertian material as a placeholder
     return std::make_shared<advanced_pbr_material>(
-        0.5, // base_weight (guessed)
+        0.6, // base_weight (guessed)
         color(props.diffuseColor[0], props.diffuseColor[1], props.diffuseColor[2]), // base_color
         props.metallic, // base_metalness
 
@@ -429,7 +429,26 @@ int main(int argc, char *argv[]) {
 
     world = hittable_list(make_shared<bvh_node>(world));
 
-    camera.mt_render(world);
-    image.save(settings.image_file.c_str());
+    int seconds_to_render = camera.adaptive_mt_render(world);
+    
+    // Extract the file name and extension
+    std::string file_name = settings.image_file;
+    size_t dot_pos = file_name.find_last_of(".");
+    std::string name = file_name.substr(0, dot_pos);
+    std::string extension = file_name.substr(dot_pos);
+
+    // Create the new file name with resolution and samples
+    std::stringstream new_file_name;
+    // Generate a simple 6-character alphanumeric UUID
+    std::string uuid;
+    const std::string chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    for (int i = 0; i < 6; ++i) {
+        uuid += chars[rand() % chars.length()];
+    }
+    new_file_name << name << "_" << image.width() << "x" << image.height() << "_" << settings.samples << "spp" << "_" << seconds_to_render << "s" << "_" << uuid << extension;
+
+    // Save the image with the new file name
+    image.save(new_file_name.str().c_str());
+
     return 0;
 }
