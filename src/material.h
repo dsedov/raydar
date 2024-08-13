@@ -6,6 +6,13 @@
 #include "data/hittable.h"
 
 class hit_record;
+class scatter_record {
+  public:
+    color attenuation;
+    shared_ptr<pdf> pdf_ptr;
+    bool skip_pdf;
+    ray skip_pdf_ray;
+};
 
 class material {
   public:
