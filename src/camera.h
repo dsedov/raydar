@@ -47,6 +47,38 @@ private:
     std::atomic<int> last_printed;
 };
 
+class MitchellNetravaliFilter {
+private:
+    double B, C;
+
+    double p(double x) {
+        x = std::abs(x);
+        if (x < 1) {
+            return ((12 - 9 * B - 6 * C) * x * x * x
+                    + (-18 + 12 * B + 6 * C) * x * x
+                    + (6 - 2 * B)) / 6;
+        } else if (x < 2) {
+            return ((-B - 6 * C) * x * x * x
+                    + (6 * B + 30 * C) * x * x
+                    + (-12 * B - 48 * C) * x
+                    + (8 * B + 24 * C)) / 6;
+        } else {
+            return 0;
+        }
+    }
+
+public:
+    MitchellNetravaliFilter(double b = 1.0/3.0, double c = 1.0/3.0) : B(b), C(c) {}
+
+    double filter(double x) {
+        return p(x);
+    }
+};
+
+struct Sample {
+    float x, y;  // Sample position relative to pixel center
+    color color; // Sample color
+};
 class camera {
   public:
 
@@ -168,7 +200,86 @@ class camera {
         std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
         return duration.count();
     }
-    
+    int adaptive_filtered_mt_render(const hittable& world) {
+        initialize();
+        auto start_time = std::chrono::high_resolution_clock::now();
+        std::vector<std::thread> threads;
+        std::atomic<int> scanlines_completed(0);
+        ProgressBar progress_bar(image_buffer.height());
+        const int min_samples = 4;
+        const int max_samples = sqrt_spp * sqrt_spp;
+        const float convergence_threshold = 0.001f;
+        const float filter_width = 1.0f; // Adjust as needed
+        MitchellNetravaliFilter filter;
+
+        auto render_scanline = [&](int j) {
+            for (int i = 0; i < image_buffer.width(); i++) {
+                std::vector<Sample> samples;
+                color pixel_color(0,0,0);
+                color prev_pixel_color(0,0,0);
+                int sample_count = 0;
+                bool converged = false;
+
+                while (sample_count < max_samples && !converged) {
+                    int batch_size = std::min(8, max_samples - sample_count);
+                    for (int s = 0; s < batch_size; s++) {
+                        int s_i = sample_count % sqrt_spp;
+                        int s_j = sample_count / sqrt_spp;
+                        ray r = get_ray(i, j, s_i, s_j);
+                        color sample_color = ray_color(r, max_depth, world);
+                        
+                        // Calculate sample position relative to pixel center
+                        float x_offset = (float)s_i / sqrt_spp - 0.5f;
+                        float y_offset = (float)s_j / sqrt_spp - 0.5f;
+                        
+                        samples.push_back({x_offset, y_offset, sample_color});
+                        sample_count++;
+                    }
+
+                    // Apply Mitchell-Netravali filter to reconstruct pixel color
+                    float total_weight = 0.0f;
+                    color filtered_color(0,0,0);
+                    for (const auto& sample : samples) {
+                        float distance = std::sqrt(sample.x*sample.x + sample.y*sample.y);
+                        float weight = filter.filter(distance / filter_width);
+                        filtered_color += sample.color * weight;
+                        total_weight += weight;
+                    }
+                    if (total_weight > 0) {
+                        filtered_color /= total_weight;
+                    }
+
+                    pixel_color = filtered_color;
+
+                    if (sample_count >= min_samples) {
+                        float color_diff = (pixel_color - prev_pixel_color).length();
+                        if (color_diff < convergence_threshold) {
+                            converged = true;
+                        }
+                    }
+                    prev_pixel_color = pixel_color;
+                }
+
+                image_buffer.set_pixel(i, j, pixel_color);
+            }
+            int completed = scanlines_completed.fetch_add(1) + 1;
+            progress_bar.update(completed);
+        };
+
+        for (int j = 0; j < image_buffer.height(); j++) {
+            threads.emplace_back(render_scanline, j);
+        }
+
+        for (auto& thread : threads) {
+            thread.join();
+        }
+
+        std::cout << std::endl; // Move to the next line after progress bar
+        auto end_time = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
+        std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
+        return duration.count();
+    }
   private:
     /* Private Camera Variables Here */
     Image & image_buffer;

@@ -126,6 +126,17 @@ inline vec3 random_on_hemisphere(const vec3& normal) {
     else
         return -on_unit_sphere;
 }
+inline vec3 random_cosine_direction() {
+    auto r1 = random_double();
+    auto r2 = random_double();
+
+    auto phi = 2*pi*r1;
+    auto x = std::cos(phi) * std::sqrt(r2);
+    auto y = std::sin(phi) * std::sqrt(r2);
+    auto z = std::sqrt(1-r2);
+
+    return vec3(x, y, z);
+}
 inline double linear_to_gamma(double linear_component)
 {
     if (linear_component > 0)

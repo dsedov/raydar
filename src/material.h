@@ -3,6 +3,7 @@
 
 #include "raydar.h"
 #include "data/ray.h"
+#include "data/pdf.h"
 #include "data/hittable.h"
 
 class hit_record;
