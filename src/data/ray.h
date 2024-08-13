@@ -15,10 +15,18 @@ class ray {
     point3 at(double t) const {
         return orig + t*dir;
     }
-
+    void set_max_depth(int max_depth) {
+        this->max_depth = max_depth;
+    }
+    void set_depth(int depth) {
+        this->depth = depth;
+    }
+    int max_depth = 0;
+    int depth = 0;
   private:
     point3 orig;
     vec3 dir;
+    
 };
 
 #endif

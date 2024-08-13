@@ -387,6 +387,13 @@ int main(int argc, char *argv[]) {
     auto error_material = make_shared<lambertian>(color(1.0, 0.0, 0.0));
     auto light_material = make_shared<light>(color(1.0, 1.0, 1.0), 1.0);
     std::unordered_map<std::string, std::shared_ptr<material>> materials = loadMaterialsFromStage(stage);
+    if (auto pbr_material = std::dynamic_pointer_cast<advanced_pbr_material>(materials["/primRoot/mtl/ANO_NDA_SG"])) {
+        pbr_material->tint = color(1.8, 0.5, 0.5);
+        pbr_material->gamma = 0.3;
+        pbr_material->offset = 0.2; 
+    } else {
+        std::cerr << "Material is not an advanced_pbr_material" << std::endl;
+    }
     materials["error"] = error_material;
 
     // LOAD GEOMETRY
@@ -429,7 +436,7 @@ int main(int argc, char *argv[]) {
 
     world = hittable_list(make_shared<bvh_node>(world));
 
-    int seconds_to_render = camera.adaptive_mt_render(world);
+    int seconds_to_render = camera.mt_render(world);
     
     // Extract the file name and extension
     std::string file_name = settings.image_file;

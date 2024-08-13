@@ -200,6 +200,7 @@ class camera {
         std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
         return duration.count();
     }
+
     int adaptive_filtered_mt_render(const hittable& world) {
         initialize();
         auto start_time = std::chrono::high_resolution_clock::now();
@@ -384,7 +385,9 @@ class camera {
         // Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square.
         return vec3(random_double() - 0.5, random_double() - 0.5, 0);
     }
-    color ray_color(const ray& r, int depth, const hittable& world) const {
+    color ray_color(ray& r, int depth, const hittable& world) const {
+        r.set_depth(depth);
+        r.set_max_depth(max_depth);
         if (depth <= 0)
             return color(0,0,0);
 

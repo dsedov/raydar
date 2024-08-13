@@ -202,12 +202,29 @@ public:
         attenuation += specular_color * F * norm_specular_weight;
         attenuation += transmission_color * norm_transmission_weight;
 
+        // Apply gamma correction
+        if (r_in.depth == r_in.max_depth) {
+          attenuation = color(
+              pow(attenuation.x(), gamma) + offset,
+              pow(attenuation.y(), gamma) + offset,
+              pow(attenuation.z(), gamma) + offset
+          );
+          // Apply tint
+          attenuation = attenuation * tint;
+        }
+        
+        
+
         return true;
     }
 
     color emitted(double u, double v, const point3& p) const override {
         return emission_luminance * emission_color;
     }
+
+    double gamma = 1.0;
+    double offset = 0.0;
+    color tint = color(1.0, 1.0, 1.0);
 
 private:
     double base_weight;
@@ -221,5 +238,7 @@ private:
     color transmission_color;
     double emission_luminance;
     color emission_color;
+
+    
 };
 #endif
