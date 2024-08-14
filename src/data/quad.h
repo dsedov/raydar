@@ -5,9 +5,9 @@
 
 #include "hittable.h"
 
-class quad : public hittable {
+class quad : public mis_hittable {
   public:
-    quad(const point3& Q, const vec3& u, const vec3& v, shared_ptr<material> mat)
+    quad(const point3& Q, const vec3& u, const vec3& v, shared_ptr<mis_material> mat)
       : Q(Q), u(u), v(v), mat(mat)
     {
         auto n = cross(u, v);
@@ -28,7 +28,7 @@ class quad : public hittable {
 
     aabb bounding_box() const override { return bbox; }
 
-   bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
+   bool hit(const ray& r, interval ray_t, mis_hit_record& rec) const override {
         auto denom = dot(normal, r.direction());
 
         // No hit if the ray is parallel to the plane.
@@ -58,7 +58,7 @@ class quad : public hittable {
 
         return true;
     }
-    virtual bool is_interior(double a, double b, hit_record& rec) const {
+    virtual bool is_interior(double a, double b, mis_hit_record& rec) const {
         interval unit_interval = interval(0, 1);
         // Given the hit point in plane coordinates, return false if it is outside the
         // primitive, otherwise set the hit record UV coordinates and return true.
@@ -75,7 +75,7 @@ class quad : public hittable {
     point3 Q;
     vec3 u, v;
     vec3 w;
-    shared_ptr<material> mat;
+    shared_ptr<mis_material> mat;
     aabb bbox;
     vec3 normal;
     double D;

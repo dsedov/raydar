@@ -191,4 +191,31 @@ private:
         return geometry_schlick_ggx(ndotl, roughness) * geometry_schlick_ggx(ndotv, roughness);
     }
 };
+class constant_color_material : public mis_material {
+public:
+    constant_color_material(const color& c) : albedo(c) {}
+
+    bool scatter(const ray& r_in, const mis_hit_record& rec, color& attenuation, ray& scattered, double& pdf_val) const override {
+        return false; // This material doesn't scatter light
+    }
+
+    color brdf(const vec3& wo, const vec3& wi, const vec3& n) const override {
+        return albedo / pi; // Return the constant color divided by pi for energy conservation
+    }
+
+    double pdf(const vec3& wo, const vec3& wi, const vec3& n) const override {
+        return 0.0; // This material doesn't have a probability distribution function
+    }
+
+    color emitted(double u, double v, const point3& p) const override {
+        return albedo; // Emit the constant color
+    }
+
+    bool can_scatter() const override {
+        return false; // This material doesn't scatter light
+    }
+
+private:
+    color albedo;
+};
 #endif

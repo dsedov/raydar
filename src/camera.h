@@ -5,7 +5,6 @@
 #include "data/interval.h"
 #include "data/hittable.h"
 #include "image/image.h"
-#include "material.h"
 #include "mis_material.h"
 #include <thread>
 
@@ -94,7 +93,7 @@ class camera {
        
     }
 
-    int mt_render(const hittable& world) {
+    int mt_render(const mis_hittable_list& world, mis_hittable_list& lights) {
         initialize();
         auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -109,7 +108,7 @@ class camera {
                  for (int s_j = 0; s_j < sqrt_spp; s_j++) {
                     for (int s_i = 0; s_i < sqrt_spp; s_i++) {
                         ray r = get_ray(i, j, s_i, s_j, 0);
-                        pixel_color += ray_color(r, max_depth, world);
+                        pixel_color += mis_ray_color(r, max_depth, world, lights);
                     }
                 }
                 pixel_color *= pixel_samples_scale;
@@ -135,7 +134,7 @@ class camera {
         std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
         return duration.count();
     }
-    int adaptive_mt_render(const hittable& world) {
+    int adaptive_mt_render(const mis_hittable_list& world, mis_hittable_list& lights) {
         initialize();
         auto start_time = std::chrono::high_resolution_clock::now();
         std::vector<std::thread> threads;
@@ -161,7 +160,7 @@ class camera {
                         int s_i = samples % sqrt_spp;
                         int s_j = samples / sqrt_spp;
                         ray r = get_ray(i, j, s_i, s_j, 0);
-                        sample_color += ray_color(r, max_depth, world);
+                        sample_color += mis_ray_color(r, max_depth, world, lights);
                         samples++;
                     }
 
@@ -202,7 +201,7 @@ class camera {
         return duration.count();
     }
 
-    int adaptive_filtered_mt_render(const hittable& world) {
+    int adaptive_filtered_mt_render(const mis_hittable_list& world, mis_hittable_list& lights) {
         initialize();
         auto start_time = std::chrono::high_resolution_clock::now();
         std::vector<std::thread> threads;
@@ -228,7 +227,7 @@ class camera {
                         int s_i = sample_count % sqrt_spp;
                         int s_j = sample_count / sqrt_spp;
                         ray r = get_ray(i, j, s_i, s_j, 0);
-                        color sample_color = ray_color(r, max_depth, world);
+                        color sample_color = mis_ray_color(r, max_depth, world, lights);
                         
                         // Calculate sample position relative to pixel center
                         float x_offset = (float)s_i / sqrt_spp - 0.5f;
@@ -386,35 +385,8 @@ class camera {
         // Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square.
         return vec3(random_double() - 0.5, random_double() - 0.5, 0);
     }
-    color ray_color(ray& r, int depth, const hittable& world) const {
-        if (depth <= 0)
-            return color(0,0,0);
-
-        hit_record rec;
-        if (!world.hit(r, interval(0.001, infinity), rec)) { 
-            return background_color;
-        }
-
-        // For primary rays where depth is equal to max_depth
-        if (depth == max_depth && !rec.mat->is_visible()) {
-            // Continue ray in the same direction with a small bias
-            const double bias = 0.0001;
-            ray continued_ray(rec.p + bias * r.direction(), r.direction(), r.get_depth());
-            return ray_color(continued_ray, depth, world);
-        }
-
-        ray scattered;
-        color attenuation;
-        
-        
-        color emitted = rec.mat->emitted(rec.u, rec.v, rec.p);
-
-        if (!rec.mat->scatter(r, rec, attenuation, scattered)){
-            return emitted;
-        }
-        return emitted + attenuation * ray_color(scattered, depth-1, world);
-    }
-    color mis_ray_color(ray& r, int depth, const mis_hittable& world, const std::vector<shared_ptr<mis_hittable>>& lights) const {
+    
+    color mis_ray_color(ray& r, int depth, const mis_hittable_list& world, const mis_hittable_list& lights) const {
         if (depth <= 0)
             return color(0,0,0);
 
@@ -443,10 +415,10 @@ class camera {
 
         // Light sampling
         for (int i = 0; i < n_light_samples; ++i) {
-            if (lights.empty()) break;
+            if (lights.objects.empty()) break;
 
-            int light_index = random_int(0, lights.size() - 1);
-            shared_ptr<mis_hittable> light = lights[light_index];
+            int light_index = random_int(0, lights.objects.size() - 1);
+            shared_ptr<mis_hittable> light = lights.objects[light_index];
             
             vec3 light_direction;
             double light_distance;
@@ -483,10 +455,10 @@ class camera {
 
                 if (cos_theta > 0) {
                     double light_pdf = 0;
-                    for (const auto& light : lights) {
+                    for (const auto& light : lights.objects) {
                         light_pdf += light->pdf(rec.p, scattered.direction());
                     }
-                    light_pdf /= lights.size();
+                    light_pdf /= lights.objects.size();
 
                     double mis_weight = power_heuristic(brdf_pdf, light_pdf);
                     color radiance = attenuation * mis_ray_color(scattered, depth-1, world, lights) * cos_theta / brdf_pdf;

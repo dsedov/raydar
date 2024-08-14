@@ -5,27 +5,9 @@
 #include "interval.h"
 #include "aabb.h"
 
-class material;
+
 class mis_material;
 
-class hit_record {
-  public:
-    point3 p;
-    vec3 normal;
-    bool front_face;
-    shared_ptr<material> mat;
-    double t;
-    double u;
-    double v;
-
-    void set_face_normal(const ray& r, const vec3& outward_normal) {
-        // Sets the hit record normal vector.
-        // NOTE: the parameter `outward_normal` is assumed to have unit length.
-
-        front_face = dot(r.direction(), outward_normal) < 0;
-        normal = front_face ? outward_normal : -outward_normal;
-    }
-};
 class mis_hit_record {
   public:
     point3 p;
@@ -43,14 +25,6 @@ class mis_hit_record {
         front_face = dot(r.direction(), outward_normal) < 0;
         normal = front_face ? outward_normal : -outward_normal;
     }
-};
-
-class hittable {
-  public:
-    virtual ~hittable() = default;
-
-    virtual bool hit(const ray& r, interval ray_t, hit_record& rec) const = 0;
-    virtual aabb bounding_box() const = 0;
 };
 
 class mis_hittable {

@@ -5,14 +5,14 @@
 
 #include "data/hittable.h"
 #include "data/hittable_list.h"
-#include "data/sphere.h"
 #include "data/quad.h"
+
 #include "data/usd_mesh.h"
 #include "data/bvh.h"
 
 
 #include "camera.h"
-#include "material.h"
+#include "mis_material.h"
 #include "light.h"
 #include "image/image_png.h"
 #include <pxr/usd/usd/stage.h>
@@ -142,14 +142,14 @@ pxr::UsdGeomCamera findFirstCamera(const pxr::UsdStageRefPtr& stage) {
 }
 
 // Recursive function to traverse the USD hierarchy and extract meshes
-void traverseStageAndExtractMeshes(const pxr::UsdPrim& prim, std::vector<std::shared_ptr<usd_mesh>>& meshes, std::unordered_map<std::string, std::shared_ptr<material>> materials) {
+void traverseStageAndExtractMeshes(const pxr::UsdPrim& prim, std::vector<std::shared_ptr<usd_mesh>>& meshes, std::unordered_map<std::string, std::shared_ptr<mis_material>> materials) {
     
     if (prim.IsA<pxr::UsdGeomMesh>()) {
         std::cout << std::endl << "Prim Path: " << prim.GetPath().GetString() << std::endl;
         pxr::UsdGeomMesh usdMesh(prim);
         pxr::GfMatrix4d xform = pxr::UsdGeomXformable(usdMesh).ComputeLocalToWorldTransform(pxr::UsdTimeCode::Default());
         // Extract material name
-        std::shared_ptr<material> mat = materials["error"];
+        std::shared_ptr<mis_material> mat = materials["error"];
         std::string materialName = "No Material";
         pxr::UsdShadeMaterial boundMaterial = pxr::UsdShadeMaterialBindingAPI(usdMesh).ComputeBoundMaterial();
         if (boundMaterial) {
@@ -164,7 +164,7 @@ void traverseStageAndExtractMeshes(const pxr::UsdPrim& prim, std::vector<std::sh
     }
     for (const auto& child : prim.GetChildren()) traverseStageAndExtractMeshes(child, meshes, materials);
 }
-std::vector<std::shared_ptr<usd_mesh>> extractMeshesFromUsdStage(const pxr::UsdStageRefPtr& stage, std::unordered_map<std::string, std::shared_ptr<material>> materials) {
+std::vector<std::shared_ptr<usd_mesh>> extractMeshesFromUsdStage(const pxr::UsdStageRefPtr& stage, std::unordered_map<std::string, std::shared_ptr<mis_material>> materials) {
     std::vector<std::shared_ptr<usd_mesh>> meshes;
     pxr::UsdPrim rootPrim = stage->GetPseudoRoot();
     traverseStageAndExtractMeshes(rootPrim, meshes, materials);
@@ -172,10 +172,11 @@ std::vector<std::shared_ptr<usd_mesh>> extractMeshesFromUsdStage(const pxr::UsdS
 }
 
 
-std::shared_ptr<material> createMaterialFromProperties(const MaterialProperties& props) {
+std::shared_ptr<mis_material> createMaterialFromProperties(const MaterialProperties& props) {
     // Implement this function based on your material system
     // For now, we'll return a lambertian material as a placeholder
-    return std::make_shared<advanced_pbr_material>(
+    return std::make_shared<constant_color_material>(color(props.diffuseColor[0], props.diffuseColor[1], props.diffuseColor[2]));
+    return std::make_shared<pbr_material>(
         0.6, // base_weight (guessed)
         color(props.diffuseColor[0], props.diffuseColor[1], props.diffuseColor[2]), // base_color
         props.metallic, // base_metalness
@@ -191,9 +192,7 @@ std::shared_ptr<material> createMaterialFromProperties(const MaterialProperties&
         1.0, // emission_luminance (guessed)
         color(props.emissiveColor[0], props.emissiveColor[1], props.emissiveColor[2]) // emission_color
     );
-     return std::make_shared<lambertian>(color(props.diffuseColor[0], props.diffuseColor[1], props.diffuseColor[2]));
 
-    
 }
 
 pxr::UsdShadeShader findShaderInNodeGraph(const pxr::UsdPrim& nodeGraphPrim) {
@@ -259,15 +258,15 @@ void findMaterialsRecursive(const pxr::UsdPrim& prim, std::vector<pxr::UsdShadeM
     }
 }
 
-std::unordered_map<std::string, std::shared_ptr<material>> loadMaterialsFromStage(const pxr::UsdStageRefPtr& stage) {
-    std::unordered_map<std::string, std::shared_ptr<material>> materials;
+std::unordered_map<std::string, std::shared_ptr<mis_material>> loadMaterialsFromStage(const pxr::UsdStageRefPtr& stage) {
+    std::unordered_map<std::string, std::shared_ptr<mis_material>> materials;
 
     std::vector<pxr::UsdShadeMaterial> usdMaterials;
     findMaterialsRecursive(stage->GetPseudoRoot(), usdMaterials);
 
     for (const auto& usdMaterial : usdMaterials) {
         MaterialProperties props = extractMaterialProperties(usdMaterial);
-        std::shared_ptr<material> mat = createMaterialFromProperties(props);
+        std::shared_ptr<mis_material> mat = createMaterialFromProperties(props);
         materials[props.fullPath] = mat;
 
         std::cout << "Loaded material: " << props.fullPath << std::endl;
@@ -362,7 +361,8 @@ int main(int argc, char *argv[]) {
     settings settings(argc, argv);
     if(settings.error > 0) return 1;
 
-    hittable_list world;
+    mis_hittable_list world;
+    mis_hittable_list lights;
     
     // IMAGE
     ImagePNG image(settings.image_width, settings.image_height);
@@ -385,16 +385,9 @@ int main(int argc, char *argv[]) {
     std::cout << "FOV: " << cameraProps.fov << std::endl<< std::endl;
 
     // LOAD MATERIALS
-    auto error_material = make_shared<lambertian>(color(1.0, 0.0, 0.0));
-    auto light_material = make_shared<light>(color(1.0, 1.0, 1.0), 1.0);
-    std::unordered_map<std::string, std::shared_ptr<material>> materials = loadMaterialsFromStage(stage);
-    if (auto pbr_material = std::dynamic_pointer_cast<advanced_pbr_material>(materials["/primRoot/mtl/ANO_NDA_SG"])) {
-        pbr_material->tint = color(1.8, 0.5, 0.5);
-        pbr_material->gamma = 0.3;
-        pbr_material->offset = 0.2; 
-    } else {
-        std::cerr << "Material is not an advanced_pbr_material" << std::endl;
-    }
+    
+    std::unordered_map<std::string, std::shared_ptr<mis_material>> materials = loadMaterialsFromStage(stage);
+    auto error_material = make_shared<constant_color_material>(color(0.0, 1.0, 0.0));
     materials["error"] = error_material;
 
     // LOAD GEOMETRY
@@ -403,9 +396,7 @@ int main(int argc, char *argv[]) {
     // LOAD AREA LIGHTS
     std::vector<AreaLight> areaLights = extractAreaLightsFromUsdStage(stage);
     for(const auto& light : areaLights) {
-        shared_ptr<quad> light_quad = make_shared<quad>(light.Q, light.u, light.v, light_material);
-
-        world.add(light_quad);
+        lights.add(make_shared<area_light>(light.Q, light.u, light.v, color(1.0, 1.0, 1.0)));
     }
 
     camera camera(image);
@@ -415,11 +406,6 @@ int main(int argc, char *argv[]) {
     camera.vup      = point3(cameraProps.lookUp[0], cameraProps.lookUp[1], cameraProps.lookUp[2]);
     camera.samples_per_pixel = settings.samples;
     camera.max_depth = settings.max_depth;
-
-    auto material_metal  = make_shared<metal>(color(0.8, 0.8, 0.8),0.2);
-    auto material_glass = make_shared<dielectric>(1.1, 0.00);
-    auto material_glass_inside = make_shared<dielectric>(1.0/1.5);
-    auto material_ground = make_shared<lambertian>(color(0.0, 0.5, 0.5));
 
     std::cout << "Scene meshes size: " << sceneMeshes.size() << std::endl;
     // for each mesh in sceneMeshes
@@ -435,9 +421,9 @@ int main(int argc, char *argv[]) {
     }
     std::cout << "BVH meshes size: " << bvh_meshes_size << std::endl;
 
-    world = hittable_list(make_shared<bvh_node>(world));
+    world = mis_hittable_list(make_shared<bvh_node>(world));
 
-    int seconds_to_render = camera.mt_render(world);
+    int seconds_to_render = camera.mt_render(world, lights);
     
     // Extract the file name and extension
     std::string file_name = settings.image_file;
