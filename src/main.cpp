@@ -2,6 +2,7 @@
 #include <png.h>
 #include <vector>
 #include "raydar.h"
+#include "nanort.h"
 
 #include "data/hittable.h"
 #include "data/hittable_list.h"
