@@ -51,6 +51,24 @@ class lambertian : public material {
   private:
     color albedo;
 };
+class constant : public material {
+public:
+    constant(const color& c) : albedo(c) {}
+
+    bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered) 
+    const override {
+        // Constant materials don't scatter, so we always return false
+        return false;
+    }
+
+    color emitted(double u, double v, const point3& p) const override {
+        // Instead of scattering, we emit the constant color
+        return albedo;
+    }
+
+private:
+    color albedo;
+};
 class light : public material {
   public:
     light(const color& light_color, double light_intensity) : light_color(light_color), light_intensity(light_intensity) {
