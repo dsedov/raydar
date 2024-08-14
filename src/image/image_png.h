@@ -18,6 +18,9 @@ public:
             for (int x = 0; x < width_; x++) {
                 png_bytep pixel = row + x * 3;
                 float * f_pixel = f_row + x * channels_;
+                if (f_pixel[0] != f_pixel[0]) f_pixel[0] = 0.0;
+                if (f_pixel[1] != f_pixel[1]) f_pixel[1] = 0.0;
+                if (f_pixel[2] != f_pixel[2]) f_pixel[2] = 0.0;
                 pixel[0] = int(255.999 * intensity.clamp(linear_to_gamma(f_pixel[0])));   // Red channel
                 pixel[1] = int(255.999 * intensity.clamp(linear_to_gamma(f_pixel[1])));   // Green channel
                 pixel[2] = int(255.999 * intensity.clamp(linear_to_gamma(f_pixel[2])));   // Blue channel

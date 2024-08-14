@@ -191,6 +191,43 @@ private:
         return geometry_schlick_ggx(ndotl, roughness) * geometry_schlick_ggx(ndotv, roughness);
     }
 };
+class lambertian_material : public mis_material {
+public:
+    lambertian_material(const color& a) : albedo(a) {}
+
+    bool scatter(const ray& r_in, const mis_hit_record& rec, color& attenuation, ray& scattered, double& pdf_val) const override {
+        vec3 scatter_direction = rec.normal + random_unit_vector();
+        
+        // Catch degenerate scatter direction
+        if (scatter_direction.near_zero())
+            scatter_direction = rec.normal;
+
+        scattered = ray(rec.p, scatter_direction, r_in.get_depth() + 1);
+        attenuation = albedo;
+        pdf_val = dot(rec.normal, scattered.direction()) / pi;
+        return true;
+    }
+
+    color brdf(const vec3& wo, const vec3& wi, const vec3& n) const override {
+        return albedo / pi;
+    }
+
+    double pdf(const vec3& wo, const vec3& wi, const vec3& n) const override {
+        double cosine = dot(n, unit_vector(wi));
+        return cosine > 0 ? cosine / pi : 0;
+    }
+
+    color emitted(double u, double v, const point3& p) const override {
+        return color(0, 0, 0); // Lambertian materials don't emit light
+    }
+
+    bool can_scatter() const override {
+        return true; // Lambertian materials scatter light
+    }
+
+private:
+    color albedo;
+};
 class constant_color_material : public mis_material {
 public:
     constant_color_material(const color& c) : albedo(c) {}
