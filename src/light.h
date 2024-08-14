@@ -45,7 +45,7 @@ public:
         return bbox;
     }
 
-    bool sample(const point3& origin, vec3& direction, double& distance, double& pdf_val, color& emit) const {
+    bool sample(const point3& origin, vec3& direction, double& distance, double& pdf_val, color& emit) const override{
         point3 light_point = corner + random_double() * u + random_double() * v;
         direction = light_point - origin;
         distance = direction.length();
@@ -58,7 +58,8 @@ public:
         return true;
     }
 
-    double pdf(const point3& origin, const vec3& direction) const {
+    double pdf(const point3& origin, const vec3& direction) const override
+    {
         mis_hit_record rec;
         if (!this->hit(ray(origin, direction, 0), interval(0.001, infinity), rec))
             return 0;
@@ -68,7 +69,7 @@ public:
         return distance_squared / (area * cos_theta);
     }
 
-    color power() const {
+    color power() const override {
         return emission * area;
     }
 

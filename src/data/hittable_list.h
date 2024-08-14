@@ -44,4 +44,38 @@ class hittable_list : public hittable {
 
 };
 
+class mis_hittable_list : public mis_hittable {
+    public:
+        std::vector<shared_ptr<mis_hittable>> objects;
+
+        mis_hittable_list() {}
+        mis_hittable_list(shared_ptr<mis_hittable> object) { add(object); }
+
+        void clear() { objects.clear(); }
+
+        void add(shared_ptr<mis_hittable> object) {
+            objects.push_back(object);
+            bbox = aabb(bbox, object->bounding_box());
+        }
+
+        bool hit(const ray& r, interval ray_t, mis_hit_record& rec) const override {
+            mis_hit_record temp_rec;
+            bool hit_anything = false;
+            auto closest_so_far = ray_t.max;
+
+            for (const auto& object : objects) {
+                if (object->hit(r, interval(ray_t.min, closest_so_far), temp_rec)) {
+                    hit_anything = true;
+                    closest_so_far = temp_rec.t;
+                    rec = temp_rec;
+                }
+            }
+
+            return hit_anything;
+        }
+        aabb bounding_box() const override { return bbox; }
+    private:
+        aabb bbox;
+
+};
 #endif

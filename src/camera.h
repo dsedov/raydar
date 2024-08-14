@@ -455,7 +455,7 @@ class camera {
             
             if (light->sample(rec.p, light_direction, light_distance, light_pdf, light_intensity)) {
                 ray shadow_ray(rec.p, light_direction, r.get_depth()+1);
-                hit_record shadow_rec;
+                mis_hit_record shadow_rec;
                 
                 if (!world.hit(shadow_ray, interval(0.001, light_distance - 0.001), shadow_rec)) {
                     color brdf_value = rec.mat->brdf(r.direction(), light_direction, rec.normal);
