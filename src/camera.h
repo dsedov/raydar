@@ -107,7 +107,7 @@ class camera {
                 color pixel_color(0,0,0);
                  for (int s_j = 0; s_j < sqrt_spp; s_j++) {
                     for (int s_i = 0; s_i < sqrt_spp; s_i++) {
-                        ray r = get_ray(i, j, s_i, s_j);
+                        ray r = get_ray(i, j, s_i, s_j, 0);
                         pixel_color += ray_color(r, max_depth, world);
                     }
                 }
@@ -159,7 +159,7 @@ class camera {
                     for (int s = 0; s < batch_size; s++) {
                         int s_i = samples % sqrt_spp;
                         int s_j = samples / sqrt_spp;
-                        ray r = get_ray(i, j, s_i, s_j);
+                        ray r = get_ray(i, j, s_i, s_j, 0);
                         sample_color += ray_color(r, max_depth, world);
                         samples++;
                     }
@@ -226,7 +226,7 @@ class camera {
                     for (int s = 0; s < batch_size; s++) {
                         int s_i = sample_count % sqrt_spp;
                         int s_j = sample_count / sqrt_spp;
-                        ray r = get_ray(i, j, s_i, s_j);
+                        ray r = get_ray(i, j, s_i, s_j, 0);
                         color sample_color = ray_color(r, max_depth, world);
                         
                         // Calculate sample position relative to pixel center
@@ -336,7 +336,7 @@ class camera {
 
 
     }
-    ray get_ray(int i, int j, int s_i, int s_j) const {
+    ray get_ray(int i, int j, int s_i, int s_j, int depth) const {
         // Construct a camera ray originating from the origin and directed at randomly sampled
         // point around the pixel location i, j.
 
@@ -349,7 +349,7 @@ class camera {
         auto ray_origin = camera_center;
         auto ray_direction = pixel_sample - ray_origin;
 
-        return ray(ray_origin, ray_direction);
+        return ray(ray_origin, ray_direction, depth);
     }
     vec3 sample_square_stratified(int s_i, int s_j) const {
 
@@ -386,8 +386,6 @@ class camera {
         return vec3(random_double() - 0.5, random_double() - 0.5, 0);
     }
     color ray_color(ray& r, int depth, const hittable& world) const {
-        r.set_depth(depth);
-        r.set_max_depth(max_depth);
         if (depth <= 0)
             return color(0,0,0);
 
@@ -400,7 +398,7 @@ class camera {
         if (depth == max_depth && !rec.mat->is_visible()) {
             // Continue ray in the same direction with a small bias
             const double bias = 0.0001;
-            ray continued_ray(rec.p + bias * r.direction(), r.direction());
+            ray continued_ray(rec.p + bias * r.direction(), r.direction(), r.get_depth());
             return ray_color(continued_ray, depth, world);
         }
 

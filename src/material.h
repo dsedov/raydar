@@ -3,17 +3,11 @@
 
 #include "raydar.h"
 #include "data/ray.h"
-#include "data/pdf.h"
+//#include "data/pdf.h"
 #include "data/hittable.h"
 
 class hit_record;
-class scatter_record {
-  public:
-    color attenuation;
-    shared_ptr<pdf> pdf_ptr;
-    bool skip_pdf;
-    ray skip_pdf_ray;
-};
+
 
 class material {
   public:
@@ -48,7 +42,7 @@ class lambertian : public material {
         if (scatter_direction.near_zero())
             scatter_direction = rec.normal;
 
-        scattered = ray(rec.p, scatter_direction);
+        scattered = ray(rec.p, scatter_direction, r_in.get_depth() + 1);
         attenuation = albedo;
         return true;
     }
@@ -85,7 +79,7 @@ class metal : public material {
     const override {
         vec3 reflected = reflect(r_in.direction(), rec.normal);
         reflected = unit_vector(reflected) + (fuzz * random_unit_vector());
-        scattered = ray(rec.p, reflected);
+        scattered = ray(rec.p, reflected, r_in.get_depth() + 1);
         attenuation = albedo;
         return (dot(scattered.direction(), rec.normal) > 0);
     }
@@ -115,7 +109,7 @@ class dielectric : public material {
         else
             direction = refract(unit_direction, rec.normal, ri) + (fuzz * random_unit_vector());
 
-        scattered = ray(rec.p, direction);
+        scattered = ray(rec.p, direction, r_in.get_depth() + 1);
         return true;
     }
 
@@ -185,15 +179,15 @@ public:
         double p = random_double();
         if (p < norm_base_weight) {
             // Diffuse scattering
-            scattered = ray(rec.p, rec.normal + random_unit_vector());
+            scattered = ray(rec.p, rec.normal + random_unit_vector(), r_in.get_depth() + 1);
             attenuation = base_color * (1.0 - base_metalness) * norm_base_weight;
         } else if (p < norm_base_weight + norm_specular_weight) {
             // Specular reflection
-            scattered = ray(rec.p, scatter_direction);
+            scattered = ray(rec.p, scatter_direction, r_in.get_depth() + 1);
             attenuation = specular_color * F * norm_specular_weight;
         } else {
             // Transmission
-            scattered = ray(rec.p, refracted);
+            scattered = ray(rec.p, refracted, r_in.get_depth() + 1);
             attenuation = transmission_color * norm_transmission_weight;
         }
 
@@ -203,7 +197,7 @@ public:
         attenuation += transmission_color * norm_transmission_weight;
 
         // Apply gamma correction
-        if (r_in.depth == r_in.max_depth) {
+        if (false && r_in.get_depth() == 0) {
           attenuation = color(
               pow(attenuation.x(), gamma) + offset,
               pow(attenuation.y(), gamma) + offset,

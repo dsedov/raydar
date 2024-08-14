@@ -7,7 +7,7 @@ class ray {
   public:
     ray() {}
 
-    ray(const point3& origin, const vec3& direction) : orig(origin), dir(direction) {}
+    ray(const point3& origin, const vec3& direction, const int depth) : orig(origin), dir(direction), depth(depth) {}
 
     const point3& origin() const  { return orig; }
     const vec3& direction() const { return dir; }
@@ -15,15 +15,12 @@ class ray {
     point3 at(double t) const {
         return orig + t*dir;
     }
-    void set_max_depth(int max_depth) {
-        this->max_depth = max_depth;
+    const int get_depth() const {
+        return depth;
     }
-    void set_depth(int depth) {
-        this->depth = depth;
-    }
-    int max_depth = 0;
-    int depth = 0;
+    
   private:
+  int depth = 0;
     point3 orig;
     vec3 dir;
     
