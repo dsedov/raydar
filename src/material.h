@@ -190,25 +190,11 @@ public:
             scattered = ray(rec.p, refracted, r_in.get_depth() + 1);
             attenuation = transmission_color * norm_transmission_weight;
         }
-
         // Add contributions from all components
         attenuation += base_color * (1.0 - base_metalness) * norm_base_weight;
         attenuation += specular_color * F * norm_specular_weight;
         attenuation += transmission_color * norm_transmission_weight;
-
-        // Apply gamma correction
-        if (false && r_in.get_depth() == 0) {
-          attenuation = color(
-              pow(attenuation.x(), gamma) + offset,
-              pow(attenuation.y(), gamma) + offset,
-              pow(attenuation.z(), gamma) + offset
-          );
-          // Apply tint
-          attenuation = attenuation * tint;
-        }
         
-        
-
         return true;
     }
 

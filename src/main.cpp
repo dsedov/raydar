@@ -13,6 +13,7 @@
 
 #include "camera.h"
 #include "material.h"
+#include "light.h"
 #include "image/image_png.h"
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usd/primRange.h>

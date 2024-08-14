@@ -6,6 +6,7 @@
 #include "data/hittable.h"
 #include "image/image.h"
 #include "material.h"
+#include "mis_material.h"
 #include <thread>
 
 #include <atomic>
@@ -412,6 +413,95 @@ class camera {
             return emitted;
         }
         return emitted + attenuation * ray_color(scattered, depth-1, world);
+    }
+    color mis_ray_color(ray& r, int depth, const mis_hittable& world, const std::vector<shared_ptr<mis_hittable>>& lights) const {
+        if (depth <= 0)
+            return color(0,0,0);
+
+        mis_hit_record rec;
+        if (!world.hit(r, interval(0.001, infinity), rec)) {
+            return background_color;
+        }
+
+        // For primary rays where depth is equal to max_depth
+        if (depth == max_depth && !rec.mat->is_visible()) {
+            const double bias = 0.0001;
+            ray continued_ray(rec.p + bias * r.direction(), r.direction(), r.get_depth());
+            return mis_ray_color(continued_ray, depth, world, lights);
+        }
+
+        color emitted = rec.mat->emitted(rec.u, rec.v, rec.p);
+
+        // If the material doesn't scatter, return only emitted light
+        if (!rec.mat->can_scatter()) {
+            return emitted;
+        }
+
+        const int n_light_samples = 1;
+        const int n_brdf_samples = 1;
+        color total_radiance = color(0, 0, 0);
+
+        // Light sampling
+        for (int i = 0; i < n_light_samples; ++i) {
+            if (lights.empty()) break;
+
+            int light_index = random_int(0, lights.size() - 1);
+            shared_ptr<mis_hittable> light = lights[light_index];
+            
+            vec3 light_direction;
+            double light_distance;
+            double light_pdf;
+            color light_intensity;
+            
+            if (light->sample(rec.p, light_direction, light_distance, light_pdf, light_intensity)) {
+                ray shadow_ray(rec.p, light_direction, r.get_depth()+1);
+                hit_record shadow_rec;
+                
+                if (!world.hit(shadow_ray, interval(0.001, light_distance - 0.001), shadow_rec)) {
+                    color brdf_value = rec.mat->brdf(r.direction(), light_direction, rec.normal);
+                    double cos_theta = dot(rec.normal, light_direction);
+                    
+                    if (cos_theta > 0) {
+                        double brdf_pdf = rec.mat->pdf(r.direction(), light_direction, rec.normal);
+                        double mis_weight = power_heuristic(light_pdf, brdf_pdf);
+                        color radiance = (brdf_value * light_intensity * cos_theta) / light_pdf;
+                        total_radiance += mis_weight * radiance / n_light_samples;
+                    }
+                }
+            }
+        }
+
+        // BRDF sampling
+        for (int i = 0; i < n_brdf_samples; ++i) {
+            ray scattered;
+            color attenuation;
+            double brdf_pdf;
+
+            if (rec.mat->scatter(r, rec, attenuation, scattered, brdf_pdf)) {
+                color brdf_value = rec.mat->brdf(r.direction(), scattered.direction(), rec.normal);
+                double cos_theta = dot(rec.normal, scattered.direction());
+
+                if (cos_theta > 0) {
+                    double light_pdf = 0;
+                    for (const auto& light : lights) {
+                        light_pdf += light->pdf(rec.p, scattered.direction());
+                    }
+                    light_pdf /= lights.size();
+
+                    double mis_weight = power_heuristic(brdf_pdf, light_pdf);
+                    color radiance = attenuation * mis_ray_color(scattered, depth-1, world, lights) * cos_theta / brdf_pdf;
+                    total_radiance += mis_weight * radiance / n_brdf_samples;
+                }
+            }
+        }
+
+        return emitted + total_radiance;
+    }
+    // Power heuristic for MIS weight calculation
+    const double power_heuristic(double pdf_a, double pdf_b, double beta = 2.0) const {
+        double a = std::pow(pdf_a, beta);
+        double b = std::pow(pdf_b, beta);
+        return a / (a + b);
     }
 };
 
