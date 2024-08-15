@@ -436,7 +436,7 @@ int main(int argc, char *argv[]) {
 
     world = hittable_list(make_shared<bvh_node>(world));
 
-    int seconds_to_render = camera.mt_render(world);
+    int seconds_to_render = camera.mtpool_render(world);
     
     // Extract the file name and extension
     std::string file_name = settings.image_file;
