@@ -4,7 +4,6 @@
 #include "hittable.h"
 #include "interval.h"
 #include "vec3.h"
-#include "aabb.h"
 #include <vector>
 #include <string>
 #include <fstream>
