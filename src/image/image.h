@@ -22,6 +22,18 @@ public:
         image_buffer_[index + 1] = g;
         image_buffer_[index + 2] = b;
     }
+    void add_to_pixel(int x, int y, float r, float g, float b) {
+        int index = y * row_size_ + x * channels_;
+        image_buffer_[index] += r;
+        image_buffer_[index + 1] += g;
+        image_buffer_[index + 2] += b;
+    }
+    void add_to_pixel(int x, int y, color color) {
+        int index = y * row_size_ + x * channels_;
+        image_buffer_[index] += color.x();  ;
+        image_buffer_[index + 1] += color.y();;
+        image_buffer_[index + 2] += color.z();;
+    }
     void set_pixel(int x, int y, color color) {
         set_pixel(x, y, color.x(), color.y(), color.z());
     }

@@ -437,7 +437,7 @@ int main(int argc, char *argv[]) {
 
     world = hittable_list(make_shared<bvh_node>(world));
 
-    int seconds_to_render = camera.mtpool_render(world);
+    int seconds_to_render = camera.mtpool_prog_render(world);
     
     // Extract the file name and extension
     std::string file_name = settings.image_file;
@@ -450,6 +450,7 @@ int main(int argc, char *argv[]) {
     // Generate a simple 6-character alphanumeric UUID
     std::string uuid;
     const std::string chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    std::srand(std::time(nullptr));
     for (int i = 0; i < 6; ++i) {
         uuid += chars[rand() % chars.length()];
     }

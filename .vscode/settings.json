@@ -65,7 +65,8 @@
         "variant": "cpp",
         "algorithm": "cpp",
         "thread": "cpp",
-        "queue": "cpp"
+        "queue": "cpp",
+        "utility": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

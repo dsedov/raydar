@@ -93,7 +93,7 @@ class camera {
     camera(Image & image_buffer) : image_buffer(image_buffer) {
        
     }
-
+    /*
     int mt_render(const hittable& world) {
         initialize();
         auto start_time = std::chrono::high_resolution_clock::now();
@@ -134,7 +134,80 @@ class camera {
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
         std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
         return duration.count();
+    }*/
+    int mtpool_prog_render(const hittable& world) {
+        initialize();
+        auto start_time = std::chrono::high_resolution_clock::now();
+
+        const int num_threads = std::thread::hardware_concurrency();
+        std::vector<std::thread> threads(num_threads);
+        std::queue<int> sample_queue;
+        std::mutex queue_mutex;
+        std::condition_variable cv;
+        std::atomic<int> samples_completed(0);
+        std::atomic<bool> done(false);
+
+        const int total_samples = sqrt_spp * sqrt_spp;
+        ProgressBar progress_bar(total_samples);
+
+        // Fill the queue with sample indices
+        for (int s = 0; s < total_samples; ++s) {
+            sample_queue.push(s);
+        }
+
+        auto worker = [&]() {
+            while (true) {
+                int sample_index;
+                {
+                    std::unique_lock<std::mutex> lock(queue_mutex);
+                    if (sample_queue.empty()) {
+                        if (done) return;  // Exit if work is done
+                        cv.wait(lock);  // Wait for more work or done signal
+                        continue;  // Recheck condition after waking
+                    }
+                    sample_index = sample_queue.front();
+                    sample_queue.pop();
+                }
+
+                int s_i = sample_index % sqrt_spp;
+                int s_j = sample_index / sqrt_spp;
+
+                // Process all pixels for this sample
+                for (int j = 0; j < image_buffer.height(); ++j) {
+                    for (int i = 0; i < image_buffer.width(); ++i) {
+                        color pixel_color = ray_color(get_ray(i, j, s_i, s_j, 0), max_depth, world);
+                        image_buffer.add_to_pixel(i, j, pixel_color * pixel_samples_scale);
+                    }
+                }
+
+                int completed = samples_completed.fetch_add(1) + 1;
+                progress_bar.update(completed);
+
+                if (completed == total_samples) {
+                    done = true;
+                    cv.notify_all();  // Wake up all threads to check done condition
+                }
+            }
+        };
+
+        // Start worker threads
+        for (int t = 0; t < num_threads; ++t) {
+            threads[t] = std::thread(worker);
+        }
+
+        // Wait for all threads to complete
+        for (auto& thread : threads) {
+            thread.join();
+        }
+
+        std::cout << std::endl; // Move to the next line after progress bar
+
+        auto end_time = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
+        std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
+        return duration.count();
     }
+    /*
     int mtpool_render(const hittable& world) {
         initialize();
         auto start_time = std::chrono::high_resolution_clock::now();
@@ -155,6 +228,9 @@ class camera {
         }
 
         auto worker = [&]() {
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::uniform_real_distribution<> dis(0.0, 1.0);
             while (true) {
                 int j;
                 {
@@ -170,9 +246,11 @@ class camera {
 
                 // Process scanline
                 for (int i = 0; i < image_buffer.width(); i++) {
+                    
                     color pixel_color(0,0,0);
                     for (int s_j = 0; s_j < sqrt_spp; s_j++) {
                         for (int s_i = 0; s_i < sqrt_spp; s_i++) {
+
                             ray r = get_ray(i, j, s_i, s_j, 0);
                             pixel_color += ray_color(r, max_depth, world);
                         }
@@ -208,6 +286,7 @@ class camera {
         std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
         return duration.count();
     }
+    /*
     int adaptive_mt_render(const hittable& world) {
         initialize();
         auto start_time = std::chrono::high_resolution_clock::now();
@@ -225,7 +304,7 @@ class camera {
                 color prev_pixel_color(0,0,0);
                 int samples = 0;
                 bool converged = false;
-
+                std::srand(j*i + j + i + std::time(nullptr));
                 while (samples < max_samples && !converged) {
                     color sample_color(0,0,0);
                     int batch_size = std::min(8, max_samples - samples); // Sample in batches of 4
@@ -294,7 +373,7 @@ class camera {
                 color prev_pixel_color(0,0,0);
                 int sample_count = 0;
                 bool converged = false;
-
+                std::srand(j*i + j + i + std::time(nullptr));
                 while (sample_count < max_samples && !converged) {
                     int batch_size = std::min(8, max_samples - sample_count);
                     for (int s = 0; s < batch_size; s++) {
@@ -355,6 +434,7 @@ class camera {
         std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
         return duration.count();
     }
+    */
   private:
     /* Private Camera Variables Here */
     Image & image_buffer;
@@ -434,7 +514,6 @@ class camera {
     }
 
     vec3 sample_square_stratified_van_der_corput(int s_i, int s_j) const {
-
         auto van_der_corput = [](unsigned int n, unsigned int base) {
             double q = 0, b = 1.0 / base;
             while (n > 0) {
