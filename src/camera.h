@@ -415,7 +415,7 @@ class camera {
         // point around the pixel location i, j.
 
 
-        auto offset = sample_square(s_i, s_j);
+        auto offset = sample_square_stratified_van_der_corput(s_i, s_j);
         auto pixel_sample = pixel00_loc
                           + ((i + offset.x()) * pixel_delta_u)
                           + ((j + offset.y()) * pixel_delta_v);

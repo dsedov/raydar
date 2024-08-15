@@ -26,28 +26,28 @@ public:
         return aabb(v0, v1, v2);
     }
     bool hit(const ray& r, interval ray_t, hit_record& rec) const {
-        const double EPSILON = 0.0000001;
+        const float EPSILON = 0.0000001;
         vec3 h = cross(r.direction(), edge2);
-        double a = dot(edge1, h);
+        float a = dot(edge1, h);
 
         if (a > -EPSILON && a < EPSILON)
             return false;    // Ray is parallel to triangle
 
-        double f = 1.0 / a;
+        float f = 1.0 / a;
         vec3 s = r.origin() - v0;
-        double u = f * dot(s, h);
+        float u = f * dot(s, h);
 
         if (u < 0.0 || u > 1.0)
             return false;
 
         vec3 q = cross(s, edge1);
-        double v = f * dot(r.direction(), q);
+        float v = f * dot(r.direction(), q);
 
         if (v < 0.0 || u + v > 1.0)
             return false;
 
         // Compute t to find intersection point
-        double t = f * dot(edge2, q);
+        float t = f * dot(edge2, q);
 
         if (t > ray_t.min && t < ray_t.max) {
             rec.t = t;

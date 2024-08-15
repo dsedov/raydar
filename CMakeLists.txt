@@ -66,6 +66,7 @@ target_link_libraries(raydar PRIVATE
 
 # Add compile definitions if needed
 target_compile_definitions(raydar PRIVATE ${PNG_DEFINITIONS} NOMINMAX WIN32_LEAN_AND_MEAN)
+if (WIN32)
 target_compile_options(raydar PRIVATE
         /W3
         /wd4244
@@ -75,6 +76,7 @@ target_compile_options(raydar PRIVATE
         /wd4275
         /wd4251
     )
+endif()
 # Print link libraries for debugging
 get_target_property(LINKED_LIBS raydar LINK_LIBRARIES)
 message(STATUS "Linked libraries: ${LINKED_LIBS}")
