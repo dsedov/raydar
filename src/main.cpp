@@ -6,11 +6,8 @@
 
 #include "data/hittable.h"
 #include "data/hittable_list.h"
-#include "data/sphere.h"
 #include "data/quad.h"
 #include "data/usd_mesh.h"
-#include "data/bvh.h"
-
 
 #include "camera.h"
 #include "material.h"
@@ -400,6 +397,9 @@ int main(int argc, char *argv[]) {
 
     // LOAD GEOMETRY
     std::vector<std::shared_ptr<usd_mesh>> sceneMeshes = extractMeshesFromUsdStage(stage, materials);
+    for(const auto& mesh : sceneMeshes) {
+        world.add(mesh);
+    }
     
     // LOAD AREA LIGHTS
     std::vector<AreaLight> areaLights = extractAreaLightsFromUsdStage(stage);
@@ -416,27 +416,6 @@ int main(int argc, char *argv[]) {
     camera.vup      = point3(cameraProps.lookUp[0], cameraProps.lookUp[1], cameraProps.lookUp[2]);
     camera.samples_per_pixel = settings.samples;
     camera.max_depth = settings.max_depth;
-
-    auto material_metal  = make_shared<metal>(color(0.8, 0.8, 0.8),0.2);
-    auto material_glass = make_shared<dielectric>(1.1, 0.00);
-    auto material_glass_inside = make_shared<dielectric>(1.0/1.5);
-    auto material_ground = make_shared<lambertian>(color(0.0, 0.5, 0.5));
-
-    std::cout << "Scene meshes size: " << sceneMeshes.size() << std::endl;
-    // for each mesh in sceneMeshes
-    int bvh_meshes_size = 0;
-    for (const auto& mesh : sceneMeshes) {
-        std::vector<usd_mesh> meshes;
-        meshes = mesh->split(meshes);
-        
-        for(const auto& m : meshes) {   
-            world.add(make_shared<usd_mesh>(m));
-            bvh_meshes_size++;
-        }
-    }
-    std::cout << "BVH meshes size: " << bvh_meshes_size << std::endl;
-
-    world = hittable_list(make_shared<bvh_node>(world));
 
     int seconds_to_render = camera.mtpool_render(world);
     

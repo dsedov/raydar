@@ -470,6 +470,7 @@ class camera {
         if (!world.hit(r, interval(0.001, infinity), rec)) { 
             return background_color;
         }
+        return color(0.5,0.1,0.1);
     
         // For primary rays where depth is equal to max_depth
         if (depth == max_depth && !rec.mat->is_visible()) {

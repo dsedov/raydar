@@ -14,19 +14,8 @@ class quad : public hittable {
         normal = unit_vector(n);
         D = dot(normal, Q);
         w = n / dot(n,n);
-        set_bounding_box();
     }
 
-    virtual void set_bounding_box() {
-        // Compute the bounding box of all four vertices.
-        auto bbox_diagonal1 = aabb(Q, Q + u + v);
-        auto bbox_diagonal2 = aabb(Q + u, Q + v);
-        bbox = aabb(bbox_diagonal1, bbox_diagonal2);
-        bbox.pad(0.0001);
-
-    }
-
-    aabb bounding_box() const override { return bbox; }
 
    bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
         auto denom = dot(normal, r.direction());
@@ -76,7 +65,6 @@ class quad : public hittable {
     vec3 u, v;
     vec3 w;
     shared_ptr<material> mat;
-    aabb bbox;
     vec3 normal;
     double D;
 };
