@@ -174,7 +174,7 @@ std::vector<std::shared_ptr<usd_mesh>> extractMeshesFromUsdStage(const pxr::UsdS
 std::shared_ptr<material> createMaterialFromProperties(const MaterialProperties& props) {
     // Implement this function based on your material system
     // For now, we'll return a lambertian material as a placeholder
-    return std::make_shared<constant>(color(props.diffuseColor[0], props.diffuseColor[1], props.diffuseColor[2]));
+    //return std::make_shared<constant>(color(props.diffuseColor[0], props.diffuseColor[1], props.diffuseColor[2]));
     return std::make_shared<advanced_pbr_material>(
         0.6, // base_weight (guessed)
         color(props.diffuseColor[0], props.diffuseColor[1], props.diffuseColor[2]), // base_color

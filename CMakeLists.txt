@@ -13,18 +13,23 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../lib)
 
 
+if (WIN32)
+    set(PNG_INCLUDE_DIR "D:/dev/vcpkg/packages/libpng_x64-windows/include")
+    set(PNG_LIBRARY "D:/dev/vcpkg/packages/libpng_x64-windows/lib/libpng16.lib")
+    set(ZLIB_INCLUDE_DIR "D:/dev/vcpkg/packages/zlib_x64-windows/include")
+    set(ZLIB_LIBRARY "D:/dev/vcpkg/packages/zlib_x64-windows/lib/zlib.dylib")
+    set(PNG_PNG_INCLUDE_DIR ${PNG_INCLUDE_DIR})
+    set(USD_ROOT "D:/Dev/pxr")
 
-set(PNG_INCLUDE_DIR "/opt/homebrew/opt/libpng/include")
-set(PNG_LIBRARY "/opt/homebrew/opt/libpng/lib/libpng.dylib")
+    
+else()
+    set(PNG_INCLUDE_DIR "/opt/homebrew/opt/libpng/include")
+    set(PNG_LIBRARY "/opt/homebrew/opt/libpng/lib/libpng.dylib")
+    set(PNG_PNG_INCLUDE_DIR ${PNG_INCLUDE_DIR})
+    set(USD_ROOT "/Users/dennissedov/Dev/pxr")
+endif()
 
-set(PNG_PNG_INCLUDE_DIR ${PNG_INCLUDE_DIR})
 find_package(PNG REQUIRED)
-
-
-# OPENUSD
-set(USD_ROOT /Users/dennissedov/Dev/pxr)
-
-
 include_directories(${USD_ROOT}/include)
 link_directories(${USD_ROOT}/lib)
 find_library(USD_LIB usd_usd PATHS ${USD_ROOT}/lib)
@@ -35,6 +40,8 @@ find_library(USD_VT_LIB usd_vt PATHS ${USD_ROOT}/lib)
 find_library(USD_GF_LIB usd_gf PATHS ${USD_ROOT}/lib)
 find_library(USD_USDShade_LIB usd_usdShade PATHS ${USD_ROOT}/lib)
 find_library(USD_USD_LUX_LIB usd_usdLux PATHS ${USD_ROOT}/lib)
+
+
 # Add the executable
 add_executable(raydar src/main.cpp)
 
@@ -59,7 +66,15 @@ target_link_libraries(raydar PRIVATE
 
 # Add compile definitions if needed
 target_compile_definitions(raydar PRIVATE ${PNG_DEFINITIONS} NOMINMAX WIN32_LEAN_AND_MEAN)
-
+target_compile_options(raydar PRIVATE
+        /W3
+        /wd4244
+        /wd4267
+        /wd4305
+        /wd4996
+        /wd4275
+        /wd4251
+    )
 # Print link libraries for debugging
 get_target_property(LINKED_LIBS raydar LINK_LIBRARIES)
 message(STATUS "Linked libraries: ${LINKED_LIBS}")
