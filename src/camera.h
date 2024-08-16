@@ -93,7 +93,7 @@ class camera {
     camera(Image & image_buffer) : image_buffer(image_buffer) {
        
     }
-    
+
     int mt_render(const hittable& world) {
         initialize();
         auto start_time = std::chrono::high_resolution_clock::now();
@@ -136,78 +136,84 @@ class camera {
         return duration.count();
     }
     int mtpool_prog_render(const hittable& world) {
-        initialize();
-        auto start_time = std::chrono::high_resolution_clock::now();
+    initialize();
+    auto start_time = std::chrono::high_resolution_clock::now();
 
-        const int num_threads = std::thread::hardware_concurrency();
-        std::vector<std::thread> threads(num_threads);
-        std::queue<int> sample_queue;
-        std::mutex queue_mutex;
-        std::condition_variable cv;
-        std::atomic<int> samples_completed(0);
-        std::atomic<bool> done(false);
+    const int num_threads = std::thread::hardware_concurrency();
+    std::vector<std::thread> threads(num_threads);
+    std::queue<int> sample_queue;
+    std::mutex queue_mutex;
+    std::condition_variable cv;
+    std::atomic<int> samples_completed(0);
+    std::atomic<bool> done(false);
 
-        const int total_samples = sqrt_spp * sqrt_spp;
-        ProgressBar progress_bar(total_samples);
+    const int total_samples = sqrt_spp * sqrt_spp;
+    ProgressBar progress_bar(total_samples);
 
-        // Fill the queue with sample indices
-        for (int s = 0; s < total_samples; ++s) {
-            sample_queue.push(s);
-        }
+    // Fill the queue with sample indices
+    for (int s = 0; s < total_samples; ++s) {
+        sample_queue.push(s);
+    }
 
-        auto worker = [&]() {
-            while (true) {
-                int sample_index;
-                {
-                    std::unique_lock<std::mutex> lock(queue_mutex);
-                    if (sample_queue.empty()) {
-                        if (done) return;  // Exit if work is done
-                        cv.wait(lock);  // Wait for more work or done signal
-                        continue;  // Recheck condition after waking
-                    }
-                    sample_index = sample_queue.front();
-                    sample_queue.pop();
+    auto worker = [&]() {
+        while (true) {
+            int sample_index;
+            {
+                std::unique_lock<std::mutex> lock(queue_mutex);
+                if (sample_queue.empty()) {
+                    if (done) return;  // Exit if work is done
+                    cv.wait(lock);  // Wait for more work or done signal
+                    continue;  // Recheck condition after waking
                 }
+                sample_index = sample_queue.front();
+                sample_queue.pop();
+            }
 
-                int s_i = sample_index % sqrt_spp;
-                int s_j = sample_index / sqrt_spp;
+            int s_i = sample_index % sqrt_spp;
+            int s_j = sample_index / sqrt_spp;
 
-                // Process all pixels for this sample
-                for (int j = 0; j < image_buffer.height(); ++j) {
-                    for (int i = 0; i < image_buffer.width(); ++i) {
-                        ray r = get_ray(i, j, s_i, s_j, 0);
-                        color pixel_color = ray_color(r, max_depth, world);
-                        image_buffer.add_to_pixel(i, j, pixel_color * pixel_samples_scale);
-                    }
-                }
-
-                int completed = samples_completed.fetch_add(1) + 1;
-                progress_bar.update(completed);
-
-                if (completed == total_samples) {
-                    done = true;
-                    cv.notify_all();  // Wake up all threads to check done condition
+            // Process all pixels for this sample
+            for (int j = 0; j < image_buffer.height(); ++j) {
+                for (int i = 0; i < image_buffer.width(); ++i) {
+                    ray r = get_ray(i, j, s_i, s_j, 0);
+                    color pixel_color = ray_color(r, max_depth, world);
+                    image_buffer.add_to_pixel(i, j, pixel_color * pixel_samples_scale);
                 }
             }
-        };
 
-        // Start worker threads
-        for (int t = 0; t < num_threads; ++t) {
-            threads[t] = std::thread(worker);
+            int completed = samples_completed.fetch_add(1) + 1;
+
+            if (completed == total_samples) {
+                done = true;
+                cv.notify_all();  // Wake up all threads to check done condition
+            }
         }
+    };
 
-        // Wait for all threads to complete
-        for (auto& thread : threads) {
-            thread.join();
-        }
-
-        std::cout << std::endl; // Move to the next line after progress bar
-
-        auto end_time = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
-        std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
-        return duration.count();
+    // Start worker threads
+    for (int t = 0; t < num_threads; ++t) {
+        threads[t] = std::thread(worker);
     }
+
+    // Main thread handles progress updates
+    while (!done) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));  // Update every 100ms
+        int current_progress = samples_completed.load();
+        progress_bar.update(current_progress);
+    }
+
+    // Wait for all threads to complete
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    std::cout << std::endl; // Move to the next line after progress bar
+
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
+    std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
+    return duration.count();
+}
     /*
     int mtpool_render(const hittable& world) {
         initialize();

@@ -5,14 +5,15 @@
 #include "interval.h"
 #include "aabb.h"
 
-class material;
-
+namespace rd::core {
+  class material;
+}
 class hit_record {
   public:
     point3 p;
     vec3 normal;
     bool front_face;
-    shared_ptr<material> mat;
+    shared_ptr<rd::core::material> mat;
     double t;
     double u;
     double v;

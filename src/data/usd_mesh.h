@@ -16,7 +16,7 @@
 
 class Triangle {
 public:
-    Triangle(const point3& v0, const point3& v1, const point3& v2, shared_ptr<material> mat)
+    Triangle(const point3& v0, const point3& v1, const point3& v2, shared_ptr<rd::core::material> mat)
         : v0(v0), v1(v1), v2(v2), mat(mat) {
         edge1 = v1 - v0;
         edge2 = v2 - v0;
@@ -70,12 +70,12 @@ public:
 private:
     point3 v0, v1, v2;
     vec3 edge1, edge2, normal;
-    shared_ptr<material> mat;
+    shared_ptr<rd::core::material> mat;
 };
 
 class usd_mesh : public hittable {
 public:
-    usd_mesh(std::vector<Triangle> triangles, shared_ptr<material> mat){
+    usd_mesh(std::vector<Triangle> triangles, shared_ptr<rd::core::material> mat){
         this->triangles = triangles;
         this->mat = mat;
         for (const auto& triangle : triangles) {
@@ -84,7 +84,7 @@ public:
         // padd bbox by 0.01
         bbox.pad(0.000001);
     }
-    usd_mesh(const pxr::UsdGeomMesh& usdMesh, shared_ptr<material> mat, const pxr::GfMatrix4d& transform)
+    usd_mesh(const pxr::UsdGeomMesh& usdMesh, shared_ptr<rd::core::material> mat, const pxr::GfMatrix4d& transform)
         : mat(mat), transform(transform) {
         //std::cout << "Transform: " << transform << std::endl;
         loadFromUsdMesh(usdMesh);
@@ -194,7 +194,7 @@ private:
     std::vector<Triangle> triangles;
     pxr::GfMatrix4d transform;
     aabb bbox;
-    shared_ptr<material> mat;
+    shared_ptr<rd::core::material> mat;
 
     void loadFromUsdMesh(const pxr::UsdGeomMesh& usdMesh) {
         pxr::VtArray<pxr::GfVec3f> points;

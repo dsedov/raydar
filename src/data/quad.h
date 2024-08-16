@@ -7,7 +7,7 @@
 
 class quad : public hittable {
   public:
-    quad(const point3& Q, const vec3& u, const vec3& v, shared_ptr<material> mat)
+    quad(const point3& Q, const vec3& u, const vec3& v, shared_ptr<rd::core::material> mat)
       : Q(Q), u(u), v(v), mat(mat)
     {
         auto n = cross(u, v);
@@ -75,7 +75,7 @@ class quad : public hittable {
     point3 Q;
     vec3 u, v;
     vec3 w;
-    shared_ptr<material> mat;
+    shared_ptr<rd::core::material> mat;
     aabb bbox;
     vec3 normal;
     double D;
