@@ -6,6 +6,7 @@
 #include "data/hittable.h"
 #include "image/image.h"
 #include "material.h"
+#include "core/camera.h"
 #include <thread>
 
 #include <atomic>
@@ -80,17 +81,15 @@ struct Sample {
     float x, y;  // Sample position relative to pixel center
     color color; // Sample color
 };
-class camera {
+class render {
   public:
 
     int samples_per_pixel = 64;
     int max_depth         = 10;
-    double fov;
-    point3 lookfrom;   // Point camera is looking from
-    point3 lookat;  // Point camera is looking at
-    vec3   vup;
+    rd::core::camera camera;
+    
     /* Public Camera Parameters Here */
-    camera(Image & image_buffer) : image_buffer(image_buffer) {
+    render(Image & image_buffer, rd::core::camera camera) : image_buffer(image_buffer), camera(camera) {
        
     }
 
@@ -445,7 +444,6 @@ class camera {
   private:
     /* Private Camera Variables Here */
     Image & image_buffer;
-    vec3 camera_center;
     vec3 pixel00_loc;
     vec3 pixel_delta_u;
     vec3 pixel_delta_v;
@@ -456,10 +454,10 @@ class camera {
     double pixel_samples_scale;
 
     void initialize(bool is_vertical_fov = false, bool fov_in_degrees = true) {
-        auto focal_length = (lookfrom - lookat).length();
+        auto focal_length = (camera.center - camera.look_at).length();
         
         // Convert FOV to radians if it's in degrees
-        double fov_radians = fov_in_degrees ? degrees_to_radians(fov) : fov;
+        double fov_radians = fov_in_degrees ? degrees_to_radians(camera.fov) : camera.fov;
         
         // Calculate viewport dimensions based on FOV type
         double viewport_height, viewport_width;
@@ -476,11 +474,9 @@ class camera {
         pixel_samples_scale = 1.0 / (sqrt_spp * sqrt_spp);
         recip_sqrt_spp = 1.0 / sqrt_spp;
 
-        camera_center = lookfrom;
-
         // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
-        w = unit_vector(lookfrom - lookat);
-        u = unit_vector(cross(vup, w));
+        w = unit_vector(camera.center - camera.look_at);
+        u = unit_vector(cross(camera.look_up, w));
         v = cross(w, u);
 
         // Calculate the vectors across the horizontal and down the vertical viewport edges.
@@ -492,7 +488,7 @@ class camera {
         pixel_delta_v = viewport_v / image_buffer.height();
 
         // Calculate the location of the upper left pixel.
-        auto viewport_upper_left = camera_center - (focal_length * w) - viewport_u/2 - viewport_v/2;
+        auto viewport_upper_left = camera.center - (focal_length * w) - viewport_u/2 - viewport_v/2;
         pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 
 
@@ -507,7 +503,7 @@ class camera {
                           + ((i + offset.x()) * pixel_delta_u)
                           + ((j + offset.y()) * pixel_delta_v);
 
-        auto ray_origin = camera_center;
+        auto ray_origin = camera.center;
         auto ray_direction = pixel_sample - ray_origin;
 
         return ray(ray_origin, ray_direction, depth);

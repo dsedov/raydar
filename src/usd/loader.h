@@ -31,13 +31,25 @@ namespace rd::usd {
             loader(std::string file_path) {
                 std::cout << "Loading USD file: " << file_path << std::endl;
                 stage = pxr::UsdStage::Open(file_path);
-
                 // Load metersPerUnit from the stage
                 double metersPerUnit = UsdGeomGetStageMetersPerUnit(stage);
                 std::cout << "Meters per unit: " << metersPerUnit << std::endl;
             }
             pxr::UsdStageRefPtr get_stage() {
                 return stage;
+            }
+            pxr::UsdGeomCamera findFirstCamera() {
+                // Traverse all prims in the stage
+                for (const auto& prim : stage->TraverseAll()) {
+                    // Check if the prim is a camera
+                    if (prim.IsA<pxr::UsdGeomCamera>()) {
+                        // Return the first camera found
+                        return pxr::UsdGeomCamera(prim);
+                    }
+                }
+                // If no camera is found, return an invalid camera
+                std::cout << "No camera found in the stage" << std::endl;
+                return pxr::UsdGeomCamera();
             }
             ~loader() {}
         private:

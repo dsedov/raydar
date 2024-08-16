@@ -9,7 +9,7 @@
 #include "data/usd_mesh.h"
 #include "data/bvh.h"
 
-#include "camera.h"
+#include "render.h"
 #include "material.h"
 #include "image/image_png.h"
 #include "helpers/settings.h"
@@ -31,61 +31,35 @@ int main(int argc, char *argv[]) {
     ImagePNG image(settings.image_width, settings.image_height);
 
     // LOAD USD FILE
-    //rd::usd::loader loader(settings.usd_file);
-
-    //return 0;
-    std::cout << "Loading USD file: " << settings.usd_file << std::endl;
-    pxr::UsdStageRefPtr stage = pxr::UsdStage::Open(settings.usd_file);
+    rd::usd::loader loader(settings.usd_file);
 
     // LOAD CAMERA
-    std::cout << "Loading camera from USD stage" << std::endl;
-    rd::usd::camera::CameraProperties cameraProps;
-    pxr::UsdGeomCamera firstCamera = rd::usd::camera::findFirstCamera(stage);
-    if (firstCamera) cameraProps = rd::usd::camera::extractCameraProperties(firstCamera);
-    else {
-        std::cout << "No camera found in the USD stage." << std::endl;
-        return 1;
-    }
-    std::cout << "Camera Properties:" << std::endl;
-    std::cout << "Look From: " << cameraProps.center << std::endl;
-    std::cout << "Look At: " << cameraProps.lookAt << std::endl;
-    std::cout << "Look Up: " << cameraProps.lookUp << std::endl;
-    std::cout << "FOV: " << cameraProps.fov << std::endl<< std::endl;
+    rd::core::camera camera = rd::usd::camera::extractCameraProperties(loader.findFirstCamera());
+
 
     // LOAD MATERIALS
     std::cout << "Loading materials from USD stage" << std::endl;
     auto error_material = make_shared<rd::core::lambertian>(color(1.0, 0.0, 0.0));
     auto light_material = make_shared<rd::core::light>(color(1.0, 1.0, 1.0), 1.0);
-    std::unordered_map<std::string, std::shared_ptr<rd::core::material>> materials = rd::usd::material::loadMaterialsFromStage(stage);
-    if (auto pbr_material = std::dynamic_pointer_cast<rd::core::advanced_pbr_material>(materials["/primRoot/mtl/ANO_NDA_SG"])) {
-        pbr_material->tint = color(1.8, 0.5, 0.5);
-        pbr_material->gamma = 0.3;
-        pbr_material->offset = 0.2; 
-    } else {
-        std::cerr << "Material is not an advanced_pbr_material" << std::endl;
-    }
+    std::unordered_map<std::string, std::shared_ptr<rd::core::material>> materials = rd::usd::material::loadMaterialsFromStage(loader.get_stage());
     materials["error"] = error_material;
 
     // LOAD GEOMETRY
     std::cout << "Loading geometry from USD stage" << std::endl;
-    std::vector<std::shared_ptr<usd_mesh>> sceneMeshes = rd::usd::geo::extractMeshesFromUsdStage(stage, materials);
+    std::vector<std::shared_ptr<usd_mesh>> sceneMeshes = rd::usd::geo::extractMeshesFromUsdStage(loader.get_stage(), materials);
     
     // LOAD AREA LIGHTS
     std::cout << "Loading area lights from USD stage" << std::endl;
-    std::vector<rd::usd::light::AreaLight> areaLights = rd::usd::light::extractAreaLightsFromUsdStage(stage);
+    std::vector<rd::usd::light::AreaLight> areaLights = rd::usd::light::extractAreaLightsFromUsdStage(loader.get_stage());
     for(const auto& light : areaLights) {
         shared_ptr<quad> light_quad = make_shared<quad>(light.Q, light.u, light.v, light_material);
 
         world.add(light_quad);
     }
 
-    camera camera(image);
-    camera.fov      = cameraProps.fov;
-    camera.lookfrom = point3(cameraProps.center[0], cameraProps.center[1], cameraProps.center[2]);
-    camera.lookat   = point3(cameraProps.lookAt[0], cameraProps.lookAt[1], cameraProps.lookAt[2]);
-    camera.vup      = point3(cameraProps.lookUp[0], cameraProps.lookUp[1], cameraProps.lookUp[2]);
-    camera.samples_per_pixel = settings.samples;
-    camera.max_depth = settings.max_depth;
+    render render(image, camera);
+    render.samples_per_pixel = settings.samples;
+    render.max_depth = settings.max_depth;
 
 
     std::cout << "Scene meshes size: " << sceneMeshes.size() << std::endl;
@@ -104,7 +78,7 @@ int main(int argc, char *argv[]) {
 
     world = hittable_list(make_shared<bvh_node>(world));
 
-    int seconds_to_render = camera.mtpool_prog_render(world);
+    int seconds_to_render = render.mtpool_prog_render(world);
 
     // Extract the file name and extension
     std::string file_name = settings.image_file;

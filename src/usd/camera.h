@@ -13,6 +13,7 @@
 #include "../data/usd_mesh.h"
 #include "../data/bvh.h"
 
+#include "../core/camera.h"
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usd/primRange.h>
 #include <pxr/usd/usdGeom/camera.h>
@@ -28,25 +29,18 @@
 #include <pxr/usd/usdGeom/metrics.h>
 
 namespace rd::usd::camera {
-    struct CameraProperties {
-        pxr::GfVec3f rotateXYZ;
-        pxr::GfVec3d translate;
-        pxr::GfVec3d center;
-        pxr::GfVec3d lookAt;
-        pxr::GfVec3d lookUp;
-        float fov;
-    };
-    CameraProperties extractCameraProperties(const pxr::UsdGeomCamera& camera) {
-        CameraProperties props;
-        pxr::UsdStagePtr stage = camera.GetPrim().GetStage();
+
+    rd::core::camera extractCameraProperties(const pxr::UsdGeomCamera& usd_camera) {
+        rd::core::camera camera;
+        pxr::UsdStagePtr stage = usd_camera.GetPrim().GetStage();
 
         // Get stage meters per unit for conversion
         float metersPerUnit = UsdGeomGetStageMetersPerUnit(stage);
 
         // Extract horizontal and vertical aperture
         float horizontalAperture, verticalAperture;
-        camera.GetHorizontalApertureAttr().Get(&horizontalAperture);
-        camera.GetVerticalApertureAttr().Get(&verticalAperture);
+        usd_camera.GetHorizontalApertureAttr().Get(&horizontalAperture);
+        usd_camera.GetVerticalApertureAttr().Get(&verticalAperture);
 
         // Convert aperture to meters
         horizontalAperture *= metersPerUnit * 100;
@@ -55,44 +49,35 @@ namespace rd::usd::camera {
 
         // Calculate FOV
         float focalLength;
-        if (camera.GetFocalLengthAttr().Get(&focalLength)) {
+        if (usd_camera.GetFocalLengthAttr().Get(&focalLength)) {
             focalLength *= metersPerUnit * 100;
-            props.fov = 2 * std::atan((horizontalAperture * 0.5) / focalLength);
-            props.fov = props.fov * (180.0 / M_PI);
+            camera.fov = 2 * std::atan((horizontalAperture * 0.5) / focalLength);
+            camera.fov = camera.fov * (180.0 / M_PI);
         }
 
         // Get the local-to-world transform using ComputeLocalToWorldTransform
-        pxr::GfMatrix4d localToWorld = camera.ComputeLocalToWorldTransform(pxr::UsdTimeCode::Default());
+        pxr::GfMatrix4d localToWorld = usd_camera.ComputeLocalToWorldTransform(pxr::UsdTimeCode::Default());
 
         // Extract translate (camera position)
-        props.center = localToWorld.ExtractTranslation();
+        camera.center = localToWorld.ExtractTranslation();
 
         // Calculate lookAt
         pxr::GfVec3d forward(0, 0, -1);
         forward = forward * localToWorld.ExtractRotationMatrix();
-        props.lookAt = props.center + forward;
+        camera.look_at = vec3(camera.center[0] + forward[0], camera.center[1] + forward[1], camera.center[2] + forward[2]);
 
         // Calculate lookUp
         pxr::GfVec3d up(0, 1, 0);
-        props.lookUp = up * localToWorld.ExtractRotationMatrix();
+        camera.look_up = up * localToWorld.ExtractRotationMatrix();
 
-        // Extract rotateXYZ (if needed)
-        pxr::GfVec3d rotXYZ = localToWorld.ExtractRotation().Decompose(pxr::GfVec3d::XAxis(), pxr::GfVec3d::YAxis(), pxr::GfVec3d::ZAxis());
-        props.rotateXYZ = pxr::GfVec3f(rotXYZ[0], rotXYZ[1], rotXYZ[2]);
 
-        return props;
+        std::cout << "\nCamera Properties:" << std::endl;
+        std::cout << "Look From: " << camera.center << std::endl;
+        std::cout << "Look At: " << camera.look_at << std::endl;
+        std::cout << "Look Up: " << camera.look_up << std::endl;
+        std::cout << "FOV: " << camera.fov << std::endl<< std::endl;
+        return camera;
     }
-    pxr::UsdGeomCamera findFirstCamera(const pxr::UsdStageRefPtr& stage) {
-        // Traverse all prims in the stage
-        for (const auto& prim : stage->TraverseAll()) {
-            // Check if the prim is a camera
-            if (prim.IsA<pxr::UsdGeomCamera>()) {
-                // Return the first camera found
-                return pxr::UsdGeomCamera(prim);
-            }
-        }
-        // If no camera is found, return an invalid camera
-        return pxr::UsdGeomCamera();
-    }
+    
 }
 #endif

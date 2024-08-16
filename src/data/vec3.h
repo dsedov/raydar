@@ -3,6 +3,8 @@
 
 #include <cmath>
 #include <iostream>
+#include <pxr/base/gf/vec3f.h>
+#include <pxr/base/gf/vec3d.h>
 
 class vec3 {
   public:
@@ -10,6 +12,17 @@ class vec3 {
 
     vec3() : e{0,0,0} {}
     vec3(double e0, double e1, double e2) : e{e0, e1, e2} {}
+    
+    // Constructor to convert from pxr::GfVec3d
+    vec3(const pxr::GfVec3d& v) : e{v[0], v[1], v[2]} {}
+
+    // Conversion operator to pxr::GfVec3d
+    operator pxr::GfVec3d() const { return pxr::GfVec3d(e[0], e[1], e[2]); }
+    // Constructor to convert from pxr::GfVec3d
+    vec3(const pxr::GfVec3f& v) : e{v[0], v[1], v[2]} {}
+
+    // Conversion operator to pxr::GfVec3d
+    operator pxr::GfVec3f() const { return pxr::GfVec3f(e[0], e[1], e[2]); }
 
     double x() const { return e[0]; }
     double y() const { return e[1]; }
