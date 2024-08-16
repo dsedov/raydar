@@ -25,6 +25,7 @@
 #include <pxr/usd/usdShade/materialBindingAPI.h>
 #include <pxr/usd/usdShade/shader.h>
 #include <pxr/usd/usdLux/rectLight.h>
+#include <pxr/usd/usdGeom/metrics.h>
 
 namespace rd::usd::camera {
     struct CameraProperties {
@@ -37,75 +38,47 @@ namespace rd::usd::camera {
     };
     CameraProperties extractCameraProperties(const pxr::UsdGeomCamera& camera) {
         CameraProperties props;
+        pxr::UsdStagePtr stage = camera.GetPrim().GetStage();
 
-        // Extract rotateXYZ
-        pxr::UsdAttribute rotateAttr = camera.GetPrim().GetAttribute(pxr::TfToken("xformOp:rotateXYZ"));
-        if (rotateAttr) {
-            rotateAttr.Get(&props.rotateXYZ);
+        // Get stage meters per unit for conversion
+        float metersPerUnit = UsdGeomGetStageMetersPerUnit(stage);
+
+        // Extract horizontal and vertical aperture
+        float horizontalAperture, verticalAperture;
+        camera.GetHorizontalApertureAttr().Get(&horizontalAperture);
+        camera.GetVerticalApertureAttr().Get(&verticalAperture);
+
+        // Convert aperture to meters
+        horizontalAperture *= metersPerUnit * 100;
+        verticalAperture *= metersPerUnit * 100;
+
+
+        // Calculate FOV
+        float focalLength;
+        if (camera.GetFocalLengthAttr().Get(&focalLength)) {
+            focalLength *= metersPerUnit * 100;
+            props.fov = 2 * std::atan((horizontalAperture * 0.5) / focalLength);
+            props.fov = props.fov * (180.0 / M_PI);
         }
 
-        // Extract translate
-        pxr::UsdAttribute translateAttr = camera.GetPrim().GetAttribute(pxr::TfToken("xformOp:translate"));
-        if (translateAttr) {
-            translateAttr.Get(&props.translate);
-        }
-        // Extract up
-        pxr::UsdAttribute upAttr = camera.GetPrim().GetAttribute(pxr::TfToken("primvars:arnold:up"));
-        if (upAttr) {
-            pxr::VtArray<pxr::GfVec3f> upArray;
-            upAttr.Get(&upArray);
-            if (!upArray.empty()) {
-                props.lookUp = pxr::GfVec3d(upArray[0][0], upArray[0][1], upArray[0][2]);
-            }
-        }
+        // Get the local-to-world transform using ComputeLocalToWorldTransform
+        pxr::GfMatrix4d localToWorld = camera.ComputeLocalToWorldTransform(pxr::UsdTimeCode::Default());
 
-        // Extract FOV
-        pxr::UsdAttribute fovAttr = camera.GetPrim().GetAttribute(pxr::TfToken("primvars:arnold:fov"));
-        if (fovAttr) {
-            pxr::VtArray<float> fovArray;
-            fovAttr.Get(&fovArray);
-            if (!fovArray.empty()) {
-                props.fov = fovArray[0];
-            }
-        } else {
-            pxr::UsdAttribute focalLengthAttr = camera.GetPrim().GetAttribute(pxr::TfToken("focalLength"));
-            if (focalLengthAttr) {
-                float focalLength;
-                focalLengthAttr.Get(&focalLength);
-                focalLength *= 100;
-                std::cout << "Focal Length: " << focalLength << std::endl;
-                props.fov = 2 * std::atan(36 / (2 *focalLength));
-                props.fov = props.fov * (180.0 / M_PI);
-                std::cout << "FOV: " << props.fov << std::endl;
-            }
-        }
+        // Extract translate (camera position)
+        props.center = localToWorld.ExtractTranslation();
 
-        // Calculate center (camera position)
-        props.center = props.translate;
+        // Calculate lookAt
+        pxr::GfVec3d forward(0, 0, -1);
+        forward = forward * localToWorld.ExtractRotationMatrix();
+        props.lookAt = props.center + forward;
 
-        // Create rotations for each axis
-        pxr::GfRotation rotX(pxr::GfVec3d(1, 0, 0), props.rotateXYZ[0]);
-        pxr::GfRotation rotY(pxr::GfVec3d(0, 1, 0), props.rotateXYZ[1]);
-        pxr::GfRotation rotZ(pxr::GfVec3d(0, 0, 1), props.rotateXYZ[2]);
+        // Calculate lookUp
+        pxr::GfVec3d up(0, 1, 0);
+        props.lookUp = up * localToWorld.ExtractRotationMatrix();
 
-        // Combine rotations (order: Z, Y, X)
-        pxr::GfRotation finalRotation = rotZ * rotY * rotX;
-
-        // Create transformation matrix using rotation and translation
-        pxr::GfMatrix4d rotationMatrix;
-        rotationMatrix.SetRotate(finalRotation);
-        pxr::GfMatrix4d translationMatrix(1);
-        translationMatrix.SetTranslate(props.translate);
-        pxr::GfMatrix4d transformMatrix = rotationMatrix * translationMatrix;
-
-
-        pxr::GfVec3d forward(-transformMatrix.GetColumn(2)[0],
-                            -transformMatrix.GetColumn(2)[1],
-                            transformMatrix.GetColumn(2)[2]);
-
-        // Set lookAt and lookUp
-        props.lookAt = props.center - forward;
-
+        // Extract rotateXYZ (if needed)
+        pxr::GfVec3d rotXYZ = localToWorld.ExtractRotation().Decompose(pxr::GfVec3d::XAxis(), pxr::GfVec3d::YAxis(), pxr::GfVec3d::ZAxis());
+        props.rotateXYZ = pxr::GfVec3f(rotXYZ[0], rotXYZ[1], rotXYZ[2]);
 
         return props;
     }

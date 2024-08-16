@@ -18,7 +18,7 @@
 #include "usd/material.h"
 #include "usd/camera.h"
 #include "usd/geo.h"
-
+#include "usd/loader.h"
 
 int main(int argc, char *argv[]) {
 
@@ -26,11 +26,14 @@ int main(int argc, char *argv[]) {
     if(settings.error > 0) return 1;
 
     hittable_list world;
-    
+
     // IMAGE
     ImagePNG image(settings.image_width, settings.image_height);
 
     // LOAD USD FILE
+    //rd::usd::loader loader(settings.usd_file);
+
+    //return 0;
     std::cout << "Loading USD file: " << settings.usd_file << std::endl;
     pxr::UsdStageRefPtr stage = pxr::UsdStage::Open(settings.usd_file);
 
@@ -101,18 +104,8 @@ int main(int argc, char *argv[]) {
 
     world = hittable_list(make_shared<bvh_node>(world));
 
-
-
-
-
-
     int seconds_to_render = camera.mtpool_prog_render(world);
 
-
-
-
-
-    
     // Extract the file name and extension
     std::string file_name = settings.image_file;
     size_t dot_pos = file_name.find_last_of(".");
