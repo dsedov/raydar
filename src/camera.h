@@ -175,7 +175,8 @@ class camera {
                 // Process all pixels for this sample
                 for (int j = 0; j < image_buffer.height(); ++j) {
                     for (int i = 0; i < image_buffer.width(); ++i) {
-                        color pixel_color = ray_color(get_ray(i, j, s_i, s_j, 0), max_depth, world);
+                        ray r = get_ray(i, j, s_i, s_j, 0);
+                        color pixel_color = ray_color(r, max_depth, world);
                         image_buffer.add_to_pixel(i, j, pixel_color * pixel_samples_scale);
                     }
                 }
@@ -286,7 +287,7 @@ class camera {
         std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
         return duration.count();
     }
-    /*
+  
     int adaptive_mt_render(const hittable& world) {
         initialize();
         auto start_time = std::chrono::high_resolution_clock::now();
