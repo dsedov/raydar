@@ -496,7 +496,7 @@ class camera {
         // point around the pixel location i, j.
 
 
-        auto offset = sample_square_stratified_van_der_corput(s_i, s_j);
+        auto offset = sample_square_stratified(s_i, s_j);
         auto pixel_sample = pixel00_loc
                           + ((i + offset.x()) * pixel_delta_u)
                           + ((j + offset.y()) * pixel_delta_v);
@@ -514,31 +514,9 @@ class camera {
         return vec3(px, py, 0);
     }
 
-    vec3 sample_square_stratified_van_der_corput(int s_i, int s_j) const {
-        auto van_der_corput = [](unsigned int n, unsigned int base) {
-            double q = 0, b = 1.0 / base;
-            while (n > 0) {
-                q += (n % base) * b;
-                n /= base;
-                b /= base;
-            }
-            return q;
-        };
-
-        unsigned int index = s_i * sqrt_spp + s_j;
-        double ldx = van_der_corput(index, 2);  // Base 2 for x
-        double ldy = van_der_corput(index, 3);  // Base 3 for y
-
-        // Map low-discrepancy sequence to the sub-pixel
-        auto px = ((s_i + ldx) * recip_sqrt_spp) - 0.5;
-        auto py = ((s_j + ldy) * recip_sqrt_spp) - 0.5;
-
-        return vec3(px, py, 0);
-    }
     vec3 sample_square(int s_i, int s_j) const {
         // Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square.
-        std::srand(s_i * sqrt_spp + s_j); // Set the seed based on s_i and s_j
-        return vec3(random_double() - 0.5, random_double() - 0.5, 0);
+        return vec3(random_double(), random_double() - 0.5, 0);
     }
     color ray_color(ray& r, int depth, const hittable& world) const {
         
