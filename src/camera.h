@@ -93,7 +93,7 @@ class camera {
     camera(Image & image_buffer) : image_buffer(image_buffer) {
        
     }
-    /*
+    
     int mt_render(const hittable& world) {
         initialize();
         auto start_time = std::chrono::high_resolution_clock::now();
@@ -134,7 +134,7 @@ class camera {
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
         std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
         return duration.count();
-    }*/
+    }
     int mtpool_prog_render(const hittable& world) {
         initialize();
         auto start_time = std::chrono::high_resolution_clock::now();

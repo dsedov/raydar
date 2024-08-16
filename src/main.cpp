@@ -96,6 +96,17 @@ CameraProperties extractCameraProperties(const pxr::UsdGeomCamera& camera) {
         if (!fovArray.empty()) {
             props.fov = fovArray[0];
         }
+    } else {
+        pxr::UsdAttribute focalLengthAttr = camera.GetPrim().GetAttribute(pxr::TfToken("focalLength"));
+        if (focalLengthAttr) {
+            float focalLength;
+            focalLengthAttr.Get(&focalLength);
+            focalLength *= 100;
+            std::cout << "Focal Length: " << focalLength << std::endl;
+            props.fov = 2 * std::atan(36 / (2 *focalLength));
+            props.fov = props.fov * (180.0 / M_PI);
+            std::cout << "FOV: " << props.fov << std::endl;
+        }
     }
 
     // Calculate center (camera position)
@@ -316,12 +327,20 @@ AreaLight extractAreaLightProperties(const pxr::UsdPrim& prim, const pxr::GfMatr
     if (specularAttr) specularAttr.Get(&light.specular);
     
     pxr::UsdAttribute verticesAttr = prim.GetAttribute(pxr::TfToken("primvars:arnold:vertices"));
-    if (verticesAttr) verticesAttr.Get(&light.vertices);
-
-    for(auto& v : light.vertices) {
-        std::cout << "Vertex: " << v << std::endl;
-        v = transform.Transform(v);
-        std::cout << "Vertex: " << v << std::endl;
+    if (verticesAttr) {verticesAttr.Get(&light.vertices);
+        for(auto& v : light.vertices) {
+            std::cout << "Vertex: " << v << std::endl;
+            v = transform.Transform(v);
+            std::cout << "Vertex: " << v << std::endl;
+        }
+    }
+    else {
+        light.vertices = {{1, -1, 0}, {-1, -1, 0}, {-1, 1, 0}, {1, 1, 0}};
+        for(auto& v : light.vertices) {
+            std::cout << "Vertex: " << v << std::endl;
+            v = transform.Transform(v);
+            std::cout << "Vertex: " << v << std::endl;
+        }
     }
 
     light.Q = point3(light.vertices[0][0], light.vertices[0][1], light.vertices[0][2]);
@@ -368,9 +387,11 @@ int main(int argc, char *argv[]) {
     ImagePNG image(settings.image_width, settings.image_height);
 
     // LOAD USD FILE
+    std::cout << "Loading USD file: " << settings.usd_file << std::endl;
     pxr::UsdStageRefPtr stage = pxr::UsdStage::Open(settings.usd_file);
 
     // LOAD CAMERA
+    std::cout << "Loading camera from USD stage" << std::endl;
     CameraProperties cameraProps;
     pxr::UsdGeomCamera firstCamera = findFirstCamera(stage);
     if (firstCamera) cameraProps = extractCameraProperties(firstCamera);
@@ -385,6 +406,7 @@ int main(int argc, char *argv[]) {
     std::cout << "FOV: " << cameraProps.fov << std::endl<< std::endl;
 
     // LOAD MATERIALS
+    std::cout << "Loading materials from USD stage" << std::endl;
     auto error_material = make_shared<lambertian>(color(1.0, 0.0, 0.0));
     auto light_material = make_shared<light>(color(1.0, 1.0, 1.0), 1.0);
     std::unordered_map<std::string, std::shared_ptr<material>> materials = loadMaterialsFromStage(stage);
@@ -398,9 +420,11 @@ int main(int argc, char *argv[]) {
     materials["error"] = error_material;
 
     // LOAD GEOMETRY
+    std::cout << "Loading geometry from USD stage" << std::endl;
     std::vector<std::shared_ptr<usd_mesh>> sceneMeshes = extractMeshesFromUsdStage(stage, materials);
     
     // LOAD AREA LIGHTS
+    std::cout << "Loading area lights from USD stage" << std::endl;
     std::vector<AreaLight> areaLights = extractAreaLightsFromUsdStage(stage);
     for(const auto& light : areaLights) {
         shared_ptr<quad> light_quad = make_shared<quad>(light.Q, light.u, light.v, light_material);
@@ -437,7 +461,7 @@ int main(int argc, char *argv[]) {
 
     world = hittable_list(make_shared<bvh_node>(world));
 
-    int seconds_to_render = camera.mtpool_prog_render(world);
+    int seconds_to_render = camera.mt_render(world);
     
     // Extract the file name and extension
     std::string file_name = settings.image_file;
