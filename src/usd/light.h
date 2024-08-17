@@ -8,7 +8,7 @@
 
 #include "../data/hittable.h"
 #include "../data/hittable_list.h"
-#include "../data/quad.h"
+#include "../core/light.h"
 #include "../data/bvh.h"
 
 #include <pxr/usd/usd/stage.h>
@@ -36,7 +36,7 @@ namespace rd::usd::light {
         pxr::GfVec3f shadowColor;
         bool shadowEnable;
         float specular;
-        pxr::VtArray<pxr::GfVec3f> vertices;  // Changed from std::vector to pxr::VtArray
+        pxr::VtArray<pxr::GfVec3f> vertices;
         pxr::GfVec3f rotation;
         pxr::GfVec3f scale;
         pxr::GfVec3d translation;
@@ -115,19 +115,25 @@ namespace rd::usd::light {
         
         return light;
     }
-    std::vector<AreaLight> extractAreaLightsFromUsdStage(const pxr::UsdStageRefPtr& stage) {
-        std::vector<AreaLight> areaLights;
+    std::vector<std::shared_ptr<rd::core::area_light>> extractAreaLightsFromUsdStage(const pxr::UsdStageRefPtr& stage) {
+        std::vector<AreaLight> areaLightsDescriptors;
+        std::vector<std::shared_ptr<rd::core::area_light>> area_lights;
         
         for (const auto& prim : stage->TraverseAll()) {
             if (prim.IsA<pxr::UsdLuxRectLight>()) {
                 std::cout << "RectLight: " << prim.GetPath().GetString() << std::endl;
                 pxr::GfMatrix4d xform = pxr::UsdGeomXformable(prim).ComputeLocalToWorldTransform(pxr::UsdTimeCode::Default());
                 AreaLight light = extractAreaLightProperties(prim, xform);
-                areaLights.push_back(light);
+                areaLightsDescriptors.push_back(light);
             }
         }
+        for(const auto& light : areaLightsDescriptors) {
+            auto light_material = make_shared<rd::core::light>(color(1.0, 1.0, 1.0), 1.0);
+            shared_ptr<rd::core::area_light> light_quad = make_shared<rd::core::area_light>(light.Q, light.u, light.v, light_material);
+            area_lights.push_back(light_quad);
+        }
         
-        return areaLights;
+        return area_lights;
     }
 }
 
