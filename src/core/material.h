@@ -1,9 +1,9 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
 
-#include "raydar.h"
-#include "data/ray.h"
-#include "data/hittable.h"
+#include "../raydar.h"
+#include "../data/ray.h"
+#include "../data/hittable.h"
 
 class hit_record;
 

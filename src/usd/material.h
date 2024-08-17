@@ -6,12 +6,11 @@
 #include <cstdio>
 #include <vector>
 #include "../raydar.h"
-#include "../material.h"
+#include "../core/material.h"
 
 #include "../data/hittable.h"
 #include "../data/hittable_list.h"
 #include "../data/quad.h"
-#include "../data/usd_mesh.h"
 #include "../data/bvh.h"
 
 #include <pxr/usd/usd/stage.h>

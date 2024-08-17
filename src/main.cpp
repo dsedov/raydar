@@ -3,14 +3,12 @@
 #include <vector>
 #include "raydar.h"
 
-#include "data/hittable.h"
+
 #include "data/hittable_list.h"
 #include "data/quad.h"
-#include "data/usd_mesh.h"
 #include "data/bvh.h"
 
 #include "render.h"
-#include "material.h"
 #include "image/image_png.h"
 #include "helpers/settings.h"
 
@@ -39,14 +37,14 @@ int main(int argc, char *argv[]) {
 
     // LOAD MATERIALS
     std::cout << "Loading materials from USD stage" << std::endl;
-    auto error_material = make_shared<rd::core::lambertian>(color(1.0, 0.0, 0.0));
+    auto error_material = make_shared<rd::core::constant>(color(1.0, 0.0, 0.0));
     auto light_material = make_shared<rd::core::light>(color(1.0, 1.0, 1.0), 1.0);
     std::unordered_map<std::string, std::shared_ptr<rd::core::material>> materials = rd::usd::material::loadMaterialsFromStage(loader.get_stage());
     materials["error"] = error_material;
 
     // LOAD GEOMETRY
     std::cout << "Loading geometry from USD stage" << std::endl;
-    std::vector<std::shared_ptr<usd_mesh>> sceneMeshes = rd::usd::geo::extractMeshesFromUsdStage(loader.get_stage(), materials);
+    std::vector<std::shared_ptr<rd::core::mesh>> sceneMeshes = rd::usd::geo::extractMeshesFromUsdStage(loader.get_stage(), materials);
     
     // LOAD AREA LIGHTS
     std::cout << "Loading area lights from USD stage" << std::endl;
@@ -66,11 +64,11 @@ int main(int argc, char *argv[]) {
     // for each mesh in sceneMeshes
     int bvh_meshes_size = 0;
     for (const auto& mesh : sceneMeshes) {
-        std::vector<usd_mesh> meshes;
-        meshes = mesh->split(meshes);
+        std::vector<rd::core::mesh> meshes;
+        meshes = bvh_node::split(*mesh, meshes);
         
         for(const auto& m : meshes) {   
-            world.add(make_shared<usd_mesh>(m));
+            world.add(make_shared<rd::core::mesh>(m));
             bvh_meshes_size++;
         }
     }

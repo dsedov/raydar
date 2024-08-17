@@ -5,7 +5,7 @@
 #include "data/interval.h"
 #include "data/hittable.h"
 #include "image/image.h"
-#include "material.h"
+#include "core/material.h"
 #include "core/camera.h"
 #include <thread>
 
