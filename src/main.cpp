@@ -50,9 +50,8 @@ int main(int argc, char *argv[]) {
     // LOAD AREA LIGHTS
     std::cout << "Loading area lights from USD stage" << std::endl;
     std::vector<std::shared_ptr<rd::core::area_light>> area_lights = rd::usd::light::extractAreaLightsFromUsdStage(loader.get_stage());
-    for(const auto& light : area_lights) {
-        world.add(light);
-    }
+    for(const auto& light : area_lights) world.add(light);
+    
 
     render render(image, camera);
     render.samples_per_pixel = settings.samples;

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(raydar)
-
+#set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_OSX_ARCHITECTURES "arm64")
 # Specify the C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -67,15 +67,15 @@ target_link_libraries(raydar PRIVATE
 # Add compile definitions if needed
 target_compile_definitions(raydar PRIVATE ${PNG_DEFINITIONS} NOMINMAX WIN32_LEAN_AND_MEAN)
 if (WIN32)
-target_compile_options(raydar PRIVATE
-        /W3
-        /wd4244
-        /wd4267
-        /wd4305
-        /wd4996
-        /wd4275
-        /wd4251
-    )
+    target_compile_options(raydar PRIVATE
+            /W3
+            /wd4244
+            /wd4267
+            /wd4305
+            /wd4996
+            /wd4275
+            /wd4251
+        )
 endif()
 # Print link libraries for debugging
 get_target_property(LINKED_LIBS raydar LINK_LIBRARIES)
