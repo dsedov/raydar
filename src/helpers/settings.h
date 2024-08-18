@@ -2,11 +2,12 @@
 #define SETTINGS_H
 
 #include "cxxopts.hpp"
+#include "strings.h"
 #include <iostream>
 
 class settings {
   public:
-    int image_width = 1024;
+    int image_width = 1024; 
     int image_height = 768;
     int samples = 4;
     int max_depth = 3;
@@ -69,6 +70,19 @@ class settings {
         if (result.count("samples")) samples = result["samples"].as<int>();
 
         std::cout << "Samples: " << samples << std::endl;
+    }
+
+    std::string get_file_name(int width, int height, int samples, int seconds){
+        std::string file_name = image_file;
+        size_t dot_pos = file_name.find_last_of(".");
+        std::string name = file_name.substr(0, dot_pos);
+        std::string extension = file_name.substr(dot_pos);
+
+        // Create the new file name with resolution and samples
+        std::stringstream new_file_name;
+  
+        new_file_name << name << "_" << width << "x" << height << "_" << samples << "spp" << "_" << seconds << "s" << "_" << rd::strings::get_uuid() << extension;
+        return new_file_name.str();
     }
 
 };

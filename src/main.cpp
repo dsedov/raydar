@@ -18,6 +18,8 @@
 #include "usd/geo.h"
 #include "usd/loader.h"
 
+#include "helpers/strings.h"
+
 int main(int argc, char *argv[]) {
 
     settings settings(argc, argv);
@@ -75,25 +77,8 @@ int main(int argc, char *argv[]) {
 
     int seconds_to_render = render.mtpool_prog_render(world);
 
-    // Extract the file name and extension
-    std::string file_name = settings.image_file;
-    size_t dot_pos = file_name.find_last_of(".");
-    std::string name = file_name.substr(0, dot_pos);
-    std::string extension = file_name.substr(dot_pos);
-
-    // Create the new file name with resolution and samples
-    std::stringstream new_file_name;
-    // Generate a simple 6-character alphanumeric UUID
-    std::string uuid;
-    const std::string chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    std::srand(std::time(nullptr));
-    for (int i = 0; i < 6; ++i) {
-        uuid += chars[rand() % chars.length()];
-    }
-    new_file_name << name << "_" << image.width() << "x" << image.height() << "_" << settings.samples << "spp" << "_" << seconds_to_render << "s" << "_" << uuid << extension;
-
     // Save the image with the new file name
-    image.save(new_file_name.str().c_str());
+    image.save(settings.get_file_name(image.width(), image.height(), settings.samples, seconds_to_render).c_str());
 
     return 0;
 }
