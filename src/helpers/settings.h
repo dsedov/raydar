@@ -23,6 +23,7 @@ class settings {
             ("i,image", "Output file name", cxxopts::value<std::string>())
             ("r,resolution", "Resolution (two integers)", cxxopts::value<std::vector<int>>()->default_value("1024,768"))
             ("s,samples", "Number of samples", cxxopts::value<int>()->default_value("4"))
+            ("d,depth", "Max depth", cxxopts::value<int>()->default_value("10"))
             ("h,help", "Print usage");
 
         auto result = options.parse(argc, argv);    
@@ -59,7 +60,10 @@ class settings {
             image_height = resolution[1];
         } 
         std::cout << "Resolution: " << image_width << "x" << image_height << std::endl;
-        
+
+        // MAX DEPTH
+        if (result.count("depth")) max_depth = result["depth"].as<int>();
+        std::cout << "Max depth: " << max_depth << std::endl;
 
         // SAMPLES
         if (result.count("samples")) samples = result["samples"].as<int>();
