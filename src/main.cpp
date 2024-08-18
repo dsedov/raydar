@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
     // LOAD MATERIALS
     std::cout << "Loading materials from USD stage" << std::endl;
     auto error_material = make_shared<rd::core::constant>(color(1.0, 0.0, 0.0));
-    std::unordered_map<std::string, std::shared_ptr<rd::core::material>> materials = rd::usd::material::loadMaterialsFromStage(loader.get_stage());
+    std::unordered_map<std::string, std::shared_ptr<rd::core::material>> materials = rd::usd::material::load_materials_from_stage(loader.get_stage());
     materials["error"] = error_material;
 
     // LOAD GEOMETRY

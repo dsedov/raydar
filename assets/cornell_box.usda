@@ -1,0 +1,577 @@
+#usda 1.0
+(
+    defaultPrim = "geo"
+    framesPerSecond = 24
+    metersPerUnit = 1
+    timeCodesPerSecond = 24
+    upAxis = "Y"
+)
+
+def Xform "geo" (
+    kind = "group"
+)
+{
+    def Xform "floor" (
+        kind = "component"
+    )
+    {
+        matrix4d xformOp:transform:transform3 = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform:transform3"]
+
+        def Mesh "mesh_0" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(-5, 0, -5), (5, 0, 5)]
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [0, 1, 5, 4, 1, 2, 6, 5, 2, 3, 7, 6, 4, 5, 9, 8, 5, 6, 10, 9, 6, 7, 11, 10, 8, 9, 13, 12, 9, 10, 14, 13, 10, 11, 15, 14]
+            rel material:binding = </materials/WHITE>
+            uniform token orientation = "leftHanded"
+            point3f[] points = [(-5, 0, -5), (-1.6666667, 0, -5), (1.6666665, 0, -5), (5, 0, -5), (-5, 0, -1.6666667), (-1.6666667, 0, -1.6666667), (1.6666665, 0, -1.6666667), (5, 0, -1.6666667), (-5, 0, 1.6666665), (-1.6666667, 0, 1.6666665), (1.6666665, 0, 1.6666665), (5, 0, 1.6666665), (-5, 0, 5), (-1.6666667, 0, 5), (1.6666665, 0, 5), (5, 0, 5)] (
+                interpolation = "vertex"
+            )
+            uniform token subdivisionScheme = "none"
+        }
+    }
+
+    def Xform "left" (
+        kind = "component"
+    )
+    {
+        matrix4d xformOp:transform:transform1 = ( (0, -1, 0, 0), (1, 0, 0, 0), (0, 0, 1, 0), (-5, 5, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform:transform1"]
+
+        def Mesh "mesh_0" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(-5, 0, -5), (5, 0, 5)]
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [0, 1, 5, 4, 1, 2, 6, 5, 2, 3, 7, 6, 4, 5, 9, 8, 5, 6, 10, 9, 6, 7, 11, 10, 8, 9, 13, 12, 9, 10, 14, 13, 10, 11, 15, 14]
+            rel material:binding = </materials/RED>
+            uniform token orientation = "leftHanded"
+            point3f[] points = [(-5, 0, -5), (-1.6666667, 0, -5), (1.6666665, 0, -5), (5, 0, -5), (-5, 0, -1.6666667), (-1.6666667, 0, -1.6666667), (1.6666665, 0, -1.6666667), (5, 0, -1.6666667), (-5, 0, 1.6666665), (-1.6666667, 0, 1.6666665), (1.6666665, 0, 1.6666665), (5, 0, 1.6666665), (-5, 0, 5), (-1.6666667, 0, 5), (1.6666665, 0, 5), (5, 0, 5)] (
+                interpolation = "vertex"
+            )
+            uniform token subdivisionScheme = "none"
+        }
+    }
+
+    def Xform "right" (
+        kind = "component"
+    )
+    {
+        matrix4d xformOp:transform:transform2 = ( (0, 1, 0, 0), (-1, 0, 0, 0), (0, 0, 1, 0), (5, 5, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform:transform2"]
+
+        def Mesh "mesh_0" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(-5, 0, -5), (5, 0, 5)]
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [0, 1, 5, 4, 1, 2, 6, 5, 2, 3, 7, 6, 4, 5, 9, 8, 5, 6, 10, 9, 6, 7, 11, 10, 8, 9, 13, 12, 9, 10, 14, 13, 10, 11, 15, 14]
+            rel material:binding = </materials/GREEN>
+            uniform token orientation = "leftHanded"
+            point3f[] points = [(-5, 0, -5), (-1.6666667, 0, -5), (1.6666665, 0, -5), (5, 0, -5), (-5, 0, -1.6666667), (-1.6666667, 0, -1.6666667), (1.6666665, 0, -1.6666667), (5, 0, -1.6666667), (-5, 0, 1.6666665), (-1.6666667, 0, 1.6666665), (1.6666665, 0, 1.6666665), (5, 0, 1.6666665), (-5, 0, 5), (-1.6666667, 0, 5), (1.6666665, 0, 5), (5, 0, 5)] (
+                interpolation = "vertex"
+            )
+            uniform token subdivisionScheme = "none"
+        }
+    }
+
+    def Xform "top" (
+        kind = "component"
+    )
+    {
+        matrix4d xformOp:transform:transform4 = ( (1, 0, 0, 0), (0, -1, 0, 0), (0, 0, -1, 0), (0, 10, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform:transform4"]
+
+        def Mesh "mesh_0" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(-5, 0, -5), (5, 0, 5)]
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [0, 1, 5, 4, 1, 2, 6, 5, 2, 3, 7, 6, 4, 5, 9, 8, 5, 6, 10, 9, 6, 7, 11, 10, 8, 9, 13, 12, 9, 10, 14, 13, 10, 11, 15, 14]
+            rel material:binding = </materials/WHITE>
+            uniform token orientation = "leftHanded"
+            point3f[] points = [(-5, 0, -5), (-1.6666667, 0, -5), (1.6666665, 0, -5), (5, 0, -5), (-5, 0, -1.6666667), (-1.6666667, 0, -1.6666667), (1.6666665, 0, -1.6666667), (5, 0, -1.6666667), (-5, 0, 1.6666665), (-1.6666667, 0, 1.6666665), (1.6666665, 0, 1.6666665), (5, 0, 1.6666665), (-5, 0, 5), (-1.6666667, 0, 5), (1.6666665, 0, 5), (5, 0, 5)] (
+                interpolation = "vertex"
+            )
+            uniform token subdivisionScheme = "none"
+        }
+    }
+
+    def Xform "back" (
+        kind = "component"
+    )
+    {
+        matrix4d xformOp:transform:transform5 = ( (1, 0, 0, 0), (0, 0, 1, 0), (0, -1, 0, 0), (0, 5, -5, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform:transform5"]
+
+        def Mesh "mesh_0" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(-5, 0, -5), (5, 0, 5)]
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [0, 1, 5, 4, 1, 2, 6, 5, 2, 3, 7, 6, 4, 5, 9, 8, 5, 6, 10, 9, 6, 7, 11, 10, 8, 9, 13, 12, 9, 10, 14, 13, 10, 11, 15, 14]
+            rel material:binding = </materials/WHITE>
+            uniform token orientation = "leftHanded"
+            point3f[] points = [(-5, 0, -5), (-1.6666667, 0, -5), (1.6666665, 0, -5), (5, 0, -5), (-5, 0, -1.6666667), (-1.6666667, 0, -1.6666667), (1.6666665, 0, -1.6666667), (5, 0, -1.6666667), (-5, 0, 1.6666665), (-1.6666667, 0, 1.6666665), (1.6666665, 0, 1.6666665), (5, 0, 1.6666665), (-5, 0, 5), (-1.6666667, 0, 5), (1.6666665, 0, 5), (5, 0, 5)] (
+                interpolation = "vertex"
+            )
+            uniform token subdivisionScheme = "none"
+        }
+    }
+
+    def Xform "box1" (
+        kind = "component"
+    )
+    {
+        matrix4d xformOp:transform:transform6 = ( (0.949223069971808, 0, 0.3146038198008665, 0), (0, 1, 0, 0), (-0.3146038198008665, 0, 0.949223069971808, 0), (2.4168470505458743, 0.00009363889694213867, -0.8744938154342172, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform:transform6"]
+
+        def Mesh "mesh_0" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(-1.1902515, 0.016199112, -1.0826181), (1.4202199, 5.226319, 2.2121406)]
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [0, 1, 3, 2, 4, 5, 7, 6, 6, 7, 2, 3, 5, 4, 1, 0, 5, 0, 2, 7, 1, 4, 6, 3]
+            rel material:binding = </materials/WHITE>
+            uniform token orientation = "leftHanded"
+            point3f[] points = [(1.4202199, 0.016199112, 2.2121406), (-1.1902515, 0.016199112, 2.2121406), (1.4202199, 5.226319, 2.2121406), (-1.1902515, 5.226319, 2.2121406), (-1.1902515, 0.016199112, -1.0826181), (1.4202199, 0.016199112, -1.0826181), (-1.1902515, 5.226319, -1.0826181), (1.4202199, 5.226319, -1.0826181)] (
+                interpolation = "vertex"
+            )
+            uniform token subdivisionScheme = "none"
+        }
+    }
+
+    def Xform "box2" (
+        kind = "component"
+    )
+    {
+        matrix4d xformOp:transform:transform7 = ( (0.9725301064024784, 0, -0.23277712976317955, 0), (0, 1, 0, 0), (0.23277712976317955, 0, 0.9725301064024784, 0), (-0.7341387512665112, 0.00009363889694213867, 1.7013123550673086, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform:transform7"]
+
+        def Mesh "mesh_0" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(-1.1902515, 0.016199112, -1.0826181), (1.0734975, 2.1911936, 1.2492943)]
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [0, 1, 3, 2, 4, 5, 7, 6, 6, 7, 2, 3, 5, 4, 1, 0, 5, 0, 2, 7, 1, 4, 6, 3]
+            rel material:binding = </materials/WHITE>
+            uniform token orientation = "leftHanded"
+            point3f[] points = [(1.0734975, 0.016199112, 1.2492943), (-1.1902515, 0.016199112, 1.2492943), (1.0734975, 2.1911936, 1.2492943), (-1.1902515, 2.1911936, 1.2492943), (-1.1902515, 0.016199112, -1.0826181), (1.0734975, 0.016199112, -1.0826181), (-1.1902515, 2.1911936, -1.0826181), (1.0734975, 2.1911936, -1.0826181)] (
+                interpolation = "vertex"
+            )
+            uniform token subdivisionScheme = "none"
+        }
+    }
+}
+
+def Scope "materials"
+{
+    def Material "RED" (
+        prepend inherits = </__class_mtl__/RED>
+    )
+    {
+        token outputs:surface.connect = </materials/RED/mtlxstandard_surface.outputs:out>
+
+        def Shader "mtlxstandard_surface"
+        {
+            uniform token info:id = "ND_standard_surface_surfaceshader_100"
+            float inputs:base (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 1
+                        string ogl_diff_intensity = "1"
+                    }
+                }
+            )
+            color3f inputs:base_color = (1, 0, 0) (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double3 default_value = (0.8, 0.8, 0.8)
+                        string ogl_diff = "1"
+                    }
+                }
+            )
+            float inputs:coat (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 0
+                        string ogl_coat_intensity = "1"
+                    }
+                }
+            )
+            float inputs:coat_roughness (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 0.1
+                        string ogl_coat_rough = "1"
+                    }
+                }
+            )
+            float inputs:emission (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 0
+                        string ogl_emit_intensity = "1"
+                    }
+                }
+            )
+            color3f inputs:emission_color (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double3 default_value = (1, 1, 1)
+                        string ogl_emit = "1"
+                    }
+                }
+            )
+            float inputs:metalness (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 0
+                        string ogl_metallic = "1"
+                    }
+                }
+            )
+            float inputs:specular = 0 (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 1
+                        string ogl_spec_intensity = "1"
+                    }
+                }
+            )
+            color3f inputs:specular_color (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double3 default_value = (1, 1, 1)
+                        string ogl_spec = "1"
+                    }
+                }
+            )
+            float inputs:specular_IOR (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 1.5
+                        string ogl_ior = "1"
+                    }
+                }
+            )
+            float inputs:specular_roughness (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 0.2
+                        string ogl_rough = "1"
+                    }
+                }
+            )
+            float inputs:transmission (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 0
+                        string ogl_transparency = "1"
+                    }
+                }
+            )
+            token outputs:out
+        }
+    }
+
+    def Material "WHITE" (
+        prepend inherits = </__class_mtl__/WHITE>
+    )
+    {
+        token outputs:surface.connect = </materials/WHITE/mtlxstandard_surface.outputs:out>
+
+        def Shader "mtlxstandard_surface"
+        {
+            uniform token info:id = "ND_standard_surface_surfaceshader"
+            float inputs:base (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 1
+                        string ogl_diff_intensity = "1"
+                    }
+                }
+            )
+            color3f inputs:base_color = (1, 1, 1) (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double3 default_value = (0.8, 0.8, 0.8)
+                        string ogl_diff = "1"
+                    }
+                }
+            )
+            float inputs:coat (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 0
+                        string ogl_coat_intensity = "1"
+                    }
+                }
+            )
+            float inputs:coat_roughness (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 0.1
+                        string ogl_coat_rough = "1"
+                    }
+                }
+            )
+            float inputs:emission (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 0
+                        string ogl_emit_intensity = "1"
+                    }
+                }
+            )
+            color3f inputs:emission_color (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double3 default_value = (1, 1, 1)
+                        string ogl_emit = "1"
+                    }
+                }
+            )
+            float inputs:metalness (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 0
+                        string ogl_metallic = "1"
+                    }
+                }
+            )
+            float inputs:specular = 0 (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 1
+                        string ogl_spec_intensity = "1"
+                    }
+                }
+            )
+            color3f inputs:specular_color (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double3 default_value = (1, 1, 1)
+                        string ogl_spec = "1"
+                    }
+                }
+            )
+            float inputs:specular_IOR (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 1.5
+                        string ogl_ior = "1"
+                    }
+                }
+            )
+            float inputs:specular_roughness (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 0.2
+                        string ogl_rough = "1"
+                    }
+                }
+            )
+            float inputs:transmission (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 0
+                        string ogl_transparency = "1"
+                    }
+                }
+            )
+            token outputs:out
+        }
+    }
+
+    def Material "GREEN" (
+        prepend inherits = </__class_mtl__/GREEN>
+    )
+    {
+        token outputs:surface.connect = </materials/GREEN/mtlxstandard_surface.outputs:out>
+
+        def Shader "mtlxstandard_surface"
+        {
+            uniform token info:id = "ND_standard_surface_surfaceshader"
+            float inputs:base (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 1
+                        string ogl_diff_intensity = "1"
+                    }
+                }
+            )
+            color3f inputs:base_color = (0, 1, 0) (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double3 default_value = (0.8, 0.8, 0.8)
+                        string ogl_diff = "1"
+                    }
+                }
+            )
+            float inputs:coat (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 0
+                        string ogl_coat_intensity = "1"
+                    }
+                }
+            )
+            float inputs:coat_roughness (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 0.1
+                        string ogl_coat_rough = "1"
+                    }
+                }
+            )
+            float inputs:emission (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 0
+                        string ogl_emit_intensity = "1"
+                    }
+                }
+            )
+            color3f inputs:emission_color (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double3 default_value = (1, 1, 1)
+                        string ogl_emit = "1"
+                    }
+                }
+            )
+            float inputs:metalness (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 0
+                        string ogl_metallic = "1"
+                    }
+                }
+            )
+            float inputs:specular = 0 (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 1
+                        string ogl_spec_intensity = "1"
+                    }
+                }
+            )
+            color3f inputs:specular_color (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double3 default_value = (1, 1, 1)
+                        string ogl_spec = "1"
+                    }
+                }
+            )
+            float inputs:specular_IOR (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 1.5
+                        string ogl_ior = "1"
+                    }
+                }
+            )
+            float inputs:specular_roughness (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 0.2
+                        string ogl_rough = "1"
+                    }
+                }
+            )
+            float inputs:transmission (
+                customData = {
+                    dictionary HoudiniPreviewTags = {
+                        double default_value = 0
+                        string ogl_transparency = "1"
+                    }
+                }
+            )
+            token outputs:out
+        }
+    }
+
+    def Material "Diffuse" (
+        prepend inherits = </__class_mtl__/Diffuse>
+    )
+    {
+        token outputs:surface.connect = </materials/Diffuse/mtlxsurface1.outputs:out>
+
+        def Shader "mtlxsurface1"
+        {
+            uniform token info:id = "ND_surface"
+            string inputs:bsdf.connect = </materials/Diffuse/mtlxoren_nayar_diffuse_bsdf1.outputs:out>
+            token outputs:out
+        }
+
+        def Shader "mtlxoren_nayar_diffuse_bsdf1"
+        {
+            uniform token info:id = "ND_oren_nayar_diffuse_bsdf"
+            token outputs:out
+        }
+    }
+}
+
+def Xform "lights"
+{
+    def RectLight "arealight1" (
+        prepend apiSchemas = ["HoudiniViewportLightAPI", "HoudiniViewportGuideAPI", "KarmaLightAPI"]
+    )
+    {
+        float2 houdini:clippingRange = (0.001, 10000)
+        bool houdini:inviewermenu = 1
+        color3f inputs:color = (1, 1, 1)
+        float inputs:diffuse = 1
+        bool inputs:enableColorTemperature = 0
+        float inputs:exposure = 0
+        float inputs:height = 3
+        float inputs:intensity = 5
+        bool inputs:karma:light:renderlightgeo = 1
+        bool inputs:normalize = 0
+        float inputs:specular = 1
+        asset inputs:texture:file = @@
+        float inputs:width = 7.829
+        rel light:filters = None
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 0, -1, 0), (0, 1, 0, 0), (0, 9.9, 0, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+}
+
+def Xform "cameras"
+{
+    def Camera "camera1" (
+        prepend apiSchemas = ["HoudiniViewportGuideAPI", "HoudiniCameraPlateAPI"]
+    )
+    {
+        float2 clippingRange = (1, 1000000)
+        float exposure = 0
+        float focalLength = 0.2
+        float focusDistance = 5
+        float fStop = 0
+        float horizontalAperture = 0.20955
+        float horizontalApertureOffset = 0
+        asset houdini:backgroundimage = @@
+        asset houdini:foregroundimage = @@
+        float houdini:guidescale = 1
+        bool houdini:inviewermenu = 1
+        token projection = "perspective"
+        double shutter:close = 0.25
+        double shutter:open = -0.25
+        float verticalAperture = 0.11787187
+        float verticalApertureOffset = 0
+        matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 5, 20, 1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+}
+

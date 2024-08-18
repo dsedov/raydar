@@ -128,7 +128,7 @@ namespace rd::usd::light {
             }
         }
         for(const auto& light : areaLightsDescriptors) {
-            auto light_material = make_shared<rd::core::light>(color(1.0, 1.0, 1.0), 1.0);
+            auto light_material = make_shared<rd::core::light>(color(1.0, 1.0, 1.0), light.intensity);
             shared_ptr<rd::core::area_light> light_quad = make_shared<rd::core::area_light>(light.Q, light.u, light.v, light_material);
             area_lights.push_back(light_quad);
         }

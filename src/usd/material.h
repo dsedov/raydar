@@ -21,47 +21,17 @@
 #include <pxr/base/gf/vec3d.h>
 #include <pxr/base/gf/rotation.h>
 #include <pxr/base/gf/matrix4d.h>
+
 #include <pxr/usd/usdShade/material.h>
 #include <pxr/usd/usdShade/materialBindingAPI.h>
+#include <pxr/usd/usdShade/connectableAPI.h>
 #include <pxr/usd/usdShade/shader.h>
 #include <pxr/usd/usdLux/rectLight.h>
 
 namespace rd::usd::material {
 
-    struct MaterialProperties {
-        std::string fullPath;
-        float metallic = 0.0f;
-        float roughness = 0.5f;
-        pxr::GfVec3f diffuseColor = pxr::GfVec3f(0.8f, 0.8f, 0.8f);
-        pxr::GfVec3f emissiveColor = pxr::GfVec3f(0.0f, 0.0f, 0.0f);
-        float ior = 1.5f;
-    };
 
-
-    std::shared_ptr<rd::core::material> createMaterialFromProperties(const MaterialProperties& props) {
-        // Implement this function based on your material system
-        // For now, we'll return a lambertian material as a placeholder
-        //return std::make_shared<constant>(color(props.diffuseColor[0], props.diffuseColor[1], props.diffuseColor[2]));
-        return std::make_shared<rd::core::advanced_pbr_material>(
-            0.6, // base_weight (guessed)
-            color(props.diffuseColor[0], props.diffuseColor[1], props.diffuseColor[2]), // base_color
-            props.metallic, // base_metalness
-
-            1.0, // specular_weight (guessed)
-            color(1.0, 1.0, 1.0), // specular_color (guessed)
-            props.roughness, // specular_roughness
-            props.ior, // specular_ior
-
-            0.0, // transmission_weight (guessed)
-            color(1.0, 1.0, 1.0), // transmission_color (guessed)
-
-            1.0, // emission_luminance (guessed)
-            color(props.emissiveColor[0], props.emissiveColor[1], props.emissiveColor[2]) // emission_color
-        );
-        return std::make_shared<rd::core::lambertian>(color(props.diffuseColor[0], props.diffuseColor[1], props.diffuseColor[2]));
-
-        
-    }
+  
 
     pxr::UsdShadeShader findShaderInNodeGraph(const pxr::UsdPrim& nodeGraphPrim) {
         for (const auto& child : nodeGraphPrim.GetChildren()) {
@@ -80,66 +50,43 @@ namespace rd::usd::material {
             findMaterialsRecursive(child, materials);
         }
     }
-    MaterialProperties extractMaterialProperties(const pxr::UsdShadeMaterial& usdMaterial) {
-        MaterialProperties props;
-        props.fullPath = usdMaterial.GetPath().GetString();
 
-        // Look for MaterialX and UsdPreviewSurface NodeGraphs
-        pxr::UsdPrim materialXNodeGraph = usdMaterial.GetPrim().GetChild(pxr::TfToken("MaterialX"));
-        pxr::UsdPrim previewSurfaceNodeGraph = usdMaterial.GetPrim().GetChild(pxr::TfToken("UsdPreviewSurface"));
 
-        pxr::UsdShadeShader materialXShader, previewSurfaceShader;
 
-        if (materialXNodeGraph) {
-            materialXShader = findShaderInNodeGraph(materialXNodeGraph);
-        }
+    std::unordered_map<std::string, std::shared_ptr<rd::core::material>> load_materials_from_stage(const pxr::UsdStageRefPtr& stage) {
 
-        if (previewSurfaceNodeGraph) {
-            previewSurfaceShader = findShaderInNodeGraph(previewSurfaceNodeGraph);
-        }
-
-        // Prefer MaterialX if available, otherwise use UsdPreviewSurface
-        pxr::UsdShadeShader shaderToUse = materialXShader ? materialXShader : previewSurfaceShader;
-
-        if (shaderToUse) {
-            pxr::VtValue value;
-
-            if (shaderToUse.GetInput(pxr::TfToken("metallic")).Get(&value)) {
-                props.metallic = value.Get<float>();
-            }
-            if (shaderToUse.GetInput(pxr::TfToken("roughness")).Get(&value)) {
-                props.roughness = value.Get<float>();
-            }
-            if (shaderToUse.GetInput(pxr::TfToken("diffuseColor")).Get(&value)) {
-                props.diffuseColor = value.Get<pxr::GfVec3f>();
-            }
-            if (shaderToUse.GetInput(pxr::TfToken("emissiveColor")).Get(&value)) {
-                props.emissiveColor = value.Get<pxr::GfVec3f>();
-            }
-            if (shaderToUse.GetInput(pxr::TfToken("ior")).Get(&value)) {
-                props.ior = value.Get<float>();
-            }
-        }
-
-        return props;
-    }
-        std::unordered_map<std::string, std::shared_ptr<rd::core::material>> loadMaterialsFromStage(const pxr::UsdStageRefPtr& stage) {
         std::unordered_map<std::string, std::shared_ptr<rd::core::material>> materials;
 
         std::vector<pxr::UsdShadeMaterial> usdMaterials;
         findMaterialsRecursive(stage->GetPseudoRoot(), usdMaterials);
 
         for (const auto& usdMaterial : usdMaterials) {
-            MaterialProperties props = extractMaterialProperties(usdMaterial);
-            std::shared_ptr<rd::core::material> mat = createMaterialFromProperties(props);
-            materials[props.fullPath] = mat;
+            std::cout << "Loading Material: " << usdMaterial.GetPath().GetString() << std::endl;
+            pxr::GfVec3f baseColor(1.0f, 0.0f, 0.0f); 
+            // get shader
+            pxr::UsdShadeShader shader = usdMaterial.ComputeSurfaceSource();
+            if (shader) {
+                std::cout << "Shader: " << shader.GetPath().GetString() << std::endl;
+                // Get base_color
+                pxr::UsdShadeInput baseColorInput = shader.GetInput(pxr::TfToken("base_color"));
+                if (baseColorInput) {
+                    // Read the value of the input
+                    
+                    if (baseColorInput.Get(&baseColor)) {
+                        std::cout << "Successfully read base color" << std::endl;
+                    } else {
+                        std::cout << "Failed to read base color, using default" << std::endl;
+                        baseColor = pxr::GfVec3f(1.0f, 0.0f, 0.0f);
+                    }
+                    color diffuseColor(baseColor[0], baseColor[1], baseColor[2]);
+                    std::cout << "Base Color: " << baseColor[0] << ", " << baseColor[1] << ", " << baseColor[2] << std::endl;
+                }
+            }
 
-            std::cout << "Loaded material: " << props.fullPath << std::endl;
-            std::cout << "  Metallic: " << props.metallic << std::endl;
-            std::cout << "  Roughness: " << props.roughness << std::endl;
-            std::cout << "  Diffuse Color: " << props.diffuseColor << std::endl;
-            std::cout << "  Emissive Color: " << props.emissiveColor << std::endl;
-            std::cout << "  IOR: " << props.ior << std::endl;
+            
+            color diffuseColor(baseColor[0], baseColor[1], baseColor[2]);
+            std::shared_ptr<rd::core::material> mat = std::make_shared<rd::core::lambertian>(diffuseColor);
+            materials[usdMaterial.GetPath().GetString()] = mat;
         }
 
         return materials;

@@ -41,6 +41,13 @@ class bvh_node : public hittable {
 
         bbox = aabb(left->bounding_box(), right->bounding_box());
     }
+    static std::shared_ptr<rd::core::mesh> fuse_meshes(std::vector<std::shared_ptr<rd::core::mesh>> & meshes) {
+        std::vector<triangle> triangles;
+        for(const auto& mesh : meshes) {
+            triangles.insert(triangles.end(), mesh->triangles.begin(), mesh->triangles.end());
+        }
+        return std::make_shared<rd::core::mesh>(triangles);
+    }
     // Split in the middle along the given axis. Return two new meshes with the split triangles.
     static std::vector<rd::core::mesh> & split(rd::core::mesh & mesh, std::vector<rd::core::mesh> & meshes, int level = 0) {
         // padded string 

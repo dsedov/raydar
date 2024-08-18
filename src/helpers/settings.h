@@ -9,7 +9,7 @@ class settings {
     int image_width = 1024;
     int image_height = 768;
     int samples = 4;
-    int max_depth = 10;
+    int max_depth = 3;
     std::string usd_file;
     std::string image_file = "output.png";
 
