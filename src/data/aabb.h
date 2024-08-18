@@ -11,7 +11,11 @@ class aabb {
 
     aabb(const interval& x, const interval& y, const interval& z)
       : x(x), y(y), z(z) {}
-
+    aabb(const aabb& box, const point3& p) {
+        x = interval(std::min(box.x.min, p.x()), std::max(box.x.max, p.x()));
+        y = interval(std::min(box.y.min, p.y()), std::max(box.y.max, p.y()));
+        z = interval(std::min(box.z.min, p.z()), std::max(box.z.max, p.z()));
+    }
     aabb(const point3& a, const point3& b) {
         // Treat the two points a and b as extrema for the bounding box, so we don't require a
         // particular minimum/maximum coordinate order.
@@ -43,7 +47,15 @@ class aabb {
         z.min -= padding;
         z.max += padding;
     }
-
+    point3 centroid() const {
+        return point3((x.min + x.max) / 2, (y.min + y.max) / 2, (z.min + z.max) / 2);
+    }
+    double surface_area() const {
+        auto a = x.size();
+        auto b = y.size();
+        auto c = z.size();
+        return 2 * (a*b + b*c + c*a);
+    }
     bool hit(const ray& r, interval ray_t) const {
         const point3& ray_orig = r.origin();
         const vec3&   ray_dir  = r.direction();

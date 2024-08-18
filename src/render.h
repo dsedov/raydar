@@ -150,19 +150,8 @@ class render {
                     bucket_queue.pop();
                 }
 
-                // Process the bucket
-                for (int j = bucket.start_y; j < bucket.end_y; ++j) {
-                    for (int i = bucket.start_x; i < bucket.end_x; ++i) {
-                        color pixel_color(0, 0, 0);
-                        for (int s = 0; s < total_samples; ++s) {
-                            int s_i = s % sqrt_spp;
-                            int s_j = s / sqrt_spp;
-                            ray r = get_ray(i, j, s_i, s_j, 0);
-                            pixel_color += ray_color(r, max_depth, world, local_cache, i, j);
-                        }
-                        image_buffer.set_pixel(i, j, pixel_color * pixel_samples_scale);
-                    }
-                }
+                // Process the bucket using packet tracing
+                process_bucket(bucket, world, local_cache);
 
                 local_cache.clear();  // Clear cache after processing each bucket
 
@@ -277,32 +266,58 @@ class render {
         // Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square.
         return vec3(random_double(), random_double() - 0.5, 0);
     }
-    color ray_color(ray& r, int depth, const hittable& world, Cache& cache, int x = -1, int y = -1) const {
+
+    void process_bucket(const Bucket& bucket, const hittable& world, Cache& local_cache) {
+        const int PACKET_SIZE = 4; // Process 4 rays at a time
+        const int total_samples = sqrt_spp * sqrt_spp;
+
+        for (int j = bucket.start_y; j < bucket.end_y; j += PACKET_SIZE) {
+            for (int i = bucket.start_x; i < bucket.end_x; i += PACKET_SIZE) {
+                std::array<color, PACKET_SIZE * PACKET_SIZE> pixel_colors;
+                pixel_colors.fill(color(0, 0, 0));
+
+                for (int s = 0; s < total_samples; ++s) {
+                    int s_i = s % sqrt_spp;
+                    int s_j = s / sqrt_spp;
+
+                    std::array<ray, PACKET_SIZE * PACKET_SIZE> rays;
+                    for (int pj = 0; pj < PACKET_SIZE && j + pj < bucket.end_y; ++pj) {
+                        for (int pi = 0; pi < PACKET_SIZE && i + pi < bucket.end_x; ++pi) {
+                            rays[pj * PACKET_SIZE + pi] = get_ray(i + pi, j + pj, s_i, s_j, 0);
+                        }
+                    }
+
+                    trace_packet(rays, world, local_cache, pixel_colors);
+                }
+
+                // Set pixel colors
+                for (int pj = 0; pj < PACKET_SIZE && j + pj < bucket.end_y; ++pj) {
+                    for (int pi = 0; pi < PACKET_SIZE && i + pi < bucket.end_x; ++pi) {
+                        image_buffer.set_pixel(i + pi, j + pj, pixel_colors[pj * PACKET_SIZE + pi] * pixel_samples_scale);
+                    }
+                }
+            }
+        }
+    }
+    void trace_packet(const std::array<ray, 16>& rays, const hittable& world, Cache& cache, std::array<color, 16>& pixel_colors) {
+        for (int i = 0; i < rays.size(); ++i) {
+            pixel_colors[i] += ray_color(rays[i], max_depth, world, cache);
+        }
+    }
+
+
+
+    color ray_color(const ray& r, int depth, const hittable& world, Cache& cache) const {
         if (depth <= 0)
             return color(0,0,0);
 
         hit_record rec;
-        bool is_primary = depth == max_depth;
-        bool hit;
-
-        if (is_primary && x != -1 && y != -1) {
-            CacheEntry cache_entry;
-            if (cache.get(x, y, cache_entry)) {
-                hit = cache_entry.hit;
-                rec = cache_entry.rec;
-            } else {
-                hit = world.hit(r, interval(0.001, infinity), rec);
-                cache.set(x, y, {rec, hit});
-            }
-        } else {
-            hit = world.hit(r, interval(0.001, infinity), rec);
-        }
+        bool hit = world.hit(r, interval(0.001, infinity), rec);
 
         if (!hit) {
             return background_color;
         }
 
-        // For primary rays where depth is equal to max_depth
         if (depth == max_depth && !rec.mat->is_visible()) {
             // Continue ray in the same direction with a small bias
             const double bias = 0.0001;
@@ -313,9 +328,11 @@ class render {
         ray scattered;
         color attenuation;
         color emitted = rec.mat->emitted(rec.u, rec.v, rec.p);
-        if (!rec.mat->scatter(r, rec, attenuation, scattered)){
+
+        if (!rec.mat->scatter(r, rec, attenuation, scattered)) {
             return emitted;
         }
+
         return emitted + attenuation * ray_color(scattered, depth-1, world, cache);
     }
 };

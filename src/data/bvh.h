@@ -19,7 +19,6 @@ class bvh_node : public hittable {
 
     bvh_node(std::vector<shared_ptr<hittable>>& objects, size_t start, size_t end) {
         int axis = random_int(0,2);
-
         auto comparator = (axis == 0) ? box_x_compare
                         : (axis == 1) ? box_y_compare
                                       : box_z_compare;
@@ -29,14 +28,25 @@ class bvh_node : public hittable {
         if (object_span == 1) {
             left = right = objects[start];
         } else if (object_span == 2) {
-            left = objects[start];
-            right = objects[start+1];
+            if (comparator(objects[start], objects[start+1])) {
+                left = objects[start];
+                right = objects[start+1];
+            } else {
+                left = objects[start+1];
+                right = objects[start];
+            }
         } else {
-            std::sort(std::begin(objects) + start, std::begin(objects) + end, comparator);
+            // Use SAH to determine split
+            auto [split_pos, split_axis] = find_best_split(objects, start, end);
+            
+            std::nth_element(&objects[start], &objects[split_pos],
+                             &objects[end-1]+1,
+                             [axis = split_axis](const auto& a, const auto& b) {
+                                 return box_compare(a, b, axis);
+                             });
 
-            auto mid = start + object_span/2;
-            left = make_shared<bvh_node>(objects, start, mid);
-            right = make_shared<bvh_node>(objects, mid, end);
+            left = make_shared<bvh_node>(objects, start, split_pos);
+            right = make_shared<bvh_node>(objects, split_pos, end);
         }
 
         bbox = aabb(left->bounding_box(), right->bounding_box());
@@ -162,6 +172,75 @@ class bvh_node : public hittable {
 
     static bool box_z_compare (const shared_ptr<hittable> a, const shared_ptr<hittable> b) {
         return box_compare(a, b, 2);
+    }
+
+    std::pair<size_t, int> find_best_split(std::vector<shared_ptr<hittable>>& objects, size_t start, size_t end) {
+        const int NUM_BINS = 12;
+        struct Bin { int count = 0; aabb bounds; };
+        std::array<Bin, NUM_BINS> bins;
+
+        aabb centroid_bounds;
+        for (size_t i = start; i < end; ++i) {
+            point3 centroid = objects[i]->bounding_box().centroid();
+            centroid_bounds = aabb(centroid_bounds, centroid);
+        }
+
+        int best_axis = 0;
+        size_t best_split = (start + end) / 2;
+        float best_cost = std::numeric_limits<float>::max();
+
+        for (int axis = 0; axis < 3; ++axis) {
+            float axis_length = centroid_bounds.axis_interval(axis).size();
+            
+            // Initialize bins
+            for (auto& bin : bins) {
+                bin.count = 0;
+                bin.bounds = aabb();
+            }
+
+            // Populate bins
+            for (size_t i = start; i < end; ++i) {
+                aabb obj_bounds = objects[i]->bounding_box();
+                int bin_index = std::min(NUM_BINS - 1, 
+                    int(NUM_BINS * ((obj_bounds.centroid()[axis] - centroid_bounds.axis_interval(axis).min) / axis_length)));
+                bins[bin_index].count++;
+                bins[bin_index].bounds = aabb(bins[bin_index].bounds, obj_bounds);
+            }
+
+            // Evaluate splits
+            std::array<aabb, NUM_BINS - 1> left_bounds, right_bounds;
+            std::array<int, NUM_BINS - 1> left_count, right_count;
+
+            left_bounds[0] = bins[0].bounds;
+            left_count[0] = bins[0].count;
+            for (int i = 1; i < NUM_BINS - 1; ++i) {
+                left_bounds[i] = aabb(left_bounds[i-1], bins[i].bounds);
+                left_count[i] = left_count[i-1] + bins[i].count;
+            }
+
+            right_bounds[NUM_BINS - 2] = bins[NUM_BINS - 1].bounds;
+            right_count[NUM_BINS - 2] = bins[NUM_BINS - 1].count;
+            for (int i = NUM_BINS - 3; i >= 0; --i) {
+                right_bounds[i] = aabb(right_bounds[i+1], bins[i+1].bounds);
+                right_count[i] = right_count[i+1] + bins[i+1].count;
+            }
+
+            for (int i = 0; i < NUM_BINS - 1; ++i) {
+                float left_area = left_bounds[i].surface_area();
+                float right_area = right_bounds[i].surface_area();
+                int left_objects = left_count[i];
+                int right_objects = right_count[i];
+                float cost = 0.125f + (left_objects * left_area + right_objects * right_area) / centroid_bounds.surface_area();
+
+                if (cost < best_cost) {
+                    best_cost = cost;
+                    best_axis = axis;
+                    best_split = start + left_objects;
+                }
+            }
+        }
+
+        return {best_split, best_axis};
     }
 };
 
