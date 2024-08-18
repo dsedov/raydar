@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
 
     world = hittable_list(make_shared<bvh_node>(world));
 
-    int seconds_to_render = render.mtpool_prog_render(world);
+    int seconds_to_render = render.mtpool_bucket_prog_render(world);
 
     // Save the image with the new file name
     image.save(settings.get_file_name(image.width(), image.height(), settings.samples, seconds_to_render).c_str());

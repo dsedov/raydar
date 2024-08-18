@@ -16,7 +16,9 @@
 #include <vector>
 #include <random>
 #include <algorithm>
+#include <unordered_map>
 #include <queue>
+#include <condition_variable>
 
 class ProgressBar {
 public:
@@ -49,37 +51,56 @@ private:
     std::atomic<int> last_printed;
 };
 
-class MitchellNetravaliFilter {
-private:
-    double B, C;
 
-    double p(double x) {
-        x = std::abs(x);
-        if (x < 1) {
-            return ((12 - 9 * B - 6 * C) * x * x * x
-                    + (-18 + 12 * B + 6 * C) * x * x
-                    + (6 - 2 * B)) / 6;
-        } else if (x < 2) {
-            return ((-B - 6 * C) * x * x * x
-                    + (6 * B + 30 * C) * x * x
-                    + (-12 * B - 48 * C) * x
-                    + (8 * B + 24 * C)) / 6;
-        } else {
-            return 0;
-        }
-    }
+const int BUCKET_SIZE = 32; // Adjust this value as needed
+const float CACHE_PROBABILITY = 0.7f;
 
-public:
-    MitchellNetravaliFilter(double b = 1.0/3.0, double c = 1.0/3.0) : B(b), C(c) {}
-
-    double filter(double x) {
-        return p(x);
-    }
+struct Bucket {
+    int start_x, start_y, end_x, end_y;
 };
-
 struct Sample {
     float x, y;  // Sample position relative to pixel center
     color color; // Sample color
+};
+struct CacheEntry {
+    hit_record rec;
+    bool hit;
+};
+
+// Custom hash function for std::pair<int, int>
+struct PairHash {
+    std::size_t operator()(const std::pair<int, int>& p) const {
+        return std::hash<int>()(p.first) ^ (std::hash<int>()(p.second) << 1);
+    }
+};
+
+using CacheType = std::unordered_map<std::pair<int, int>, CacheEntry, PairHash>;
+
+class Cache {
+private:
+    CacheType cache;
+    std::mt19937 rng;
+    std::uniform_real_distribution<float> dist;
+
+public:
+    Cache() : rng(std::random_device{}()), dist(0.0f, 1.0f) {}
+
+    bool get(int x, int y, CacheEntry& entry) {
+        auto it = cache.find({x, y});
+        if (it != cache.end() && dist(rng) < CACHE_PROBABILITY) {
+            entry = it->second;
+            return true;
+        }
+        return false;
+    }
+
+    void set(int x, int y, const CacheEntry& entry) {
+        cache[{x, y}] = entry;
+    }
+
+    void clear() {
+        cache.clear();
+    }
 };
 class render {
   public:
@@ -89,102 +110,66 @@ class render {
     rd::core::camera camera;
     
     /* Public Camera Parameters Here */
-    render(Image & image_buffer, rd::core::camera camera) : image_buffer(image_buffer), camera(camera) {
-       
-    }
-
-    int mt_render(const hittable& world) {
+    render(Image & image_buffer, rd::core::camera camera) : image_buffer(image_buffer), camera(camera) { }
+    int mtpool_bucket_prog_render(const hittable& world) {
         initialize();
         auto start_time = std::chrono::high_resolution_clock::now();
-
-        std::vector<std::thread> threads;
-        std::atomic<int> scanlines_completed(0);
-        ProgressBar progress_bar(image_buffer.height());
-
-        auto render_scanline = [&](int j) {
-            
-            for (int i = 0; i < image_buffer.width(); i++) {
-                color pixel_color(0,0,0);
-                 for (int s_j = 0; s_j < sqrt_spp; s_j++) {
-                    for (int s_i = 0; s_i < sqrt_spp; s_i++) {
-                        ray r = get_ray(i, j, s_i, s_j, 0);
-                        pixel_color += ray_color(r, max_depth, world);
-                    }
-                }
-                pixel_color *= pixel_samples_scale;
-                image_buffer.set_pixel(i, j, pixel_color);
-            }
-            
-            int completed = scanlines_completed.fetch_add(1) + 1;
-            progress_bar.update(completed);
-        };
-
-        for (int j = 0; j < image_buffer.height(); j++) {
-            threads.emplace_back(render_scanline, j);
-        }
-
-        for (auto& thread : threads) {
-            thread.join();
-        }
-
-        std::cout << std::endl; // Move to the next line after progress bar
-
-        auto end_time = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
-        std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
-        return duration.count();
-    }
-    int mtpool_prog_render(const hittable& world) {
-        initialize();
-        auto start_time = std::chrono::high_resolution_clock::now();
-
         const int num_threads = std::thread::hardware_concurrency();
         std::vector<std::thread> threads(num_threads);
-        std::queue<int> sample_queue;
+        std::queue<Bucket> bucket_queue;
         std::mutex queue_mutex;
         std::condition_variable cv;
-        std::atomic<int> samples_completed(0);
+        std::atomic<int> buckets_completed(0);
         std::atomic<bool> done(false);
-
         const int total_samples = sqrt_spp * sqrt_spp;
         ProgressBar progress_bar(total_samples);
 
-        // Fill the queue with sample indices
-        for (int s = 0; s < total_samples; ++s) {
-            sample_queue.push(s);
+        // Create buckets
+        for (int y = 0; y < image_buffer.height(); y += BUCKET_SIZE) {
+            for (int x = 0; x < image_buffer.width(); x += BUCKET_SIZE) {
+                Bucket b{x, y, 
+                        std::min(x + BUCKET_SIZE, image_buffer.width()), 
+                        std::min(y + BUCKET_SIZE, image_buffer.height())};
+                bucket_queue.push(b);
+            }
         }
+        const int total_buckets = bucket_queue.size();
 
         auto worker = [&]() {
+            Cache local_cache;
             while (true) {
-                int sample_index;
+                Bucket bucket;
                 {
                     std::unique_lock<std::mutex> lock(queue_mutex);
-                    if (sample_queue.empty()) {
-                        if (done) return;  // Exit if work is done
-                        cv.wait(lock);  // Wait for more work or done signal
-                        continue;  // Recheck condition after waking
+                    if (bucket_queue.empty()) {
+                        if (done) return;
+                        cv.wait(lock);
+                        continue;
                     }
-                    sample_index = sample_queue.front();
-                    sample_queue.pop();
+                    bucket = bucket_queue.front();
+                    bucket_queue.pop();
                 }
 
-                int s_i = sample_index % sqrt_spp;
-                int s_j = sample_index / sqrt_spp;
-
-                // Process all pixels for this sample
-                for (int j = 0; j < image_buffer.height(); ++j) {
-                    for (int i = 0; i < image_buffer.width(); ++i) {
-                        ray r = get_ray(i, j, s_i, s_j, 0);
-                        color pixel_color = ray_color(r, max_depth, world, i, j);
-                        image_buffer.add_to_pixel(i, j, pixel_color * pixel_samples_scale);
+                // Process the bucket
+                for (int j = bucket.start_y; j < bucket.end_y; ++j) {
+                    for (int i = bucket.start_x; i < bucket.end_x; ++i) {
+                        color pixel_color(0, 0, 0);
+                        for (int s = 0; s < total_samples; ++s) {
+                            int s_i = s % sqrt_spp;
+                            int s_j = s / sqrt_spp;
+                            ray r = get_ray(i, j, s_i, s_j, 0);
+                            pixel_color += ray_color(r, max_depth, world, local_cache, i, j);
+                        }
+                        image_buffer.set_pixel(i, j, pixel_color * pixel_samples_scale);
                     }
                 }
 
-                int completed = samples_completed.fetch_add(1) + 1;
+                local_cache.clear();  // Clear cache after processing each bucket
 
-                if (completed == total_samples) {
+                int completed = buckets_completed.fetch_add(1) + 1;
+                if (completed == total_buckets) {
                     done = true;
-                    cv.notify_all();  // Wake up all threads to check done condition
+                    cv.notify_all();
                 }
             }
         };
@@ -196,8 +181,8 @@ class render {
 
         // Main thread handles progress updates
         while (!done) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));  // Update every 100ms
-            int current_progress = samples_completed.load();
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            int current_progress = buckets_completed.load() * total_samples / total_buckets;
             progress_bar.update(current_progress);
         }
 
@@ -206,241 +191,13 @@ class render {
             thread.join();
         }
 
-        std::cout << std::endl; // Move to the next line after progress bar
-
-        auto end_time = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
-        std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
-        return duration.count();
-    }
-    /*
-    int mtpool_render(const hittable& world) {
-        initialize();
-        auto start_time = std::chrono::high_resolution_clock::now();
-
-        const int num_threads = std::thread::hardware_concurrency();
-        std::vector<std::thread> threads(num_threads);
-        std::queue<int> scanline_queue;
-        std::mutex queue_mutex;
-        std::condition_variable cv;
-        std::atomic<int> scanlines_completed(0);
-        std::atomic<bool> done(false);
-
-        ProgressBar progress_bar(image_buffer.height());
-
-        // Fill the queue with scanlines
-        for (int j = 0; j < image_buffer.height(); ++j) {
-            scanline_queue.push(j);
-        }
-
-        auto worker = [&]() {
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::uniform_real_distribution<> dis(0.0, 1.0);
-            while (true) {
-                int j;
-                {
-                    std::unique_lock<std::mutex> lock(queue_mutex);
-                    if (scanline_queue.empty()) {
-                        if (done) return;  // Exit if work is done
-                        cv.wait(lock);  // Wait for more work or done signal
-                        continue;  // Recheck condition after waking
-                    }
-                    j = scanline_queue.front();
-                    scanline_queue.pop();
-                }
-
-                // Process scanline
-                for (int i = 0; i < image_buffer.width(); i++) {
-                    
-                    color pixel_color(0,0,0);
-                    for (int s_j = 0; s_j < sqrt_spp; s_j++) {
-                        for (int s_i = 0; s_i < sqrt_spp; s_i++) {
-
-                            ray r = get_ray(i, j, s_i, s_j, 0);
-                            pixel_color += ray_color(r, max_depth, world);
-                        }
-                    }
-                    pixel_color *= pixel_samples_scale;
-                    image_buffer.set_pixel(i, j, pixel_color);
-                }
-
-                int completed = scanlines_completed.fetch_add(1) + 1;
-                progress_bar.update(completed);
-
-                if (completed == image_buffer.height()) {
-                    done = true;
-                    cv.notify_all();  // Wake up all threads to check done condition
-                }
-            }
-        };
-
-        // Start worker threads
-        for (int t = 0; t < num_threads; ++t) {
-            threads[t] = std::thread(worker);
-        }
-
-        // Wait for all threads to complete
-        for (auto& thread : threads) {
-            thread.join();
-        }
-
-        std::cout << std::endl; // Move to the next line after progress bar
-
-        auto end_time = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
-        std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
-        return duration.count();
-    }
-  
-    int adaptive_mt_render(const hittable& world) {
-        initialize();
-        auto start_time = std::chrono::high_resolution_clock::now();
-        std::vector<std::thread> threads;
-        std::atomic<int> scanlines_completed(0);
-        ProgressBar progress_bar(image_buffer.height());
-
-        const int min_samples = 4; // Minimum number of samples per pixel
-        const int max_samples = sqrt_spp * sqrt_spp; // Maximum number of samples per pixel
-        const float convergence_threshold = 0.001f; // Threshold for color change
-
-        auto render_scanline = [&](int j) {
-            for (int i = 0; i < image_buffer.width(); i++) {
-                color pixel_color(0,0,0);
-                color prev_pixel_color(0,0,0);
-                int samples = 0;
-                bool converged = false;
-                std::srand(j*i + j + i + std::time(nullptr));
-                while (samples < max_samples && !converged) {
-                    color sample_color(0,0,0);
-                    int batch_size = std::min(8, max_samples - samples); // Sample in batches of 4
-
-                    for (int s = 0; s < batch_size; s++) {
-                        int s_i = samples % sqrt_spp;
-                        int s_j = samples / sqrt_spp;
-                        ray r = get_ray(i, j, s_i, s_j, 0);
-                        sample_color += ray_color(r, max_depth, world);
-                        samples++;
-                    }
-
-                    pixel_color += sample_color;
-                    color current_average = pixel_color / samples;
-
-                    if (samples >= min_samples) {
-                        float color_diff = (current_average - prev_pixel_color).length();
-                        if (color_diff < convergence_threshold) {
-                            converged = true;
-                        }
-                    }
-
-                    prev_pixel_color = current_average;
-                }
-
-                pixel_color /= samples; // Normalize by actual number of samples
-                image_buffer.set_pixel(i, j, pixel_color);
-            }
-
-            int completed = scanlines_completed.fetch_add(1) + 1;
-            progress_bar.update(completed);
-        };
-
-        for (int j = 0; j < image_buffer.height(); j++) {
-            threads.emplace_back(render_scanline, j);
-        }
-
-        for (auto& thread : threads) {
-            thread.join();
-        }
-
-        std::cout << std::endl; // Move to the next line after progress bar
-
+        std::cout << std::endl;
         auto end_time = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
         std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
         return duration.count();
     }
     
-    int adaptive_filtered_mt_render(const hittable& world) {
-        initialize();
-        auto start_time = std::chrono::high_resolution_clock::now();
-        std::vector<std::thread> threads;
-        std::atomic<int> scanlines_completed(0);
-        ProgressBar progress_bar(image_buffer.height());
-        const int min_samples = 4;
-        const int max_samples = sqrt_spp * sqrt_spp;
-        const float convergence_threshold = 0.001f;
-        const float filter_width = 1.0f; // Adjust as needed
-        MitchellNetravaliFilter filter;
-
-        auto render_scanline = [&](int j) {
-            for (int i = 0; i < image_buffer.width(); i++) {
-                std::vector<Sample> samples;
-                color pixel_color(0,0,0);
-                color prev_pixel_color(0,0,0);
-                int sample_count = 0;
-                bool converged = false;
-                std::srand(j*i + j + i + std::time(nullptr));
-                while (sample_count < max_samples && !converged) {
-                    int batch_size = std::min(8, max_samples - sample_count);
-                    for (int s = 0; s < batch_size; s++) {
-                        int s_i = sample_count % sqrt_spp;
-                        int s_j = sample_count / sqrt_spp;
-                        ray r = get_ray(i, j, s_i, s_j, 0);
-                        color sample_color = ray_color(r, max_depth, world);
-                        
-                        // Calculate sample position relative to pixel center
-                        float x_offset = (float)s_i / sqrt_spp - 0.5f;
-                        float y_offset = (float)s_j / sqrt_spp - 0.5f;
-                        
-                        samples.push_back({x_offset, y_offset, sample_color});
-                        sample_count++;
-                    }
-
-                    // Apply Mitchell-Netravali filter to reconstruct pixel color
-                    float total_weight = 0.0f;
-                    color filtered_color(0,0,0);
-                    for (const auto& sample : samples) {
-                        float distance = std::sqrt(sample.x*sample.x + sample.y*sample.y);
-                        float weight = filter.filter(distance / filter_width);
-                        filtered_color += sample.color * weight;
-                        total_weight += weight;
-                    }
-                    if (total_weight > 0) {
-                        filtered_color /= total_weight;
-                    }
-
-                    pixel_color = filtered_color;
-
-                    if (sample_count >= min_samples) {
-                        float color_diff = (pixel_color - prev_pixel_color).length();
-                        if (color_diff < convergence_threshold) {
-                            converged = true;
-                        }
-                    }
-                    prev_pixel_color = pixel_color;
-                }
-
-                image_buffer.set_pixel(i, j, pixel_color);
-            }
-            int completed = scanlines_completed.fetch_add(1) + 1;
-            progress_bar.update(completed);
-        };
-
-        for (int j = 0; j < image_buffer.height(); j++) {
-            threads.emplace_back(render_scanline, j);
-        }
-
-        for (auto& thread : threads) {
-            thread.join();
-        }
-
-        std::cout << std::endl; // Move to the next line after progress bar
-        auto end_time = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
-        std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
-        return duration.count();
-    }
-    */
   private:
     /* Private Camera Variables Here */
     Image & image_buffer;
@@ -520,35 +277,46 @@ class render {
         // Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square.
         return vec3(random_double(), random_double() - 0.5, 0);
     }
-    color ray_color(ray& r, int depth, const hittable& world, int x=-1, int y=-1) const {
-  
+    color ray_color(ray& r, int depth, const hittable& world, Cache& cache, int x = -1, int y = -1) const {
         if (depth <= 0)
             return color(0,0,0);
 
         hit_record rec;
         bool is_primary = depth == max_depth;
+        bool hit;
 
-        if (!world.hit(r, interval(0.001, infinity), rec)) { 
+        if (is_primary && x != -1 && y != -1) {
+            CacheEntry cache_entry;
+            if (cache.get(x, y, cache_entry)) {
+                hit = cache_entry.hit;
+                rec = cache_entry.rec;
+            } else {
+                hit = world.hit(r, interval(0.001, infinity), rec);
+                cache.set(x, y, {rec, hit});
+            }
+        } else {
+            hit = world.hit(r, interval(0.001, infinity), rec);
+        }
+
+        if (!hit) {
             return background_color;
         }
-    
+
         // For primary rays where depth is equal to max_depth
         if (depth == max_depth && !rec.mat->is_visible()) {
             // Continue ray in the same direction with a small bias
             const double bias = 0.0001;
             ray continued_ray(rec.p + bias * r.direction(), r.direction(), r.get_depth());
-            return ray_color(continued_ray, depth, world);
+            return ray_color(continued_ray, depth, world, cache);
         }
 
         ray scattered;
         color attenuation;
         color emitted = rec.mat->emitted(rec.u, rec.v, rec.p);
-      
-
         if (!rec.mat->scatter(r, rec, attenuation, scattered)){
             return emitted;
         }
-        return emitted + attenuation * ray_color(scattered, depth-1, world);
+        return emitted + attenuation * ray_color(scattered, depth-1, world, cache);
     }
 };
 
