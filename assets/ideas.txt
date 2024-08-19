@@ -1,9 +1,1 @@
-
-Implement Multi-level Ray Tracing:
-Use a coarser grid for initial ray traversal and then refine the search in potentially hit areas.
-Optimize the ray_color function:
-This function is called frequently and can be optimized. Consider inlining some operations and reducing function calls.
-Use Thread-Local Storage:
-For multi-threaded rendering, use thread-local storage for frequently accessed data to reduce cache coherency issues.
-11. Implement a Tiled Rendering Approach:
-Divide the image into tiles and render each tile independently. This can improve cache utilization.
+Implemnt PDF

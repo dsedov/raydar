@@ -141,7 +141,7 @@ class bvh_node : public hittable {
         if (!bbox.hit(r, ray_t))
             return false;
 
-        bool hit_left = left->hit(r, ray_t, rec);
+        bool hit_left  = left->hit(r, ray_t, rec);
         bool hit_right = right->hit(r, interval(ray_t.min, hit_left ? rec.t : ray_t.max), rec);
 
         return hit_left || hit_right;

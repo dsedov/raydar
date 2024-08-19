@@ -4,7 +4,7 @@
 #include "../raydar.h"
 #include "../data/ray.h"
 #include "../data/hittable.h"
-
+#include "../data/pdf.h"
 class hit_record;
 
 namespace rd::core {

@@ -29,7 +29,7 @@ class sphere_pdf : public pdf {
 
 class cosine_pdf : public pdf {
   public:
-    cosine_pdf(const vec3& w) : uvw(w) {}
+    cosine_pdf(const vec3& w) { uvw.build_from_w(w); }
 
     double value(const vec3& direction) const override {
         auto cosine_theta = dot(unit_vector(direction), uvw.w());
