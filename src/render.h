@@ -369,7 +369,7 @@ public:
 
         ray scattered;
         color attenuation;
-        color emitted = rec.mat->emitted(rec.u, rec.v, rec.p);
+        color emitted = rec.mat->emitted(r, rec, rec.u, rec.v, rec.p);
         double pdf_val; 
         if (!rec.mat->scatter(r, rec, attenuation, scattered, pdf_val)) {
             return emitted;

@@ -24,7 +24,7 @@ namespace rd::core {
         ) const {
             return 0;
         }
-        virtual color emitted(double u, double v, const point3& p) const {
+        virtual color emitted(const ray& r_in, const hit_record& rec, double u, double v, const point3& p) const {
             return color(0,0,0);
         }
         virtual bool is_visible() const {
@@ -74,7 +74,7 @@ namespace rd::core {
             return false;
         }
 
-        color emitted(double u, double v, const point3& p) const override {
+        color emitted(const ray& r_in, const hit_record& rec, double u, double v, const point3& p) const override {
             // Instead of scattering, we emit the constant color
             return albedo;
         }
@@ -93,7 +93,9 @@ namespace rd::core {
             return false;
         }
 
-        color emitted(double u, double v, const point3& p) const override {
+        color emitted(const ray& r_in, const hit_record& rec, double u, double v, const point3& p) const override {
+            if (!rec.front_face)
+                return color(0,0,0);
             return light_color * light_intensity;
         }
 
@@ -266,7 +268,7 @@ namespace rd::core {
             auto cosine = dot(rec.normal, unit_vector(scattered.direction()));
             return cosine < 0 ? 0 : cosine / pi;
         }
-        color emitted(double u, double v, const point3& p) const override {
+        color emitted(const ray& r_in, const hit_record& rec, double u, double v, const point3& p) const override {
             return emission_luminance * emission_color;
         }
 
