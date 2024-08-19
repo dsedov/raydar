@@ -72,8 +72,12 @@ int main(int argc, char *argv[]) {
     }
     std::cout << "BVH meshes size: " << bvh_meshes_size << std::endl;
 
-    world = hittable_list(make_shared<bvh_node>(world));
+    std::cout << "Building BVH" << std::endl;
+    auto bvh_shared = make_shared<bvh_node>(world);
+    world = hittable_list(bvh_shared);
 
+
+    std::cout << "Rendering scene" << std::endl;
     int seconds_to_render = render.mtpool_bucket_prog_render(world);
 
     // Save the image with the new file name

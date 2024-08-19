@@ -24,7 +24,6 @@ class bvh_node : public hittable {
                                       : box_z_compare;
 
         size_t object_span = end - start;
-
         if (object_span == 1) {
             left = right = objects[start];
         } else if (object_span == 2) {
@@ -37,16 +36,14 @@ class bvh_node : public hittable {
             }
         } else {
             // Use SAH to determine split
-            auto [split_pos, split_axis] = find_best_split(objects, start, end);
-            
-            std::nth_element(&objects[start], &objects[split_pos],
+            std::pair<size_t, int> split_result = find_best_split(objects, start, end);
+            std::nth_element(&objects[start], &objects[split_result.first],
                              &objects[end-1]+1,
-                             [axis = split_axis](const auto& a, const auto& b) {
+                             [axis = split_result.second](const auto& a, const auto& b) {
                                  return box_compare(a, b, axis);
                              });
-
-            left = make_shared<bvh_node>(objects, start, split_pos);
-            right = make_shared<bvh_node>(objects, split_pos, end);
+            left = make_shared<bvh_node>(objects, start, split_result.first);
+            right = make_shared<bvh_node>(objects, split_result.first, end);
         }
 
         bbox = aabb(left->bounding_box(), right->bounding_box());
@@ -60,18 +57,13 @@ class bvh_node : public hittable {
     }
     // Split in the middle along the given axis. Return two new meshes with the split triangles.
     static std::vector<rd::core::mesh> & split(rd::core::mesh & mesh, std::vector<rd::core::mesh> & meshes, int level = 0) {
-        // padded string 
-        //std::string padding = std::string(level, ' ');
         if(mesh.triangles.size() == 0) {
-            //std::cout << padding << "No triangles to split" << std::endl;
             return meshes;
         }
         if(mesh.triangles.size() <= 10) {
-            //std::cout << padding << "Terminating mesh with " << triangles.size() << " triangles to meshes" << std::endl;
             meshes.push_back(mesh);
             return meshes;
         }
-        //std::cout << padding << "Splitting mesh with " << triangles.size() << " triangles" << std::endl;
 
         // Find the axis that allows for the most equal split
         int best_axis = 0;
@@ -119,7 +111,6 @@ class bvh_node : public hittable {
 
         if (left_triangles.size() > 0) { 
             if (left_triangles.size() == mesh.triangles.size()) {
-                //std::cout << padding << "Terminating mesh with " << left_triangles.size() << " triangles to meshes" << std::endl;
                 meshes.push_back(mesh);
                 return meshes;
             }
@@ -128,7 +119,6 @@ class bvh_node : public hittable {
         }
         if (right_triangles.size() > 0) {
             if (right_triangles.size() == mesh.triangles.size()) {
-                //std::cout << padding << "Terminating mesh with " << right_triangles.size() << " triangles to meshes" << std::endl;
                 meshes.push_back(mesh);
                 return meshes;
             }
@@ -175,6 +165,10 @@ class bvh_node : public hittable {
     }
 
     std::pair<size_t, int> find_best_split(std::vector<shared_ptr<hittable>>& objects, size_t start, size_t end) {
+        if (start >= end || start >= objects.size() || end > objects.size()) {
+            std::cerr << "Invalid range in find_best_split. Returning middle split." << std::endl;
+            return {start + (end - start) / 2, 0};
+        }
         const int NUM_BINS = 12;
         struct Bin { int count = 0; aabb bounds; };
         std::array<Bin, NUM_BINS> bins;
@@ -184,27 +178,30 @@ class bvh_node : public hittable {
             point3 centroid = objects[i]->bounding_box().centroid();
             centroid_bounds = aabb(centroid_bounds, centroid);
         }
-
         int best_axis = 0;
         size_t best_split = (start + end) / 2;
         float best_cost = std::numeric_limits<float>::max();
 
         for (int axis = 0; axis < 3; ++axis) {
             float axis_length = centroid_bounds.axis_interval(axis).size();
-            
             // Initialize bins
             for (auto& bin : bins) {
                 bin.count = 0;
                 bin.bounds = aabb();
             }
-
             // Populate bins
             for (size_t i = start; i < end; ++i) {
+                if(axis_length == 0) {
+                    axis_length = 0.001;
+                }
+
                 aabb obj_bounds = objects[i]->bounding_box();
+
                 int bin_index = std::min(NUM_BINS - 1, 
                     int(NUM_BINS * ((obj_bounds.centroid()[axis] - centroid_bounds.axis_interval(axis).min) / axis_length)));
                 bins[bin_index].count++;
                 bins[bin_index].bounds = aabb(bins[bin_index].bounds, obj_bounds);
+  
             }
 
             // Evaluate splits
@@ -239,7 +236,9 @@ class bvh_node : public hittable {
                 }
             }
         }
-
+        if (best_split <= start || best_split >= end) {
+            best_split = start + (end - start) / 2;
+        }
         return {best_split, best_axis};
     }
 };
