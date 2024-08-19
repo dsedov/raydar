@@ -53,57 +53,13 @@ private:
 
 
 const int BUCKET_SIZE = 32; // Adjust this value as needed
-const float CACHE_PROBABILITY = 0.7f;
 
 struct Bucket {
     int start_x, start_y, end_x, end_y;
 };
-struct Sample {
-    float x, y;  // Sample position relative to pixel center
-    color color; // Sample color
-};
-struct CacheEntry {
-    hit_record rec;
-    bool hit;
-};
 
-// Custom hash function for std::pair<int, int>
-struct PairHash {
-    std::size_t operator()(const std::pair<int, int>& p) const {
-        return std::hash<int>()(p.first) ^ (std::hash<int>()(p.second) << 1);
-    }
-};
-
-using CacheType = std::unordered_map<std::pair<int, int>, CacheEntry, PairHash>;
-
-class Cache {
-private:
-    CacheType cache;
-    std::mt19937 rng;
-    std::uniform_real_distribution<float> dist;
-
-public:
-    Cache() : rng(std::random_device{}()), dist(0.0f, 1.0f) {}
-
-    bool get(int x, int y, CacheEntry& entry) {
-        auto it = cache.find({x, y});
-        if (it != cache.end() && dist(rng) < CACHE_PROBABILITY) {
-            entry = it->second;
-            return true;
-        }
-        return false;
-    }
-
-    void set(int x, int y, const CacheEntry& entry) {
-        cache[{x, y}] = entry;
-    }
-
-    void clear() {
-        cache.clear();
-    }
-};
 class render {
-  public:
+public:
 
     int samples_per_pixel = 64;
     int max_depth         = 10;
@@ -116,63 +72,41 @@ class render {
         auto start_time = std::chrono::high_resolution_clock::now();
         const int num_threads = std::thread::hardware_concurrency();
         std::vector<std::thread> threads(num_threads);
-        std::queue<Bucket> bucket_queue;
-        std::mutex queue_mutex;
-        std::condition_variable cv;
+        std::atomic<int> next_bucket(0);
         std::atomic<int> buckets_completed(0);
         std::atomic<bool> done(false);
         const int total_samples = sqrt_spp * sqrt_spp;
         ProgressBar progress_bar(total_samples);
 
-        // Create buckets
-        for (int y = 0; y < image_buffer.height(); y += BUCKET_SIZE) {
-            for (int x = 0; x < image_buffer.width(); x += BUCKET_SIZE) {
-                Bucket b{x, y, 
-                        std::min(x + BUCKET_SIZE, image_buffer.width()), 
-                        std::min(y + BUCKET_SIZE, image_buffer.height())};
-                bucket_queue.push(b);
-            }
-        }
-        const int total_buckets = bucket_queue.size();
+        // Calculate total buckets
+        const int total_buckets = ((image_buffer.width() + BUCKET_SIZE - 1) / BUCKET_SIZE) *
+                                ((image_buffer.height() + BUCKET_SIZE - 1) / BUCKET_SIZE);
 
         auto worker = [&]() {
-            Cache local_cache;
+
             while (true) {
-                Bucket bucket;
-                {
-                    std::unique_lock<std::mutex> lock(queue_mutex);
-                    if (bucket_queue.empty()) {
-                        if (done) return;
-                        cv.wait(lock);
-                        continue;
-                    }
-                    bucket = bucket_queue.front();
-                    bucket_queue.pop();
+                int bucket_index = next_bucket.fetch_add(1);
+                if (bucket_index >= total_buckets) {
+                    break;
                 }
 
-                // Process the bucket using packet tracing
-                process_bucket(bucket, world, local_cache);
+                int start_x = (bucket_index % (image_buffer.width() / BUCKET_SIZE)) * BUCKET_SIZE;
+                int start_y = (bucket_index / (image_buffer.width() / BUCKET_SIZE)) * BUCKET_SIZE;
+                Bucket bucket{start_x, start_y, 
+                            std::min(start_x + BUCKET_SIZE, image_buffer.width()), 
+                            std::min(start_y + BUCKET_SIZE, image_buffer.height())};
 
-                local_cache.clear();  // Clear cache after processing each bucket
+                process_bucket(bucket, world);
 
                 int completed = buckets_completed.fetch_add(1) + 1;
-                if (completed == total_buckets) {
-                    done = true;
-                    cv.notify_all();
-                }
+                int current_progress = completed * total_samples / total_buckets;
+                progress_bar.update(current_progress);
             }
         };
 
         // Start worker threads
         for (int t = 0; t < num_threads; ++t) {
             threads[t] = std::thread(worker);
-        }
-
-        // Main thread handles progress updates
-        while (!done) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            int current_progress = buckets_completed.load() * total_samples / total_buckets;
-            progress_bar.update(current_progress);
         }
 
         // Wait for all threads to complete
@@ -267,7 +201,7 @@ class render {
         return vec3(random_double(), random_double() - 0.5, 0);
     }
 
-    void process_bucket(const Bucket& bucket, const hittable& world, Cache& local_cache) {
+    void process_bucket(const Bucket& bucket, const hittable& world) {
         const int PACKET_SIZE = 4; // Process 4 rays at a time
         const int total_samples = sqrt_spp * sqrt_spp;
 
@@ -287,7 +221,7 @@ class render {
                         }
                     }
 
-                    trace_packet(rays, world, local_cache, pixel_colors);
+                    trace_packet(rays, world, pixel_colors);
                 }
 
                 // Set pixel colors
@@ -299,15 +233,15 @@ class render {
             }
         }
     }
-    void trace_packet(const std::array<ray, 16>& rays, const hittable& world, Cache& cache, std::array<color, 16>& pixel_colors) {
+    void trace_packet(const std::array<ray, 16>& rays, const hittable& world, std::array<color, 16>& pixel_colors) {
         for (int i = 0; i < rays.size(); ++i) {
-            pixel_colors[i] += ray_color(rays[i], max_depth, world, cache);
+            pixel_colors[i] += ray_color(rays[i], max_depth, world);
         }
     }
 
 
 
-    color ray_color(const ray& r, int depth, const hittable& world, Cache& cache) const {
+    color ray_color(const ray& r, int depth, const hittable& world) const {
         if (depth <= 0)
             return color(0,0,0);
 
@@ -322,7 +256,7 @@ class render {
             // Continue ray in the same direction with a small bias
             const double bias = 0.0001;
             ray continued_ray(rec.p + bias * r.direction(), r.direction(), r.get_depth());
-            return ray_color(continued_ray, depth, world, cache);
+            return ray_color(continued_ray, depth, world);
         }
 
         ray scattered;
@@ -333,7 +267,7 @@ class render {
             return emitted;
         }
 
-        return emitted + attenuation * ray_color(scattered, depth-1, world, cache);
+        return emitted + attenuation * ray_color(scattered, depth-1, world);
     }
 };
 
