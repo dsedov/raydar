@@ -288,6 +288,7 @@ public:
 
 
         auto offset = sample_square_stratified(s_i, s_j);
+        //vec3 offset = dithering.sample_square_dithered(s_i, s_j, i, j, sqrt_spp);
         auto pixel_sample = pixel00_loc
                           + ((i + offset.x()) * pixel_delta_u)
                           + ((j + offset.y()) * pixel_delta_v);
