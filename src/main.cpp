@@ -26,6 +26,7 @@ int main(int argc, char *argv[]) {
     if(settings.error > 0) return 1;
 
     hittable_list world;
+    hittable_list lights;
 
     // IMAGE
     ImagePNG image(settings.image_width, settings.image_height);
@@ -50,7 +51,10 @@ int main(int argc, char *argv[]) {
     // LOAD AREA LIGHTS
     std::cout << "Loading area lights from USD stage" << std::endl;
     std::vector<std::shared_ptr<rd::core::area_light>> area_lights = rd::usd::light::extractAreaLightsFromUsdStage(loader.get_stage());
-    for(const auto& light : area_lights) world.add(light);
+    for(const auto& light : area_lights){
+         world.add(light);
+         lights.add(light);
+    }
     
 
     render render(image, camera);
@@ -78,7 +82,8 @@ int main(int argc, char *argv[]) {
 
 
     std::cout << "Rendering scene" << std::endl;
-    int seconds_to_render = render.mtpool_bucket_prog_render(world);
+    int seconds_to_render = render.mtpool_bucket_prog_render(world, lights);
+
 
     // Save the image with the new file name
     image.save(settings.get_file_name(image.width(), image.height(), settings.samples, seconds_to_render).c_str());

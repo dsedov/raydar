@@ -66,8 +66,8 @@ public:
 
 class MultiLevelGrid {
 public:
-    MultiLevelGrid(const hittable& world, int resolution = 32)
-        : world_(world), resolution_(resolution) {
+    MultiLevelGrid(const hittable& world, const hittable& lights, int resolution = 32)
+        : world_(world), lights_(lights), resolution_(resolution) {
         build_grid();
     }
 
@@ -100,6 +100,7 @@ public:
 
 private:
     const hittable& world_;
+    const hittable& lights_;
     int resolution_;
     std::vector<GridCell> grid_;
     aabb grid_bounds_;
@@ -174,7 +175,7 @@ public:
     
     /* Public Camera Parameters Here */
     render(Image & image_buffer, rd::core::camera camera) : image_buffer(image_buffer), camera(camera) { }
-    int mtpool_bucket_prog_render(const hittable& world) {
+    int mtpool_bucket_prog_render(const hittable& world, const hittable& lights) {
         initialize();
         auto start_time = std::chrono::high_resolution_clock::now();
         const int num_threads = std::thread::hardware_concurrency();
@@ -189,7 +190,7 @@ public:
         // Calculate total buckets
         const int total_buckets = ((image_buffer.width() + BUCKET_SIZE - 1) / BUCKET_SIZE) *
                                 ((image_buffer.height() + BUCKET_SIZE - 1) / BUCKET_SIZE);
-        MultiLevelGrid grid(world, 32);
+        MultiLevelGrid grid(world,lights, 32);
 
         auto worker = [&]() {
 
@@ -371,11 +372,17 @@ public:
         ray scattered;
         color attenuation;
         color emitted = rec.mat->emitted(r, rec, rec.u, rec.v, rec.p);
-        double pdf_val; 
+
+        cosine_pdf surface_pdf(rec.normal);
+        scattered = ray(rec.p, surface_pdf.generate(), r.get_depth());
+        double pdf_val = surface_pdf.value(scattered.direction()); 
+        double scattering_pdf = rec.mat->scattering_pdf(r, rec, scattered);
+
         if (!rec.mat->scatter(r, rec, attenuation, scattered, pdf_val)) {
             return emitted;
         }
-        double scattering_pdf = rec.mat->scattering_pdf(r, rec, scattered);
+        pdf_val = surface_pdf.value(scattered.direction()); 
+        
         color scattered_color = ray_color(scattered, depth-1, multi_level_grid);
         
         color final_color = emitted;
