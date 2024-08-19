@@ -97,10 +97,10 @@ namespace rd::usd::light {
         }
 
         light.Q = point3(light.vertices[0][0], light.vertices[0][1], light.vertices[0][2]);
-        light.v = vec3(light.vertices[1][0] - light.vertices[0][0],
+        light.u = vec3(light.vertices[1][0] - light.vertices[0][0],
                     light.vertices[1][1] - light.vertices[0][1],
                     light.vertices[1][2] - light.vertices[0][2]);
-        light.u = vec3(light.vertices[3][0] - light.vertices[0][0],
+        light.v = vec3(light.vertices[3][0] - light.vertices[0][0],
                     light.vertices[3][1] - light.vertices[0][1],
                     light.vertices[3][2] - light.vertices[0][2]);
         

@@ -85,7 +85,7 @@ namespace rd::core {
     class light : public material {
     public:
         light(const color& light_color, double light_intensity) : light_color(light_color), light_intensity(light_intensity) {
-            set_visible(false);
+            set_visible(true);
         }
 
         bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered, double& pdf)
