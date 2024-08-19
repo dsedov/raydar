@@ -55,11 +55,21 @@ class vec3 {
         e[2] /= v.e[2];
         return *this;
     }
-
+    
     double length() const {
         return std::sqrt(length_squared());
     }
+    static vec3 min(const vec3& a, const vec3& b) {
+        return vec3(std::min(a.e[0], b.e[0]),
+                    std::min(a.e[1], b.e[1]),
+                    std::min(a.e[2], b.e[2]));
+    }
 
+    static vec3 max(const vec3& a, const vec3& b) {
+        return vec3(std::max(a.e[0], b.e[0]),
+                    std::max(a.e[1], b.e[1]),
+                    std::max(a.e[2], b.e[2]));
+    }
     double length_squared() const {
         return e[0]*e[0] + e[1]*e[1] + e[2]*e[2];
     }

@@ -80,6 +80,16 @@ class aabb {
         }
         return true;
     }
+    point3 min() const {
+        return point3(x.min, y.min, z.min);
+    }
+
+    point3 max() const {
+        return point3(x.max, y.max, z.max);
+    }
+    vec3 size() const {
+        return vec3(x.size(), y.size(), z.size());
+    }
 };
 
 #endif
