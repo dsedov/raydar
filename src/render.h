@@ -370,12 +370,19 @@ public:
         ray scattered;
         color attenuation;
         color emitted = rec.mat->emitted(rec.u, rec.v, rec.p);
-
-        if (!rec.mat->scatter(r, rec, attenuation, scattered)) {
+        double pdf_val; 
+        if (!rec.mat->scatter(r, rec, attenuation, scattered, pdf_val)) {
             return emitted;
         }
+        double scattering_pdf = rec.mat->scattering_pdf(r, rec, scattered);
+        color scattered_color = ray_color(scattered, depth-1, multi_level_grid);
+        
+        color final_color = emitted;
+        if (pdf_val > 0 && scattering_pdf > 0) {
+            final_color += (attenuation * scattering_pdf * scattered_color) / pdf_val;
+        }
 
-        return emitted + attenuation * ray_color(scattered, depth-1, multi_level_grid);
+        return final_color;
     }
 };
 

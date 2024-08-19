@@ -5,6 +5,7 @@
 #include "../data/ray.h"
 #include "../data/hittable.h"
 #include "../data/pdf.h"
+#include "../data/onb.h"
 class hit_record;
 
 namespace rd::core {
@@ -13,11 +14,16 @@ namespace rd::core {
         virtual ~material() = default;
 
         virtual bool scatter(
-            const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered
+            const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered,
+            double& pdf
         ) const {
             return false;
         }
-
+        virtual double scattering_pdf(
+            const ray& r_in, const hit_record& rec, const ray& scattered
+        ) const {
+            return 0;
+        }
         virtual color emitted(double u, double v, const point3& p) const {
             return color(0,0,0);
         }
@@ -34,16 +40,24 @@ namespace rd::core {
     public:
         lambertian(const color& albedo) : albedo(albedo) {}
 
-        bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered)
+        bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered, double& pdf)
         const override {
-            auto scatter_direction = rec.normal + random_unit_vector();
+
+            onb uvw(rec.normal);
+            auto scatter_direction = uvw.transform(random_cosine_direction());
             // Catch degenerate scatter direction
             if (scatter_direction.near_zero())
                 scatter_direction = rec.normal;
 
             scattered = ray(rec.p, scatter_direction, r_in.get_depth() + 1);
             attenuation = albedo;
+            pdf = dot(uvw.w(), scattered.direction()) / pi;
             return true;
+        }
+        double scattering_pdf(const ray& r_in, const hit_record& rec, const ray& scattered)
+        const override {
+            auto cosine = dot(rec.normal, unit_vector(scattered.direction()));
+            return cosine < 0 ? 0 : cosine / pi;
         }
         
 
@@ -54,7 +68,7 @@ namespace rd::core {
     public:
         constant(const color& c) : albedo(c) {}
 
-        bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered) 
+        bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered, double& pdf) 
         const override {
             // Constant materials don't scatter, so we always return false
             return false;
@@ -74,9 +88,9 @@ namespace rd::core {
             set_visible(false);
         }
 
-        bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered)
+        bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered, double& pdf)
         const override {
-            return false; // Lights don't scatter; they only emit
+            return false;
         }
 
         color emitted(double u, double v, const point3& p) const override {
@@ -92,13 +106,20 @@ namespace rd::core {
     public:
         metal(const color& albedo, double fuzz) : albedo(albedo), fuzz(fuzz < 1 ? fuzz : 1) {}
 
-        bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered)
+        bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered, double& pdf)
         const override {
             vec3 reflected = reflect(r_in.direction(), rec.normal);
             reflected = unit_vector(reflected) + (fuzz * random_unit_vector());
             scattered = ray(rec.p, reflected, r_in.get_depth() + 1);
             attenuation = albedo;
+            pdf = 1.0;
             return (dot(scattered.direction(), rec.normal) > 0);
+        }
+        double scattering_pdf(const ray& r_in, const hit_record& rec, const ray& scattered)
+        const override {
+            // For perfect reflection, pdf is infinite at the reflection angle, 0 elsewhere
+            // In practice, we return 1 for numerical stability
+            return 1.0;
         }
 
     private:
@@ -109,7 +130,7 @@ namespace rd::core {
     public:
         dielectric(double refraction_index, double fuzz = 0.0) : refraction_index(refraction_index), fuzz(fuzz < 1 ? fuzz : 1) {}
 
-        bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered)
+        bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered, double& pdf)
         const override {
             attenuation = color(1.0, 1.0, 0.9);
             double ri = rec.front_face ? (1.0/refraction_index) : refraction_index;
@@ -127,7 +148,12 @@ namespace rd::core {
                 direction = refract(unit_direction, rec.normal, ri) + (fuzz * random_unit_vector());
 
             scattered = ray(rec.p, direction, r_in.get_depth() + 1);
+            pdf = 1.0;
             return true;
+        }
+        double scattering_pdf(const ray& r_in, const hit_record& rec, const ray& scattered)
+        const override {
+            return 1.0;
         }
 
     private:
@@ -156,7 +182,7 @@ namespace rd::core {
             transmission_weight(transmission_weight), transmission_color(transmission_color),
             emission_luminance(emission_luminance), emission_color(emission_color) {}
 
-        bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered) const override {
+        bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered, double& pdf) const override {
             vec3 reflected = reflect(unit_vector(r_in.direction()), rec.normal);
             vec3 refracted = refract(unit_vector(r_in.direction()), rec.normal, 1.0 / specular_ior);
 
@@ -196,15 +222,21 @@ namespace rd::core {
             double p = random_double();
             if (p < norm_base_weight) {
                 // Diffuse scattering
-                scattered = ray(rec.p, rec.normal + random_unit_vector(), r_in.get_depth() + 1);
+                onb uvw;
+                uvw.build_from_w(rec.normal);
+                scattered = ray(rec.p, uvw.transform(random_in_unit_sphere()), r_in.get_depth() + 1);
                 attenuation = base_color * (1.0 - base_metalness) * norm_base_weight;
+                pdf = dot(uvw.w(), scattered.direction()) / pi;
+                pdf = 1.0;
             } else if (p < norm_base_weight + norm_specular_weight) {
                 // Specular reflection
                 scattered = ray(rec.p, scatter_direction, r_in.get_depth() + 1);
+                pdf = 1.0;
                 attenuation = specular_color * F * norm_specular_weight;
             } else {
                 // Transmission
                 scattered = ray(rec.p, refracted, r_in.get_depth() + 1);
+                pdf = 1.0;
                 attenuation = transmission_color * norm_transmission_weight;
             }
 
@@ -228,7 +260,12 @@ namespace rd::core {
 
             return true;
         }
-
+        double scattering_pdf(const ray& r_in, const hit_record& rec, const ray& scattered)
+        const override {
+            return 1.0;
+            auto cosine = dot(rec.normal, unit_vector(scattered.direction()));
+            return cosine < 0 ? 0 : cosine / pi;
+        }
         color emitted(double u, double v, const point3& p) const override {
             return emission_luminance * emission_color;
         }
