@@ -51,6 +51,7 @@ int main(int argc, char *argv[]) {
     // LOAD AREA LIGHTS
     std::cout << "Loading area lights from USD stage" << std::endl;
     std::vector<std::shared_ptr<rd::core::area_light>> area_lights = rd::usd::light::extractAreaLightsFromUsdStage(loader.get_stage());
+
     for(const auto& light : area_lights){
          world.add(light);
          lights.add(light);
@@ -83,6 +84,7 @@ int main(int argc, char *argv[]) {
 
     std::cout << "Rendering scene" << std::endl;
     int seconds_to_render = render.mtpool_bucket_prog_render(world, lights);
+
 
 
     // Save the image with the new file name

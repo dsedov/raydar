@@ -57,115 +57,7 @@ const int BUCKET_SIZE = 32; // Adjust this value as needed
 struct Bucket {
     int start_x, start_y, end_x, end_y;
 };
-class GridCell {
-public:
-    aabb bounds;
-    std::vector<const hittable*> objects;
-    bool has_objects() const { return !objects.empty(); }
-};
 
-class MultiLevelGrid {
-public:
-    MultiLevelGrid(const hittable& world, const hittable& lights, int resolution = 32)
-        : world_(world), lights_(lights), resolution_(resolution) {
-        build_grid();
-    }
-
-    bool trace(const ray& r, interval ray_t, hit_record& rec) const {
-        vec3 inv_dir(1.0/r.direction().x(), 1.0/r.direction().y(), 1.0/r.direction().z());
-        std::array<int, 3> step;
-        point3 cell_idx;
-        
-        for (int i = 0; i < 3; ++i) {
-            step[i] = inv_dir[i] >= 0 ? 1 : -1;
-            cell_idx[i] = std::clamp(static_cast<int>((r.origin()[i] - grid_bounds_.min()[i]) * inv_cell_size_[i]), 0, resolution_ - 1);
-        }
-
-        while (true) {
-            const GridCell& cell = grid_[cell_idx.x() + cell_idx.y() * resolution_ + cell_idx.z() * resolution_ * resolution_];
-            
-            if (cell.has_objects() && trace_cell(r, ray_t, rec, cell)) {
-                return true;
-            }
-
-            int next_axis = get_next_axis(r.origin(), inv_dir, cell_idx, step);
-            if (next_axis == -1) break;  // Ray has left the grid
-
-            cell_idx[next_axis] += step[next_axis];
-            if (cell_idx[next_axis] < 0 || cell_idx[next_axis] >= resolution_) break;
-        }
-
-        return false;
-    }
-
-private:
-    const hittable& world_;
-    const hittable& lights_;
-    int resolution_;
-    std::vector<GridCell> grid_;
-    aabb grid_bounds_;
-    vec3 inv_cell_size_;
-
-    void build_grid() {
-        grid_bounds_ = world_.bounding_box();
-        grid_bounds_.pad(0.001);  // Slightly expand the bounds to ensure all objects are inside
-
-        vec3 cell_size = grid_bounds_.size() / resolution_;
-        inv_cell_size_ = vec3(1.0 / cell_size.x(), 1.0 / cell_size.y(), 1.0 / cell_size.z());
-
-        grid_.resize(resolution_ * resolution_ * resolution_);
-
-        for (int i = 0; i < resolution_; ++i) {
-            for (int j = 0; j < resolution_; ++j) {
-                for (int k = 0; k < resolution_; ++k) {
-                    point3 cell_min = grid_bounds_.min() + vec3(i, j, k) * cell_size;
-                    aabb cell_bounds(cell_min, cell_min + cell_size);
-                    
-                    GridCell& cell = grid_[i + j * resolution_ + k * resolution_ * resolution_];
-                    cell.bounds = cell_bounds;
-
-                    if (boxes_overlap(cell_bounds, world_.bounding_box())) {
-                        cell.objects.push_back(&world_);
-                    }
-                }
-            }
-        }
-    }
-
-    bool trace_cell(const ray& r, interval ray_t, hit_record& rec, const GridCell& cell) const {
-        bool hit_anything = false;
-        auto closest_so_far = ray_t.max;
-
-        for (const auto* obj : cell.objects) {
-            if (obj->hit(r, interval(ray_t.min, closest_so_far), rec)) {
-                hit_anything = true;
-                closest_so_far = rec.t;
-            }
-        }
-
-        return hit_anything;
-    }
-
-    int get_next_axis(const point3& origin, const vec3& inv_dir, const point3& cell_idx, const std::array<int, 3>& step) const {
-        vec3 t_max;
-        for (int i = 0; i < 3; ++i) {
-            if (step[i] > 0) {
-                t_max[i] = ((cell_idx[i] + 1) * inv_cell_size_[i] + grid_bounds_.min()[i] - origin[i]) * inv_dir[i];
-            } else {
-                t_max[i] = (cell_idx[i] * inv_cell_size_[i] + grid_bounds_.min()[i] - origin[i]) * inv_dir[i];
-            }
-        }
-
-        int next_axis = (t_max.x() < t_max.y()) ? ((t_max.x() < t_max.z()) ? 0 : 2) : ((t_max.y() < t_max.z()) ? 1 : 2);
-        return (t_max[next_axis] >= 0) ? next_axis : -1;
-    }
-
-    bool boxes_overlap(const aabb& box1, const aabb& box2) const {
-        return (box1.x.min <= box2.x.max && box1.x.max >= box2.x.min) &&
-               (box1.y.min <= box2.y.max && box1.y.max >= box2.y.min) &&
-               (box1.z.min <= box2.z.max && box1.z.max >= box2.z.min);
-    }
-};
 class render {
 public:
 
@@ -190,7 +82,6 @@ public:
         // Calculate total buckets
         const int total_buckets = ((image_buffer.width() + BUCKET_SIZE - 1) / BUCKET_SIZE) *
                                 ((image_buffer.height() + BUCKET_SIZE - 1) / BUCKET_SIZE);
-        MultiLevelGrid grid(world,lights, 32);
 
         auto worker = [&]() {
 
@@ -206,7 +97,7 @@ public:
                             std::min(start_x + BUCKET_SIZE, image_buffer.width()), 
                             std::min(start_y + BUCKET_SIZE, image_buffer.height())};
 
-                process_bucket(bucket, grid);
+                process_bucket(bucket, world, lights);
 
                 int completed = buckets_completed.fetch_add(1) + 1;
                 int current_progress = completed * total_samples / total_buckets;
@@ -312,7 +203,7 @@ public:
         return vec3(random_double(), random_double() - 0.5, 0);
     }
 
-    void process_bucket(const Bucket& bucket, const MultiLevelGrid& multi_level_grid) {
+    void process_bucket(const Bucket& bucket, const hittable& world, const hittable& lights) {
         const int PACKET_SIZE = 4; // Process 4 rays at a time
         const int total_samples = sqrt_spp * sqrt_spp;
 
@@ -332,7 +223,7 @@ public:
                         }
                     }
 
-                    trace_packet(rays, multi_level_grid, pixel_colors);
+                    trace_packet(rays, world, lights, pixel_colors);
                 }
 
                 // Set pixel colors
@@ -345,18 +236,18 @@ public:
         }
     }
 
-    void trace_packet(const std::array<ray, 16>& rays, const MultiLevelGrid& multi_level_grid, std::array<color, 16>& pixel_colors) {
+    void trace_packet(const std::array<ray, 16>& rays, const hittable& world, const hittable& lights, std::array<color, 16>& pixel_colors) {
         for (int i = 0; i < rays.size(); ++i) {
-            pixel_colors[i] += ray_color(rays[i], max_depth, multi_level_grid);
+            pixel_colors[i] += ray_color(rays[i], max_depth, world, lights);
         }
     }
 
-    color ray_color(const ray& r, int depth, const MultiLevelGrid& multi_level_grid) const {
+    color ray_color(const ray& r, int depth, const hittable& world, const hittable& lights) const {
         if (depth <= 0)
             return color(0,0,0);
 
         hit_record rec;
-        bool hit = multi_level_grid.trace(r, interval(0.001, infinity), rec);
+        bool hit = world.hit(r, interval(0.001, infinity), rec);
 
         if (!hit) {
             return background_color;
@@ -366,31 +257,27 @@ public:
             // Continue ray in the same direction with a small bias
             const double bias = 0.0001;
             ray continued_ray(rec.p + bias * r.direction(), r.direction(), r.get_depth());
-            return ray_color(continued_ray, depth, multi_level_grid);
+            return ray_color(continued_ray, depth, world, lights);
         }
 
         ray scattered;
         color attenuation;
-        color emitted = rec.mat->emitted(r, rec, rec.u, rec.v, rec.p);
+        double pdf_value;
+        color color_from_emission = rec.mat->emitted(r, rec, rec.u, rec.v, rec.p);
 
-        cosine_pdf surface_pdf(rec.normal);
-        scattered = ray(rec.p, surface_pdf.generate(), r.get_depth());
-        double pdf_val = surface_pdf.value(scattered.direction()); 
+        if (!rec.mat->scatter(r, rec, attenuation, scattered, pdf_value))
+            return color_from_emission;
+
+        hittable_pdf light_pdf(lights, rec.p);
+        scattered = ray(rec.p, light_pdf.generate(), r.get_depth());
+        pdf_value = light_pdf.value(scattered.direction());
+
         double scattering_pdf = rec.mat->scattering_pdf(r, rec, scattered);
 
-        if (!rec.mat->scatter(r, rec, attenuation, scattered, pdf_val)) {
-            return emitted;
-        }
-        pdf_val = surface_pdf.value(scattered.direction()); 
-        
-        color scattered_color = ray_color(scattered, depth-1, multi_level_grid);
-        
-        color final_color = emitted;
-        if (pdf_val > 0 && scattering_pdf > 0) {
-            final_color += (attenuation * scattering_pdf * scattered_color) / pdf_val;
-        }
+        color sample_color = ray_color(scattered, depth-1, world, lights);
+        color color_from_scatter = (attenuation * scattering_pdf * sample_color) / pdf_value;
 
-        return final_color;
+        return color_from_emission + color_from_scatter;
     }
 };
 
