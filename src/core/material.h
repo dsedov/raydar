@@ -7,7 +7,13 @@
 #include "../data/pdf.h"
 #include "../data/onb.h"
 class hit_record;
-
+class scatter_record {
+  public:
+    color attenuation;
+    shared_ptr<pdf> pdf_ptr;
+    bool skip_pdf;
+    ray skip_pdf_ray;
+};
 namespace rd::core {
     class material {
     public:
