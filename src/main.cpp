@@ -10,7 +10,6 @@
 
 #include "render.h"
 #include "image/image_png.h"
-#include "image/spectral_image.h"
 #include "helpers/settings.h"
 
 #include "usd/light.h"
