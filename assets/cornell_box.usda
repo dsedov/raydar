@@ -558,7 +558,7 @@ def Scope "materials"
         def Shader "mtlxstandard_surface"
         {
             uniform token info:id = "ND_standard_surface_surfaceshader"
-            float inputs:base (
+            float inputs:base = 0 (
                 customData = {
                     dictionary HoudiniPreviewTags = {
                         double default_value = 1
@@ -566,10 +566,10 @@ def Scope "materials"
                     }
                 }
             )
-            color3f inputs:base_color (
+            color3f inputs:base_color = (0, 0, 0) (
                 customData = {
                     dictionary HoudiniPreviewTags = {
-                        double3 default_value = (0.8, 0.8, 0.8)
+                        double3 default_value = (0, 0, 0)
                         string ogl_diff = "1"
                     }
                 }
@@ -614,7 +614,7 @@ def Scope "materials"
                     }
                 }
             )
-            float inputs:specular (
+            float inputs:specular = 1(
                 customData = {
                     dictionary HoudiniPreviewTags = {
                         double default_value = 1
