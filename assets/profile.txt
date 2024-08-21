@@ -1,1 +1,5 @@
 xcrun xctrace record --template "Time Profiler" --time-limit 10s  --launch -- raydar --file cornel_box.usda --image cornel.png --samples 1024 --depth 4 --resolution 1024,768
+
+# compile
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=D:/dev/vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake --build build --config Release
