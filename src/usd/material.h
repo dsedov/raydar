@@ -62,7 +62,9 @@ namespace rd::usd::material {
 
         for (const auto& usdMaterial : usdMaterials) {
             std::cout << "\nLoading Material: " << usdMaterial.GetPath().GetString() << std::endl;
+            float base_weight = 1.0f;
             pxr::GfVec3f baseColor(1.0f, 0.0f, 0.0f); 
+            float metalness = 0.0f;
             float transmission = 0.0f;
             float specular = 0.0f;
             float specular_roughness = 0.0f;
@@ -70,27 +72,46 @@ namespace rd::usd::material {
             pxr::UsdShadeShader shader = usdMaterial.ComputeSurfaceSource();
             if (shader) {
                 std::cout << "Shader: " << shader.GetPath().GetString() << std::endl;
+
+                // base weight
+                pxr::UsdShadeInput baseWeightInput = shader.GetInput(pxr::TfToken("base"));
+                if (baseWeightInput) {
+                    if (baseWeightInput.Get(&base_weight)) {
+                        std::cout << "Successfully read base weight: " << base_weight << std::endl;
+                    } else {
+                        std::cout << "Failed to read base weight, using default" << std::endl;
+                        base_weight = 1.0f;
+                    }
+                }
                 // Get base_color
                 pxr::UsdShadeInput baseColorInput = shader.GetInput(pxr::TfToken("base_color"));
                 if (baseColorInput) {
                     // Read the value of the input
                     
                     if (baseColorInput.Get(&baseColor)) {
-                        std::cout << "Successfully read base color" << std::endl;
+                        std::cout << "Successfully read base color: " << baseColor[0] << ", " << baseColor[1] << ", " << baseColor[2] << std::endl;
                     } else {
                         std::cout << "Failed to read base color, using default" << std::endl;
                         baseColor = pxr::GfVec3f(1.0f, 0.0f, 0.0f);
                     }
                     color diffuseColor(baseColor[0], baseColor[1], baseColor[2]);
                     std::cout << "Base Color: " << baseColor[0] << ", " << baseColor[1] << ", " << baseColor[2] << std::endl;
-
-                    
+                }
+                // Get metalness
+                pxr::UsdShadeInput metalnessInput = shader.GetInput(pxr::TfToken("metalness"));
+                if (metalnessInput) {
+                    if (metalnessInput.Get(&metalness)) {
+                        std::cout << "Successfully read metalness: " << metalness << std::endl;
+                    } else {
+                        std::cout << "Failed to read metalness, using default" << std::endl;
+                        metalness = 0.0f;
+                    }
                 }
                 // Get transmission
                 pxr::UsdShadeInput transmissionInput = shader.GetInput(pxr::TfToken("transmission"));
                 if (transmissionInput) {
                     if (transmissionInput.Get(&transmission)) {
-                        std::cout << "Successfully read transmission" << std::endl;
+                        std::cout << "Successfully read transmission: " << transmission << std::endl;
                     } else {
                         std::cout << "Failed to read transmission, using default" << std::endl;
                         transmission = 0.0f;
@@ -100,7 +121,7 @@ namespace rd::usd::material {
                 pxr::UsdShadeInput specularInput = shader.GetInput(pxr::TfToken("specular"));
                 if (specularInput) {
                     if (specularInput.Get(&specular)) {
-                        std::cout << "Successfully read specular" << std::endl;
+                        std::cout << "Successfully read specular: " << specular << std::endl;
                     } else {
                         std::cout << "Failed to read specular, using default" << std::endl;
                         specular = 0.0f;
@@ -110,7 +131,7 @@ namespace rd::usd::material {
                 pxr::UsdShadeInput specularRoughnessInput = shader.GetInput(pxr::TfToken("specular_roughness"));
                 if (specularRoughnessInput) {
                     if (specularRoughnessInput.Get(&specular_roughness)) {
-                        std::cout << "Successfully read specular roughness" << std::endl;
+                        std::cout << "Successfully read specular roughness: " << specular_roughness << std::endl;
                     } else {
                         std::cout << "Failed to read specular roughness, using default" << std::endl;
                         specular_roughness = 0.0f;
@@ -121,7 +142,7 @@ namespace rd::usd::material {
             
             color diffuseColor(baseColor[0], baseColor[1], baseColor[2]);
             std::shared_ptr<rd::core::advanced_pbr_material> mat = std::make_shared<rd::core::advanced_pbr_material>(
-                1.0, diffuseColor, 0.0,  // base_weight, base_color, base_metalness
+                base_weight, diffuseColor, metalness,  // base_weight, base_color, base_metalness
                 specular, color(1,1,1), specular_roughness, 1.5,  // specular_weight, specular_color, specular_roughness, specular_ior
                 transmission, color(1,1,1),  // transmission_weight, transmission_color
                 0.0, color(0,0,0)  // emission_luminance, emission_color
