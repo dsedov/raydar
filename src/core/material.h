@@ -201,14 +201,6 @@ namespace rd::core {
             vec3 unit_direction = unit_vector(r_in.direction());
             vec3 reflected = reflect(unit_direction, rec.normal);
             color weighted_base_color = base_color * base_weight;
-            
-            // Compute fresnel term (Schlick approximation)
-            double cos_theta = fmin(dot(-unit_direction, rec.normal), 1.0);
-            vec3 F0 = vec3(0.04, 0.04, 0.04);
-            F0 = vec3(F0.x() * (1.0 - base_metalness) + weighted_base_color.x() * base_metalness,
-                    F0.y() * (1.0 - base_metalness) + weighted_base_color.y() * base_metalness,
-                    F0.z() * (1.0 - base_metalness) + weighted_base_color.z() * base_metalness);
-            vec3 F = F0 + (vec3(1.0, 1.0, 1.0) - F0) * pow(1.0 - cos_theta, 5.0);
 
             // Calculate the total weight
             double total_weight = base_weight + specular_weight + transmission_weight;
@@ -229,29 +221,29 @@ namespace rd::core {
                 srec.attenuation = base_color * (1.0 - base_metalness) * norm_base_weight;
                 srec.skip_pdf = true;
 
-            } else if (p < norm_base_weight + norm_specular_weight) {
-                // Specular reflection
-                vec3 scatter_direction = reflected + specular_roughness * random_in_unit_sphere();
-                scatter_direction = unit_vector(scatter_direction);
-                srec.skip_pdf_ray = ray(rec.p, scatter_direction, r_in.get_depth() + 1);
-                srec.attenuation = specular_color * F * norm_specular_weight;
-                srec.skip_pdf = true;
-
             } else {
-                // Transmission (refraction)
                 double refraction_ratio = rec.front_face ? (1.0 / specular_ior) : specular_ior;
+                double cos_theta = fmin(dot(-unit_direction, rec.normal), 1.0);
                 double sin_theta = sqrt(1.0 - cos_theta * cos_theta);
                 bool cannot_refract = refraction_ratio * sin_theta > 1.0;
-                vec3 direction;
 
-                if (cannot_refract || reflectance(cos_theta, refraction_ratio) > random_double())
-                    direction = reflected;
-                else
-                    direction = refract(unit_direction, rec.normal, refraction_ratio);
+                if (cannot_refract || reflectance(cos_theta, refraction_ratio) > p){
+                    // Specular reflection
+                    vec3 scatter_direction = reflected + specular_roughness * random_in_unit_sphere();
+                    scatter_direction = unit_vector(scatter_direction);
+                    srec.skip_pdf_ray = ray(rec.p, scatter_direction, r_in.get_depth() + 1);
+                    srec.attenuation = specular_color * specular_weight;
+                    srec.skip_pdf = true;
 
-                srec.skip_pdf_ray = ray(rec.p, direction, r_in.get_depth() + 1);
-                srec.attenuation = transmission_color * norm_transmission_weight;
-                srec.skip_pdf = true;
+                } else {
+                    // Transmission (refraction)
+                    
+                    vec3 direction = refract(unit_direction, rec.normal, refraction_ratio);
+
+                    srec.skip_pdf_ray = ray(rec.p, direction, r_in.get_depth() + 1);
+                    srec.attenuation = transmission_color * transmission_weight;
+                    srec.skip_pdf = true;
+                }
             }
 
             return true;
