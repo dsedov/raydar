@@ -85,7 +85,12 @@ namespace rd::usd::material {
 
             
             color diffuseColor(baseColor[0], baseColor[1], baseColor[2]);
-            std::shared_ptr<rd::core::material> mat = std::make_shared<rd::core::lambertian>(diffuseColor);
+            std::shared_ptr<rd::core::advanced_pbr_material> mat = std::make_shared<rd::core::advanced_pbr_material>(
+                1.0, diffuseColor, 0.0,  // base_weight, base_color, base_metalness
+                0.5, color(1,1,1), 0.5, 1.5,  // specular_weight, specular_color, specular_roughness, specular_ior
+                0.0, color(1,1,1),  // transmission_weight, transmission_color
+                0.0, color(0,0,0)  // emission_luminance, emission_color
+            );
             materials[usdMaterial.GetPath().GetString()] = mat;
         }
 

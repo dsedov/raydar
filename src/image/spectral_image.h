@@ -7,10 +7,8 @@ class spectral_image {
 public:
     spectral_image(int width, int height, int num_wavelengths) 
         : width_(width), height_(height), num_wavelengths_(num_wavelengths) {
-        image_buffer_ = std::vector<std::vector<float>>(
-            width * height, std::vector<float>(num_wavelengths, 0.0f));
-        sample_counts_ = std::vector<std::vector<unsigned int>>(
-            width * height, std::vector<unsigned int>(num_wavelengths, 0));
+        image_buffer_ = std::vector<std::vector<float>>(width * height, std::vector<float>(num_wavelengths, 0.0f));
+        sample_counts_ = std::vector<std::vector<unsigned int>>(width * height, std::vector<unsigned int>(num_wavelengths, 0));
     }
 
     virtual ~spectral_image() {}

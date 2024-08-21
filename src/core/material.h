@@ -39,8 +39,15 @@ namespace rd::core {
         virtual void set_visible(bool v) {
             visible = v;
         }
+        virtual bool is_cast_shadow() const {
+            return cast_shadow;
+        }
+        virtual void set_cast_shadow(bool v) {
+            cast_shadow = v;
+        }
         private:
             bool visible = true;
+            bool cast_shadow = true;
     };
     class lambertian : public material {
     public:
@@ -91,7 +98,7 @@ namespace rd::core {
     class light : public material {
     public:
         light(const color& light_color, double light_intensity) : light_color(light_color), light_intensity(light_intensity) {
-            set_visible(true);
+            set_visible(true), set_cast_shadow(false);
         }
 
         bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered, double& pdf)
@@ -204,20 +211,6 @@ namespace rd::core {
                     F0.z() * (1.0 - base_metalness) + weighted_base_color.z() * base_metalness);
             vec3 F = F0 + (vec3(1.0, 1.0, 1.0) - F0) * std::pow(1.0 - cosTheta, 5.0);
 
-            // Compute roughness influence
-            vec3 scatter_direction = reflected + specular_roughness * random_in_unit_sphere();
-
-            // Handle scatter direction more accurately
-            if (scatter_direction.near_zero()) {
-                // If the scatter direction is too close to zero, use a random direction in the hemisphere
-                scatter_direction = random_on_hemisphere(rec.normal);
-            } else if (dot(scatter_direction, rec.normal) < 0) {
-                // If the scatter direction is below the surface, reflect it about the normal
-                scatter_direction = scatter_direction - 2 * dot(scatter_direction, rec.normal) * rec.normal;
-            }
-            // Normalize the scatter direction
-            scatter_direction = unit_vector(scatter_direction);
-
             // Calculate the total weight
             double total_weight = base_weight + specular_weight + transmission_weight;
 
@@ -232,45 +225,30 @@ namespace rd::core {
                 // Diffuse scattering
                 onb uvw;
                 uvw.build_from_w(rec.normal);
-                scattered = ray(rec.p, uvw.transform(random_in_unit_sphere()), r_in.get_depth() + 1);
-                attenuation = base_color * (1.0 - base_metalness) * norm_base_weight;
+                vec3 diffuse_direction = uvw.transform(random_cosine_direction());
+                scattered = ray(rec.p, diffuse_direction, r_in.get_depth() + 1);
+                attenuation = base_color * (1.0 - base_metalness);
                 pdf = dot(uvw.w(), scattered.direction()) / pi;
-                pdf = 1.0;
             } else if (p < norm_base_weight + norm_specular_weight) {
                 // Specular reflection
+                vec3 scatter_direction = reflected + specular_roughness * random_in_unit_sphere();
+                scatter_direction = unit_vector(scatter_direction);
                 scattered = ray(rec.p, scatter_direction, r_in.get_depth() + 1);
+                attenuation = specular_color * F;
                 pdf = 1.0;
-                attenuation = specular_color * F * norm_specular_weight;
             } else {
                 // Transmission
                 scattered = ray(rec.p, refracted, r_in.get_depth() + 1);
+                attenuation = transmission_color;
                 pdf = 1.0;
-                attenuation = transmission_color * norm_transmission_weight;
             }
 
-            // Add contributions from all components
-            attenuation += base_color * (1.0 - base_metalness) * norm_base_weight;
-            attenuation += specular_color * F * norm_specular_weight;
-            attenuation += transmission_color * norm_transmission_weight;
-
-            // Apply gamma correction
-            if (false && r_in.get_depth() == 0) {
-            attenuation = color(
-                pow(attenuation.x(), gamma) + offset,
-                pow(attenuation.y(), gamma) + offset,
-                pow(attenuation.z(), gamma) + offset
-            );
-            // Apply tint
-            attenuation = attenuation * tint;
-            }
-            
-            
+            // Scale attenuation by the normalized weights
+            attenuation *= (norm_base_weight + norm_specular_weight + norm_transmission_weight);
 
             return true;
         }
-        double scattering_pdf(const ray& r_in, const hit_record& rec, const ray& scattered)
-        const override {
-            return 1.0;
+        double scattering_pdf(const ray& r_in, const hit_record& rec, const ray& scattered) const override {
             auto cosine = dot(rec.normal, unit_vector(scattered.direction()));
             return cosine < 0 ? 0 : cosine / pi;
         }

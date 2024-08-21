@@ -88,7 +88,7 @@ namespace rd::usd::light {
             }
         }
         else {
-            light.vertices = {{1, -1, 0}, {-1, -1, 0}, {-1, 1, 0}, {1, 1, 0}};
+            light.vertices = {{light.width/2, -light.height/2, 0}, {-light.width/2, -light.height/2, 0}, {-light.width/2, light.height/2, 0}, {light.width/2, light.height/2, 0}};
             for(auto& v : light.vertices) {
                 std::cout << "Vertex: " << v << std::endl;
                 v = transform.Transform(v);
@@ -98,11 +98,11 @@ namespace rd::usd::light {
 
         light.Q = point3(light.vertices[0][0], light.vertices[0][1], light.vertices[0][2]);
         light.u = vec3(light.vertices[1][0] - light.vertices[0][0],
-                    light.vertices[1][1] - light.vertices[0][1],
-                    light.vertices[1][2] - light.vertices[0][2]);
+                       light.vertices[1][1] - light.vertices[0][1],
+                       light.vertices[1][2] - light.vertices[0][2]);
         light.v = vec3(light.vertices[3][0] - light.vertices[0][0],
-                    light.vertices[3][1] - light.vertices[0][1],
-                    light.vertices[3][2] - light.vertices[0][2]);
+                       light.vertices[3][1] - light.vertices[0][1],
+                       light.vertices[3][2] - light.vertices[0][2]);
         
         pxr::UsdAttribute rotateAttr = prim.GetAttribute(pxr::TfToken("xformOp:rotateXYZ"));
         if (rotateAttr) rotateAttr.Get(&light.rotation);

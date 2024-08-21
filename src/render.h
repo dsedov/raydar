@@ -253,7 +253,7 @@ public:
             return background_color;
         }
 
-        if (depth == max_depth && !rec.mat->is_visible()) {
+        if (!rec.mat->is_visible()) {
             // Continue ray in the same direction with a small bias
             const double bias = 0.0001;
             ray continued_ray(rec.p + bias * r.direction(), r.direction(), r.get_depth());
