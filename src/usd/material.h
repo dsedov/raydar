@@ -61,8 +61,11 @@ namespace rd::usd::material {
         findMaterialsRecursive(stage->GetPseudoRoot(), usdMaterials);
 
         for (const auto& usdMaterial : usdMaterials) {
-            std::cout << "Loading Material: " << usdMaterial.GetPath().GetString() << std::endl;
+            std::cout << "\nLoading Material: " << usdMaterial.GetPath().GetString() << std::endl;
             pxr::GfVec3f baseColor(1.0f, 0.0f, 0.0f); 
+            float transmission = 0.0f;
+            float specular = 0.0f;
+            float specular_roughness = 0.0f;
             // get shader
             pxr::UsdShadeShader shader = usdMaterial.ComputeSurfaceSource();
             if (shader) {
@@ -80,6 +83,38 @@ namespace rd::usd::material {
                     }
                     color diffuseColor(baseColor[0], baseColor[1], baseColor[2]);
                     std::cout << "Base Color: " << baseColor[0] << ", " << baseColor[1] << ", " << baseColor[2] << std::endl;
+
+                    
+                }
+                // Get transmission
+                pxr::UsdShadeInput transmissionInput = shader.GetInput(pxr::TfToken("transmission"));
+                if (transmissionInput) {
+                    if (transmissionInput.Get(&transmission)) {
+                        std::cout << "Successfully read transmission" << std::endl;
+                    } else {
+                        std::cout << "Failed to read transmission, using default" << std::endl;
+                        transmission = 0.0f;
+                    }
+                }
+                // Get specular
+                pxr::UsdShadeInput specularInput = shader.GetInput(pxr::TfToken("specular"));
+                if (specularInput) {
+                    if (specularInput.Get(&specular)) {
+                        std::cout << "Successfully read specular" << std::endl;
+                    } else {
+                        std::cout << "Failed to read specular, using default" << std::endl;
+                        specular = 0.0f;
+                    }
+                }
+                // Get specular roughness
+                pxr::UsdShadeInput specularRoughnessInput = shader.GetInput(pxr::TfToken("specular_roughness"));
+                if (specularRoughnessInput) {
+                    if (specularRoughnessInput.Get(&specular_roughness)) {
+                        std::cout << "Successfully read specular roughness" << std::endl;
+                    } else {
+                        std::cout << "Failed to read specular roughness, using default" << std::endl;
+                        specular_roughness = 0.0f;
+                    }
                 }
             }
 
@@ -87,8 +122,8 @@ namespace rd::usd::material {
             color diffuseColor(baseColor[0], baseColor[1], baseColor[2]);
             std::shared_ptr<rd::core::advanced_pbr_material> mat = std::make_shared<rd::core::advanced_pbr_material>(
                 1.0, diffuseColor, 0.0,  // base_weight, base_color, base_metalness
-                0.5, color(1,1,1), 0.5, 1.5,  // specular_weight, specular_color, specular_roughness, specular_ior
-                0.0, color(1,1,1),  // transmission_weight, transmission_color
+                specular, color(1,1,1), specular_roughness, 1.5,  // specular_weight, specular_color, specular_roughness, specular_ior
+                transmission, color(1,1,1),  // transmission_weight, transmission_color
                 0.0, color(0,0,0)  // emission_luminance, emission_color
             );
             materials[usdMaterial.GetPath().GetString()] = mat;
