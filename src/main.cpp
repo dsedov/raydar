@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
     hittable_list lights;
 
     // IMAGE
-    ImagePNG image(settings.image_width, settings.image_height);
+    ImagePNG image(settings.image_width, settings.image_height, 30);
 
     // LOAD USD FILE
     rd::usd::loader loader(settings.usd_file);

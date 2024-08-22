@@ -5,22 +5,25 @@
 
 class ImagePNG : public Image {
 public:
-    ImagePNG(int width, int height) : Image(width, height, 3) {}
+    ImagePNG(int width, int height, int num_wavelengths) 
+        : Image(width, height, num_wavelengths) {}
+
     ~ImagePNG() override = default;
-    void save(const char * filename) override{
 
-        _image_buffer = std::vector<png_byte>(height_ * row_size_);
+    void save(const char* filename) override {
+        std::vector<png_byte> png_buffer(height_ * width_ * 3);
         static const interval intensity(0.000, 0.999);
-        for (int y = 0; y < height_; y++) {
-            png_bytep row = _image_buffer.data() + y * row_size_;
-            float * f_row = image_buffer_.data() + y * row_size_;
 
+        for (int y = 0; y < height_; y++) {
+            png_bytep row = png_buffer.data() + y * width_ * 3;
             for (int x = 0; x < width_; x++) {
                 png_bytep pixel = row + x * 3;
-                float * f_pixel = f_row + x * channels_;
-                pixel[0] = int(255.999 * intensity.clamp(linear_to_gamma(f_pixel[0])));   // Red channel
-                pixel[1] = int(255.999 * intensity.clamp(linear_to_gamma(f_pixel[1])));   // Green channel
-                pixel[2] = int(255.999 * intensity.clamp(linear_to_gamma(f_pixel[2])));   // Blue channel
+                Spectrum spectrum = get_pixel(x, y);
+                color rgb = spectrum.to_rgb();
+
+                pixel[0] = int(255.999 * intensity.clamp(linear_to_gamma(rgb.x()))); // Red channel
+                pixel[1] = int(255.999 * intensity.clamp(linear_to_gamma(rgb.y()))); // Green channel
+                pixel[2] = int(255.999 * intensity.clamp(linear_to_gamma(rgb.z()))); // Blue channel
             }
         }
 
@@ -38,7 +41,6 @@ public:
             fclose(file);
             return;
         }
-
         png_infop info = png_create_info_struct(png);
         if (!info) {
             printf("Failed to initialize the PNG info struct\n");
@@ -60,25 +62,19 @@ public:
 
         // Set the image properties
         png_set_IHDR(png, info, width_, height_, 8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
-                    PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
+                     PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 
         // Write the image data
         png_write_info(png, info);
-
         std::vector<png_bytep> row_pointers(height_);
         for (int y = 0; y < height_; y++) {
-            row_pointers[y] = _image_buffer.data() + y * row_size_;
+            row_pointers[y] = png_buffer.data() + y * width_ * 3;
         }
         png_write_image(png, row_pointers.data());
-
         png_write_end(png, NULL);
 
         // Clean up
         png_destroy_write_struct(&png, &info);
         fclose(file);
     }
-
-private:
-    std::vector<png_byte> _image_buffer;
-
 };

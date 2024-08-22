@@ -2,52 +2,69 @@
 #include <iostream>
 #include <vector>
 #include "data/color.h"
+#include "data/spectrum.h"
 
 class Image {
 public:
-    Image(int width, int height, int channels) {
-        width_ = width;
-        height_ = height;
-        channels_ = channels;
-        row_size_ = width_ * channels_;
-        image_buffer_ = std::vector<float>(width * height * channels);
-        std::fill(image_buffer_.begin(), image_buffer_.end(), 0.0);
+    Image(int width, int height, int num_wavelengths) 
+        : width_(width), height_(height), num_wavelengths_(num_wavelengths) {
+        row_size_ = width_ * num_wavelengths_;
+        image_buffer_ = std::vector<float>(width * height * num_wavelengths);
+        std::fill(image_buffer_.begin(), image_buffer_.end(), 0.0f);
     }
-    virtual ~Image() {}
-    virtual void save(const char * filename) = 0;
 
+    virtual ~Image() {}
+    virtual void save(const char* filename) = 0;
+
+    void set_pixel(int x, int y, const Spectrum& spectrum) {
+        int index = y * row_size_ + x * num_wavelengths_;
+        for (int i = 0; i < num_wavelengths_; ++i) {
+            image_buffer_[index + i] = spectrum[i];
+        }
+    }
+
+    void add_to_pixel(int x, int y, const Spectrum& spectrum) {
+        int index = y * row_size_ + x * num_wavelengths_;
+        for (int i = 0; i < num_wavelengths_; ++i) {
+            image_buffer_[index + i] += spectrum[i];
+        }
+    }
+
+    Spectrum get_pixel(int x, int y) const {
+        int index = y * row_size_ + x * num_wavelengths_;
+        return Spectrum(image_buffer_.data() + index, num_wavelengths_);
+    }
+
+    // RGB 
+    // RGB methods
     void set_pixel(int x, int y, float r, float g, float b) {
-        int index = y * row_size_ + x * channels_;
-        image_buffer_[index] = r;
-        image_buffer_[index + 1] = g;
-        image_buffer_[index + 2] = b;
+        set_pixel(x, y, Spectrum(r, g, b, num_wavelengths_));
     }
+
     void add_to_pixel(int x, int y, float r, float g, float b) {
-        int index = y * row_size_ + x * channels_;
-        image_buffer_[index] += r;
-        image_buffer_[index + 1] += g;
-        image_buffer_[index + 2] += b;
+        add_to_pixel(x, y, Spectrum(r, g, b, num_wavelengths_));
     }
-    void add_to_pixel(int x, int y, color color) {
-        int index = y * row_size_ + x * channels_;
-        image_buffer_[index] += color.x();  ;
-        image_buffer_[index + 1] += color.y();;
-        image_buffer_[index + 2] += color.z();;
+
+    void add_to_pixel(int x, int y, const color& color) {
+        add_to_pixel(x, y, color.x(), color.y(), color.z());
     }
-    void set_pixel(int x, int y, color color) {
+
+    void set_pixel(int x, int y, const color& color) {
         set_pixel(x, y, color.x(), color.y(), color.z());
     }
-    color get_pixel(int x, int y) {
-        int index = y * row_size_ + x * channels_;
-        return color(image_buffer_[index], image_buffer_[index + 1], image_buffer_[index + 2]);
+
+    color get_pixel_rgb(int x, int y) const {
+        return get_pixel(x, y).to_rgb();
     }
 
-    int width() { return width_;}
-    int height() { return height_;}
+    int width() const { return width_; }
+    int height() const { return height_; }
+    int num_wavelengths() const { return num_wavelengths_; }
+
 protected:
     int width_;
     int height_;
-    int channels_;
+    int num_wavelengths_;
     int row_size_;
     std::vector<float> image_buffer_;
 };
