@@ -27,8 +27,43 @@ int main(int argc, char *argv[]) {
     hittable_list world;
     hittable_list lights;
 
+    // TESTING SPECTRAL CODE:
+    // Macbeth ColorChecker colors
+    std::vector<color> macbeth_colors = {
+        color(0.4360, 0.4050, 0.3720), // Dark Skin
+        color(0.7690, 0.5690, 0.4490), // Light Skin
+        color(0.3440, 0.4740, 0.6510), // Blue Sky
+        color(0.3050, 0.4790, 0.2930), // Foliage
+        color(0.5540, 0.4240, 0.6240), // Blue Flower
+        color(0.2110, 0.6760, 0.7660), // Bluish Green
+        color(0.8460, 0.5430, 0.0160), // Orange
+        color(0.3340, 0.3330, 0.5250), // Purplish Blue
+        color(0.7980, 0.3370, 0.3400), // Moderate Red
+        color(0.4440, 0.2940, 0.5380), // Purple
+        color(0.5870, 0.6110, 0.3890), // Yellow Green
+        color(0.8960, 0.7110, 0.0680), // Orange Yellow
+        color(0.0350, 0.0680, 0.4690), // Blue
+        color(0.2480, 0.5570, 0.3290), // Green
+        color(0.6510, 0.2900, 0.2750), // Red
+        color(0.9530, 0.9330, 0.0440), // Yellow
+        color(0.7810, 0.2450, 0.5730), // Magenta
+        color(0.0920, 0.7140, 0.7810), // Cyan
+        color(0.9770, 0.9800, 0.9820), // White
+        color(0.7480, 0.7500, 0.7480), // Neutral 8
+        color(0.5360, 0.5380, 0.5360), // Neutral 6.5
+        color(0.3620, 0.3630, 0.3610), // Neutral 5
+        color(0.2070, 0.2080, 0.2070), // Neutral 3.5
+        color(0.0910, 0.0910, 0.0910)  // Black
+    };
+
+    for (const auto& c : macbeth_colors) {
+        Spectrum s = Spectrum(c.x(), c.y(), c.z(), 30);
+        color c2 = s.to_rgb();
+        std::cout << "In: " << c << " Out: " << c2 << std::endl;
+    }
+
     // IMAGE
-    ImagePNG image(settings.image_width, settings.image_height, 30);
+    ImagePNG image(settings.image_width, settings.image_height, 10);
 
     // LOAD USD FILE
     rd::usd::loader loader(settings.usd_file);
