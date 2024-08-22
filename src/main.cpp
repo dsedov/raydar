@@ -122,6 +122,8 @@ int main(int argc, char *argv[]) {
 
 
     // Save the image with the new file name
+
+    image.normalize();
     image.save(settings.get_file_name(image.width(), image.height(), settings.samples, seconds_to_render).c_str());
 
     return 0;

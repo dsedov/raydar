@@ -57,6 +57,23 @@ public:
         return get_pixel(x, y).to_rgb();
     }
 
+    void normalize() {
+        float max_value = 0.0f;
+
+        // Find the maximum value in the image
+        for (const auto& value : image_buffer_) {
+            max_value = std::max(max_value, value);
+        }
+
+        // Avoid division by zero
+        if (max_value > 0.0f) {
+            // Normalize all values
+            for (auto& value : image_buffer_) {
+                value /= max_value;
+            }
+        }
+    }
+
     int width() const { return width_; }
     int height() const { return height_; }
     int num_wavelengths() const { return num_wavelengths_; }
