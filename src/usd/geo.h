@@ -10,7 +10,6 @@
 #include "../raydar.h"
 
 #include "../data/hittable_list.h"
-#include "../data/quad.h"
 #include "../data/bvh.h"
 #include "../core/mesh.h"
 #include <pxr/usd/usd/stage.h>
