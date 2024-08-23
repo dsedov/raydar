@@ -5,8 +5,8 @@
 
 class ImagePNG : public Image {
 public:
-    ImagePNG(int width, int height, int num_wavelengths) 
-        : Image(width, height, num_wavelengths) {}
+    ImagePNG(int width, int height, int num_wavelengths, const Observer& observer) 
+        : Image(width, height, num_wavelengths, observer) {}
 
     ~ImagePNG() override = default;
 
@@ -19,7 +19,7 @@ public:
             for (int x = 0; x < width_; x++) {
                 png_bytep pixel = row + x * 3;
                 Spectrum spectrum = get_pixel(x, y);
-                color rgb = spectrum.to_rgb();
+                color rgb = spectrum.to_rgb(observer_);
 
                 pixel[0] = int(255.999 * intensity.clamp(linear_to_gamma(rgb.x()))); // Red channel
                 pixel[1] = int(255.999 * intensity.clamp(linear_to_gamma(rgb.y()))); // Green channel

@@ -6,8 +6,8 @@
 
 class Image {
 public:
-    Image(int width, int height, int num_wavelengths) 
-        : width_(width), height_(height), num_wavelengths_(num_wavelengths) {
+    Image(int width, int height, int num_wavelengths, const Observer& observer) 
+        : width_(width), height_(height), num_wavelengths_(num_wavelengths), observer_(observer) {
         row_size_ = width_ * num_wavelengths_;
         image_buffer_ = std::vector<float>(width * height * num_wavelengths);
         std::fill(image_buffer_.begin(), image_buffer_.end(), 0.0f);
@@ -32,17 +32,17 @@ public:
 
     Spectrum get_pixel(int x, int y) const {
         int index = y * row_size_ + x * num_wavelengths_;
-        return Spectrum(image_buffer_.data() + index, num_wavelengths_);
+        return Spectrum(image_buffer_.data() + index);
     }
 
     // RGB 
     // RGB methods
     void set_pixel(int x, int y, float r, float g, float b) {
-        set_pixel(x, y, Spectrum(r, g, b, num_wavelengths_));
+        set_pixel(x, y, Spectrum(r, g, b));
     }
 
     void add_to_pixel(int x, int y, float r, float g, float b) {
-        add_to_pixel(x, y, Spectrum(r, g, b, num_wavelengths_));
+        add_to_pixel(x, y, Spectrum(r, g, b));
     }
 
     void add_to_pixel(int x, int y, const color& color) {
@@ -54,7 +54,7 @@ public:
     }
 
     color get_pixel_rgb(int x, int y) const {
-        return get_pixel(x, y).to_rgb();
+        return get_pixel(x, y).to_rgb(observer_);
     }
 
     void normalize() {
@@ -84,4 +84,5 @@ protected:
     int num_wavelengths_;
     int row_size_;
     std::vector<float> image_buffer_;
+    const Observer& observer_;
 };

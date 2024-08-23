@@ -55,15 +55,24 @@ int main(int argc, char *argv[]) {
         color(0.2070, 0.2080, 0.2070), // Neutral 3.5
         color(0.0910, 0.0910, 0.0910)  // Black
     };
-
+    // Initialize SpectralConverter
+    Observer observer(Observer::CIE1931_2Deg, Spectrum::RESPONSE_SAMPLES, Spectrum::START_WAVELENGTH, Spectrum::END_WAVELENGTH);
+    SpectralConverter& converter = SpectralConverter::getInstance();
+    try {
+        converter.loadModel("spectral_model_scripted.pt");
+        std::cout << "Spectral model loaded successfully." << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Error loading spectral model: " << e.what() << std::endl;
+        return 1;
+    }
     for (const auto& c : macbeth_colors) {
-        Spectrum s = Spectrum(c.x(), c.y(), c.z(), 30);
-        color c2 = s.to_rgb();
+        Spectrum s = Spectrum(c.x(), c.y(), c.z());
+        color c2 = s.to_rgb(observer);
         std::cout << "In: " << c << " Out: " << c2 << std::endl;
     }
 
     // IMAGE
-    ImagePNG image(settings.image_width, settings.image_height, 10);
+    ImagePNG image(settings.image_width, settings.image_height, Spectrum::RESPONSE_SAMPLES, observer);
 
     // LOAD USD FILE
     rd::usd::loader loader(settings.usd_file);
