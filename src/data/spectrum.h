@@ -207,9 +207,6 @@ public:
 
 };
 
-
-
-
 class SpectralConverter {
 public:
     static SpectralConverter& getInstance() {
@@ -286,21 +283,13 @@ public:
     int num_wavelengths() const { return static_cast<int>(data_.size()); }
 
     color to_rgb( const Observer& observer) const {
-        XYZ xyz = to_XYZ(observer);
-        // Convert XYZ to RGB
-        float r = 3.2404542f * xyz.x() - 1.5371385f * xyz.y() - 0.4985314f * xyz.z();
-        float g = -0.9692660f * xyz.x() + 1.8760108f * xyz.y() + 0.0415560f * xyz.z();
-        float b = 0.0556434f * xyz.x() - 0.2040259f * xyz.y() + 1.0572252f * xyz.z();
+        color xyz = to_XYZ(observer);
+        color rgb = xyz.from_xyz();
 
-        // Clamp RGB values to [0, 1] range
-        r = std::max(0.0f, std::min(1.0f, r));
-        g = std::max(0.0f, std::min(1.0f, g));
-        b = std::max(0.0f, std::min(1.0f, b));
-
-        return color(r, g, b);
+        return rgb;
     }
-    XYZ to_XYZ( const Observer& observer) const {
-        XYZ xyz;
+    color to_XYZ( const Observer& observer) const {
+        color xyz;
         
         std::vector<double> x_bar(observer.get_length());
         std::vector<double> y_bar(observer.get_length());
@@ -320,7 +309,7 @@ public:
         double Y = integrate(y_bar.data(), observer.get_length());
         double Z = integrate(z_bar.data(), observer.get_length());
 
-        return XYZ(X, Y, Z);
+        return color(X, Y, Z);
     }
     // Other methods as needed (e.g., arithmetic operations, etc.)
 
