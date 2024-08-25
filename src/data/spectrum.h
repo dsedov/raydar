@@ -89,7 +89,7 @@ public:
             default:
                 break;
         }
-        interpolateXYZ(samples, start, end);
+        interpolateXYZSimple(samples, start, end);
     }
     const int get_length() const {
         return length;
@@ -101,6 +101,30 @@ public:
     
     private:
         int length;
+        void interpolateXYZSimple(int numSamples, double startWavelength, double endWavelength) {
+            std::vector<double> newWavelengths(numSamples);
+            std::vector<double> newX(numSamples);
+            std::vector<double> newY(numSamples);
+            std::vector<double> newZ(numSamples);
+            // length is already a member variable, so we don't need to redefine it here
+            // wavelengths is a double*, so we can't use .size() on it
+            // We'll use the existing length member variable instead
+            double step = (endWavelength - startWavelength) / (numSamples - 1);
+            for (int i = 0; i < numSamples; ++i) {
+                newWavelengths[i] = startWavelength + i * step;
+                for (int j = 0; j < length; j++) {
+                    if( int(newWavelengths[i]) == int(wavelengths[j])) {
+                        newX[i] = x_bar[j];
+                        newY[i] = y_bar[j];
+                        newZ[i] = z_bar[j];
+                    }
+                }
+            }
+            std::copy(newX.begin(), newX.end(), x_bar);
+            std::copy(newY.begin(), newY.end(), y_bar);
+            std::copy(newZ.begin(), newZ.end(), z_bar);
+            length = numSamples;
+        }
         void interpolateXYZ(int numSamples, double startWavelength, double endWavelength) {
             if (numSamples <= 0 || startWavelength >= endWavelength) {
                 return;  // Invalid input, do nothing
@@ -113,9 +137,7 @@ public:
 
             double step = (endWavelength - startWavelength) / (numSamples - 1);
 
-            for (int i = 0; i < numSamples; ++i) {
-                newWavelengths[i] = startWavelength + i * step;
-            }
+            
 
             for (int i = 0; i < numSamples; ++i) {
                 double wavelength = newWavelengths[i];
@@ -125,6 +147,7 @@ public:
                 int index = std::distance(wavelengths, it);
 
                 if (index == 0) {
+
                     newX[i] = x_bar[0];
                     newY[i] = y_bar[0];
                     newZ[i] = z_bar[0];
@@ -213,8 +236,8 @@ public:
 
     Spectrum() : data_(RESPONSE_SAMPLES) {}
     Spectrum(const std::vector<float>& data) : data_(data) {
-        if (data.empty()) {
-            throw std::invalid_argument("Spectrum data cannot be empty");
+        for(int i; i < data.size(); i++){
+            std::cout << " D: " << data[i];
         }
     }
     Spectrum(const float* data) : data_(data, data + RESPONSE_SAMPLES) {}
@@ -259,17 +282,34 @@ public:
 
         // Multiply spectrum by each cone fundamental
         int i;
+        std::cout << std::endl << std::endl;
+
+        // Calculate the normalization factor for illuminant
+        double illuminant_norm = 0.0;
+        for (int i = 0; i < observer.get_length(); i++) {
+            illuminant_norm += d50_spd[i] * observer.y_bar[i];
+        }
+        
+
+        // Replace the original d50_spd with the normalized version in the following calculations
         for(i = 0; i < observer.get_length()-1; i++){
-            x_bar[i] = data_[i] * observer.x_bar[i];
-            y_bar[i] = data_[i] * observer.y_bar[i];
-            z_bar[i] = data_[i] * observer.z_bar[i];
+           
+            x_bar[i] = data_[i] * observer.x_bar[i] * d50_spd[i];
+            y_bar[i] = data_[i] * observer.y_bar[i] * d50_spd[i];
+            z_bar[i] = data_[i] * observer.z_bar[i] * d50_spd[i];
+            std::cout << std::fixed << std::setprecision(2) << i << "    x_bar[i]: " << x_bar[i] << " data_[i]: " << data_[i] << " observer.x_bar[i]: " << observer.x_bar[i] << std::endl;
+            std::cout << std::fixed << std::setprecision(2) << i << "    y_bar[i]: " << y_bar[i] << " data_[i]: " << data_[i] << " observer.y_bar[i]: " << observer.y_bar[i] << std::endl;
+            std::cout << std::fixed << std::setprecision(2) << i << "    z_bar[i]: " << z_bar[i] << " data_[i]: " << data_[i] << " observer.z_bar[i]: " << observer.z_bar[i] << std::endl << std::endl;
         }
 
         // Integrate
         // Normalize
-        double X = integrate(x_bar.data(), observer.get_length());
-        double Y = integrate(y_bar.data(), observer.get_length());
-        double Z = integrate(z_bar.data(), observer.get_length());
+        double X = integrate(x_bar.data(), observer.get_length()) / illuminant_norm;
+        double Y = integrate(y_bar.data(), observer.get_length()) / illuminant_norm;
+        double Z = integrate(z_bar.data(), observer.get_length()) / illuminant_norm;
+
+        std::cout << "X: " << X << " Y: " << Y << " Z: " << Z << std::endl;
+
 
         return color(X, Y, Z);
     }
@@ -278,19 +318,16 @@ public:
 private:
     std::vector<float> data_;
 
+    // D50 from 400 to 700nm in 10nm step
+    static inline double d50_spd[31] = {49.3081,56.5128,60.0338,57.8175,74.8249,87.2472,90.6122,91.3681,95.1085,91.9627,95.7237,96.6133,97.129,102.099,100.755,102.317,100,97.735,98.918,93.4988,97.6878,99.2691,99.0415,95.7218,98.8572,95.6672,98.1898,103.003,99.133,87.3809,91.6035};
+    static inline double d65_spd[31] = {82.7549,91.486,93.4318,86.6823,104.865,117.008,117.812,114.861,115.923,108.811,109.354,107.802,104.79,107.689,104.405,104.046,100,96.3342,95.788,88.6856,90.0062,89.5991,87.6987,83.2886,83.6992,80.0268,80.2146,82.2778,78.2842,69.7213,71.6091};
     double integrate(const double* y, int length) const {
         double sum = 0;
         int i;
-        for (i = 0; i < length-1; i++) {
-            if (data_[i] < 0) {
-                continue;
-            } else if (data_[i+1] < 0) {
-                break;
-            }
-            sum += y[i]*(data_[i+1] - data_[i]);
+        for(i = 0; i < length-1; i++){
+            sum += y[i];
         }
-        sum += y[i]*(data_[i-1] - data_[i]);
         return sum;
     }
-    
+  
 };

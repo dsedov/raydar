@@ -102,7 +102,9 @@
         "xtree": "cpp",
         "xutility": "cpp",
         "stack": "cpp",
-        "xstddef": "cpp"
+        "xstddef": "cpp",
+        "hash_map": "cpp",
+        "hash_set": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
