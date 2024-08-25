@@ -118,7 +118,7 @@ class color : public vec3 {
 
         // Add conversion constructor from vec3
         color(const vec3& v) : vec3(v) {}
-        const color& from_xyz() {
+        const color from_xyz() {
             const mat3x3& m = xyz_rgb_matrix(rgb_colorspace::sRGB());
             color result = mat3x3_times(m, color(x(), y(), z()));
             return result;
@@ -133,12 +133,12 @@ class color : public vec3 {
         operator vec3() const { return vec3(x(), y(), z()); }
 
     private:
-        const mat3x3& xyz_rgb_matrix(const rgb_colorspace& cs) {
+        const mat3x3 xyz_rgb_matrix(const rgb_colorspace& cs) {
             const mat3x3 m = rgb_xyz_matrix(cs);
             mat3x3 result = mat3x3_inverse(m);
             return result;
         }
-        const mat3x3& rgb_xyz_matrix(const rgb_colorspace& cs) {
+        const mat3x3 rgb_xyz_matrix(const rgb_colorspace& cs) {
             mat3x3 m ={{     
                     {cs.red_x/cs.red_y, cs.green_x/cs.green_y, cs.blue_x/cs.blue_y},
                     {1.0, 1.0, 1.0},

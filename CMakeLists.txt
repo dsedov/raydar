@@ -52,6 +52,7 @@ else()
     set(PNG_LIBRARY "/opt/homebrew/opt/libpng/lib/libpng.dylib")
     set(PNG_PNG_INCLUDE_DIR ${PNG_INCLUDE_DIR})
     set(USD_ROOT "/Users/dennissedov/Dev/pxr")
+    set(TORCH_ROOT "/Users/dennissedov/Dev/libtorch/")
 endif()
 
 find_package(PNG REQUIRED)
