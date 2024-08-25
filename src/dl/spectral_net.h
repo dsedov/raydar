@@ -3,6 +3,9 @@
 #include <random>
 #include <algorithm>
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <stdexcept>
 
 class Linear {
 private:
@@ -76,6 +79,7 @@ public:
             file >> b;
         }
     }
+    
 };
 
 float relu(float x) {
@@ -110,6 +114,7 @@ private:
         }
         return grad;
     }
+
 
 public:
     SpectralNet() : fc1(3, 64), fc2(64, 128), fc3(128, 256), fc4(256, 31) {}
@@ -186,5 +191,39 @@ public:
 
         file.close();
     }
+    static std::tuple<std::vector<std::vector<float>>, std::vector<std::vector<float>>> loadDataFromCSV(const std::string& filename) {
+        std::ifstream file(filename);
+        if (!file.is_open()) {
+            throw std::runtime_error("Unable to open file: " + filename);
+        }
+
+        std::vector<std::vector<float>> inputs;
+        std::vector<std::vector<float>> targets;
+        std::string line;
+
+        while (std::getline(file, line)) {
+            std::istringstream iss(line);
+            std::string token;
+            std::vector<float> row;
+
+            for (int i = 0; i < 34; ++i) {  // 31 spectral + 3 XYZ values
+                if (std::getline(iss, token, ',')) {
+                    row.push_back(std::stof(token));
+                } else {
+                    throw std::runtime_error("Invalid CSV format");
+                }
+            }
+
+            targets.push_back(std::vector<float>(row.begin(), row.begin() + 31));
+            std::vector<float> scaled_input;
+            for (auto it = row.begin() + 31; it != row.end(); ++it) {
+                scaled_input.push_back(*it / 100.0f);
+            }
+            inputs.push_back(scaled_input);
+        }
+
+        return std::make_tuple(inputs, targets);
+    }
+
 };
 

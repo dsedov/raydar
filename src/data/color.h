@@ -133,6 +133,9 @@ class color : public vec3 {
             vec3::operator=(v);
             return *this;
         }
+        std::vector<float> toVec() {
+            return {static_cast<float>(x()), static_cast<float>(y()), static_cast<float>(z())};
+        }
 
         // Add conversion operator to vec3
         operator vec3() const { return vec3(x(), y(), z()); }

@@ -212,6 +212,11 @@ public:
     static constexpr float END_WAVELENGTH = 700.0f;
 
     Spectrum() : data_(RESPONSE_SAMPLES) {}
+    Spectrum(const std::vector<float>& data) : data_(data) {
+        if (data.empty()) {
+            throw std::invalid_argument("Spectrum data cannot be empty");
+        }
+    }
     Spectrum(const float* data) : data_(data, data + RESPONSE_SAMPLES) {}
     Spectrum(float r, float g, float b) : data_(RESPONSE_SAMPLES) {
         // Convert RGB to XYZ

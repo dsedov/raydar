@@ -27,25 +27,29 @@ int main(int argc, char *argv[]) {
     if(settings.error > 0) return 1;
 
     SpectralNet model;
-
-    // Example training data (replace with your actual data)
-    std::vector<std::vector<float>> inputs = {{1.0, 2.0, 3.0}, {4.0, 5.0, 6.0}, {7.0, 8.0, 9.0}};
-    std::vector<std::vector<float>> targets(3, std::vector<float>(31, 0.5)); // Example targets
+    auto [inputs, targets] = SpectralNet::loadDataFromCSV("color_spectral_xyz.csv");
 
     model.train(inputs, targets, 1000, 0.01);
     model.saveWeights("spectral_net_weights.bin");
 
     SpectralNet loadedModel;
     loadedModel.loadWeights("spectral_net_weights.bin");
-    std::vector<float> testInput = {1.0, 2.0, 3.0};
-    auto output = loadedModel.forward(testInput);
 
-    std::cout << "Output for test input: ";
-    for (float val : output) {
-        std::cout << val << " ";
-    }
-    std::cout << std::endl;
+    color red(1.0, 0.0, 0.0);
+    color red_xyz = red.to_xyz();
+    color red_from_xyz_validation = red_xyz.from_xyz();
+    std::vector<float> red_xyz_vec = red.toVec();
+    auto output = loadedModel.forward(red_xyz_vec);
+    Spectrum red_spectrum(output);
+    color red_xyz_fromSpectrum = red_spectrum.to_XYZ(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
+    color red_from_xyz_from_spectrum = red_xyz_fromSpectrum.from_xyz();
+    std::cout << "XYZ: "  << std::fixed << std::setprecision(2) << red_xyz.x() << "," << red_xyz.y() << "," << red_xyz.z() << std::endl;
+    std::cout << "XYZ from spectrum: " << std::fixed << std::setprecision(2) << red_xyz_fromSpectrum.x() << "," << red_xyz_fromSpectrum.y() << "," << red_xyz_fromSpectrum.z() << std::endl;
+    std::cout << "Red: " << std::fixed << std::setprecision(2) << red.x() << "," << red.y() << "," << red.z() << " Red XYZ validation: " << red_from_xyz_validation.x() << "," << red_from_xyz_validation.y() << "," << red_from_xyz_validation.z() << std::endl;
+    std::cout << "Red: " << std::fixed << std::setprecision(2) << red.x() << "," << red.y() << "," << red.z() << " Red from spectrum: " << red_from_xyz_from_spectrum.x() << "," << red_from_xyz_from_spectrum.y() << "," << red_from_xyz_from_spectrum.z() << std::endl;
 
+
+    return 0;
     
 
     hittable_list world;
