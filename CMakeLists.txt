@@ -42,7 +42,6 @@ if (WIN32)
     set(PNG_LIBRARY "D:/dev/vcpkg/packages/libpng_x64-windows/lib/libpng16.lib")
     set(ZLIB_INCLUDE_DIR "D:/dev/vcpkg/packages/zlib_x64-windows/include")
     set(ZLIB_LIBRARY "D:/dev/vcpkg/packages/zlib_x64-windows/lib/zlib.dylib")
-    set(TORCH_ROOT "D:/dev/libtorch/")
     set(PNG_PNG_INCLUDE_DIR ${PNG_INCLUDE_DIR})
     set(USD_ROOT "D:/Dev/pxr")
 
@@ -52,15 +51,11 @@ else()
     set(PNG_LIBRARY "/opt/homebrew/opt/libpng/lib/libpng.dylib")
     set(PNG_PNG_INCLUDE_DIR ${PNG_INCLUDE_DIR})
     set(USD_ROOT "/Users/dennissedov/Dev/pxr")
-    set(TORCH_ROOT "/Users/dennissedov/Dev/libtorch/")
 endif()
 
 find_package(PNG REQUIRED)
 include_directories(${USD_ROOT}/include)
-include_directories(${TORCH_ROOT}/include)
-include_directories(${TORCH_ROOT}/include/torch/csrc/api/include)
 link_directories(${USD_ROOT}/lib)
-link_directories(${TORCH_ROOT}/lib)
 
 find_library(USD_LIB usd_usd PATHS ${USD_ROOT}/lib)
 find_library(USD_USDGeom_LIB usd_usdGeom PATHS ${USD_ROOT}/lib)
@@ -70,10 +65,6 @@ find_library(USD_VT_LIB usd_vt PATHS ${USD_ROOT}/lib)
 find_library(USD_GF_LIB usd_gf PATHS ${USD_ROOT}/lib)
 find_library(USD_USDShade_LIB usd_usdShade PATHS ${USD_ROOT}/lib)
 find_library(USD_USD_LUX_LIB usd_usdLux PATHS ${USD_ROOT}/lib)
-
-find_library(TORCH_LIB torch PATHS ${TORCH_ROOT}/lib)
-find_library(TORCH_CPU_LIB torch_cpu PATHS ${TORCH_ROOT}/lib)
-find_library(C10_LIB c10 PATHS ${TORCH_ROOT}/lib)
 
 # Add the executable
 add_executable(raydar src/main.cpp)
@@ -93,10 +84,7 @@ target_link_libraries(raydar PRIVATE
                                 ${USD_VT_LIB}
                                 ${USD_GF_LIB}
                                 ${USD_USDShade_LIB}
-                                ${USD_USD_LUX_LIB}
-                                ${TORCH_LIB}
-                                ${TORCH_CPU_LIB}
-                                ${C10_LIB})
+                                ${USD_USD_LUX_LIB})
 
 # Add compile definitions if needed
 target_compile_definitions(raydar PRIVATE ${PNG_DEFINITIONS} NOMINMAX WIN32_LEAN_AND_MEAN)

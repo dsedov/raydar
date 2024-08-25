@@ -19,10 +19,34 @@
 
 #include "helpers/strings.h"
 
+#include "dl/spectral_net.h"
+
 int main(int argc, char *argv[]) {
 
     settings settings(argc, argv);
     if(settings.error > 0) return 1;
+
+    SpectralNet model;
+
+    // Example training data (replace with your actual data)
+    std::vector<std::vector<float>> inputs = {{1.0, 2.0, 3.0}, {4.0, 5.0, 6.0}, {7.0, 8.0, 9.0}};
+    std::vector<std::vector<float>> targets(3, std::vector<float>(31, 0.5)); // Example targets
+
+    model.train(inputs, targets, 1000, 0.01);
+    model.saveWeights("spectral_net_weights.bin");
+
+    SpectralNet loadedModel;
+    loadedModel.loadWeights("spectral_net_weights.bin");
+    std::vector<float> testInput = {1.0, 2.0, 3.0};
+    auto output = loadedModel.forward(testInput);
+
+    std::cout << "Output for test input: ";
+    for (float val : output) {
+        std::cout << val << " ";
+    }
+    std::cout << std::endl;
+
+    
 
     hittable_list world;
     hittable_list lights;
@@ -57,14 +81,8 @@ int main(int argc, char *argv[]) {
     };
     // Initialize SpectralConverter
     Observer observer(Observer::CIE1931_2Deg, Spectrum::RESPONSE_SAMPLES, Spectrum::START_WAVELENGTH, Spectrum::END_WAVELENGTH);
-    SpectralConverter& converter = SpectralConverter::getInstance();
-    try {
-        converter.loadModel("spectral_model_scripted.pt");
-        std::cout << "Spectral model loaded successfully." << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << "Error loading spectral model: " << e.what() << std::endl;
-        return 1;
-    }
+
+
     for (const auto& c : macbeth_colors) {
         Spectrum s = Spectrum(c.x(), c.y(), c.z());
         color c2 = s.to_rgb(observer);

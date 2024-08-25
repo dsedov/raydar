@@ -4,8 +4,6 @@
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>
-#include <torch/script.h>
-
 #include <memory>
 #include <string>
 
@@ -207,50 +205,6 @@ public:
 
 };
 
-class SpectralConverter {
-public:
-    static SpectralConverter& getInstance() {
-        static SpectralConverter instance;
-        return instance;
-    }
-
-    void loadModel(const std::string& modelPath) {
-        try {
-            model_ = torch::jit::load(modelPath);
-            model_.eval();
-        } catch (const c10::Error& e) {
-            throw std::runtime_error("Error loading the TorchScript model: " + std::string(e.what()));
-        }
-    }
-
-    std::vector<float> xyzToSpectrum(float x, float y, float z) {
-
-        // Normalize XYZ values to [0, 1] range
-        std::vector<float> normalizedXYZ = {x / 100.0f, y / 100.0f, z / 100.0f};
-
-        // Create a tensor from the normalized XYZ values
-        auto input = torch::tensor(normalizedXYZ).unsqueeze(0);
-
-        // Perform inference
-        torch::NoGradGuard no_grad;
-        auto output = model_.forward({input}).toTensor();
-
-        // Convert the output tensor to a vector of floats
-        std::vector<float> spectrum(output.data_ptr<float>(), output.data_ptr<float>() + output.numel());
-
-        return spectrum;
-    }
-
-private:
-    SpectralConverter() = default;
-    ~SpectralConverter() = default;
-    SpectralConverter(const SpectralConverter&) = delete;
-    SpectralConverter& operator=(const SpectralConverter&) = delete;
-
-    torch::jit::script::Module model_;
-};
-
-
 class Spectrum {
 public:
     static constexpr int RESPONSE_SAMPLES = 31; // 1nm resolution from 380nm to 740nm
@@ -264,8 +218,13 @@ public:
         color xyz = color(r, g, b).to_xyz();
 
         // Use SpectralConverter to convert XYZ to spectrum
-        SpectralConverter& converter = SpectralConverter::getInstance();
-        std::vector<float> spectrum = converter.xyzToSpectrum(xyz.x(), xyz.y(), xyz.z());
+        
+        std::vector<float> spectrum = {
+            0.23f, 0.87f, 0.54f, 0.11f, 0.76f, 0.39f, 0.92f, 0.65f, 0.18f, 0.43f,
+            0.71f, 0.29f, 0.83f, 0.57f, 0.05f, 0.69f, 0.34f, 0.96f, 0.48f, 0.15f,
+            0.62f, 0.88f, 0.41f, 0.79f, 0.26f, 0.53f, 0.07f, 0.94f, 0.37f, 0.81f,
+            0.19f
+        };
 
         // Ensure the spectrum size matches the number of wavelengths
         if (spectrum.size() != RESPONSE_SAMPLES) {
