@@ -123,6 +123,11 @@ class color : public vec3 {
             color result = mat3x3_times(m, color(x(), y(), z()));
             return result;
         }
+        const color to_xyz() {
+            const mat3x3& m = rgb_xyz_matrix(rgb_colorspace::sRGB());
+            color result = mat3x3_times(m, color(x(), y(), z()));
+            return result;
+        }
         // Add assignment operator from vec3
         color& operator=(const vec3& v) {
             vec3::operator=(v);
@@ -186,8 +191,8 @@ class color : public vec3 {
         }
         inline color mat3x3_times(const mat3x3& left, const color& right){
             color result( left[0][0]*right.x() + left[0][1]*right.y() + left[0][2]*right.z(),
-                        left[1][0]*right.x() + left[1][1]*right.y() + left[1][2]*right.z(),
-                        left[2][0]*right.x() + left[2][1]*right.y() + left[2][2]*right.z());
+                          left[1][0]*right.x() + left[1][1]*right.y() + left[1][2]*right.z(),
+                          left[2][0]*right.x() + left[2][1]*right.y() + left[2][2]*right.z());
             return result;
         }
         inline mat3x3 mat3x3_times(const mat3x3& left, const mat3x3& right){

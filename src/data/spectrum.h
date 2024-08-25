@@ -261,13 +261,11 @@ public:
     Spectrum(const float* data) : data_(data, data + RESPONSE_SAMPLES) {}
     Spectrum(float r, float g, float b) : data_(RESPONSE_SAMPLES) {
         // Convert RGB to XYZ
-        float x = 0.4124564f * r + 0.3575761f * g + 0.1804375f * b;
-        float y = 0.2126729f * r + 0.7151522f * g + 0.0721750f * b;
-        float z = 0.0193339f * r + 0.1191920f * g + 0.9503041f * b;
+        color xyz = color(r, g, b).to_xyz();
 
         // Use SpectralConverter to convert XYZ to spectrum
         SpectralConverter& converter = SpectralConverter::getInstance();
-        std::vector<float> spectrum = converter.xyzToSpectrum(x, y, z);
+        std::vector<float> spectrum = converter.xyzToSpectrum(xyz.x(), xyz.y(), xyz.z());
 
         // Ensure the spectrum size matches the number of wavelengths
         if (spectrum.size() != RESPONSE_SAMPLES) {
