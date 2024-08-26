@@ -111,6 +111,10 @@ public:
     }
 };
 
+#define CIELAB_E 0.008856
+#define CIELAB_K 903.3
+#define CIELAB_KE pow((CIELAB_E * CIELAB_K + 16.0)/116.0, 3.0)
+
 class color : public vec3 {
 
     public:
@@ -119,6 +123,7 @@ class color : public vec3 {
             SRGB,
             XYZ,
             LAB,
+            HSL,
             NO_COLORSPACE
         };
         // Inherit constructors from vec3
@@ -139,7 +144,7 @@ class color : public vec3 {
                 return color(0, 0, 0);
             }
         }
-        const color to_xyz() {
+        const color to_xyz(const whitepoint& wp = whitepoint::D65()) {
             if(color_space_ == ColorSpace::RGB_LIN) {
                 const mat3x3& m = rgb_xyz_matrix(rgb_colorspace::sRGB());
                 color result = mat3x3_times(m, color(x(), y(), z()));
@@ -147,9 +152,53 @@ class color : public vec3 {
                 return result;
             } else if (color_space_ == ColorSpace::XYZ) {
                 return *this;
+            } else if (color_space_ == ColorSpace::LAB) {
+                float L = x();
+                float a = y();
+                float b = z();
+                float Y_ = (L + 16.0)/116.0;
+                float X_ = a/500.0 + Y; 
+                float Z_ = Y - b/200.0;
+
+                X_ = cielab_cube(X_, CIELAB_E)  * wp.X
+                Y_ = cielab_cube(Y_, CIELAB_KE) * wp.Y
+                Z_ = cielab_cube(Z_, CIELAB_E)  * wp.Z
+                color result(X_, Y_, Z_);
+                result.set_color_space(ColorSpace::XYZ);
+                return result;
             } else {
                 std::cerr << "Color space not supported" << std::endl;
                 return color(0, 0, 0);
+            }
+        }
+        const color to_srgb(){
+            if(color_space_ == ColorSpace::RGB_LIN) {
+                color result(linear_to_srgb(x()), linear_to_srgb(y()), linear_to_srgb(z()));
+                result.set_color_space(ColorSpace::SRGB);
+                return result;
+            } else if (color_space_ == ColorSpace::SRGB) {
+                return *this;
+            } else if (color_space_ == ColorSpace::XYZ) {
+                color rgb_color = to_rgb();
+                color result(linear_to_srgb(rgb_color.x()), linear_to_srgb(rgb_color.y()), linear_to_srgb(rgb_color.z()));
+                result.set_color_space(ColorSpace::SRGB);
+                return result;
+            } else {
+                std::cerr << "Color space not supported" << std::endl;
+                return color(0, 0, 0);
+            }
+        }
+        const color to_lab(whitepoint){
+            if(color_space_ == ColorSpace::XYZ){
+                float X_ = cielab_cuberoot(x()/wp.x);
+                float Y_ = cielab_cuberoot(y()/wp.y);
+                float Z_ = cielab_cuberoot(z()/wp.z);
+                float L = 116.0 * Y_ - 16.0;
+                float a = 500.0 * (X_ - Y_);
+                float b = 200.0 * (Y_ - Z_);
+                color result(L, a, b);  
+                result.set_color_space(ColorSpace::LAB);
+                return result;
             }
         }
         // Add assignment operator from vec3
@@ -248,6 +297,33 @@ class color : public vec3 {
             }
             return mt;
         }
+        inline float linear_to_srgb(float c){
+            if(c <= 0.0031308) {
+                return 12.92*c;
+            } else {
+                return 1.055*pow(c, 1/2.4) - 0.055;
+            }
+        }
+        inline float srgb_to_linear(float c){
+            if(c <= 0.04045) {
+                return c/12.92;
+            } else {
+                return pow((c + 0.055)/1.055, 2.4);
+            }
+        }
+        inline float cielab_cube(float c, float threshold){
+            if(c * c * c <= threshold)
+                return (116.0 * c - 16.0) / CIELAB_K
+            else
+                return c * c * c 
+        }
+        inline float cielab_cuberoot(float c){
+            if (c <= CIELAB_E)
+                return (CIELAB_K * c + 16.0)/116.0
+            else
+                return pow(c, 1.0/3.0)
+        }
+        
 };
 
 

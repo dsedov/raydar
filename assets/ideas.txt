@@ -1,1 +1,71 @@
 Implemnt PDF
+
+def RGB_to_HSL(R, G, B):
+
+        cmin = min([R,G,B])
+        cmax = max([R,G,B])
+        delta = cmax - cmin
+        H = 0
+        S = 0
+        L = 0
+
+        if delta == 0:
+            H = 0
+        elif cmax == R:
+            H = ((G - B) / delta) % 6
+
+        elif cmax == G:
+            H = (B - R) / delta + 2
+        else:
+            H = (R - G) / delta + 4
+        
+        H = round(H * 60)
+        if H < 0:
+            H += 360
+        L = (cmax + cmin) / 2.0
+        S = 0 if delta == 0 else delta / (1 - abs(2 * L - 1))
+        S = +(S * 100)
+        L = +(L * 100)
+        return (H, S, L)
+
+    def HSL_to_RGB(H, S, L):
+        S /= 100.0
+        L /= 100.0
+
+        c = (1 - abs(2 * L - 1)) * S
+        x = c * (1 - abs((H / 60) % 2 - 1))
+        m = L - c/2
+        R = 0
+        G = 0
+        B = 0
+
+        if 0 <= H and H < 60:
+            R = c 
+            G = x 
+            B = 0  
+        elif 60 <= H and H < 120 :
+            R = x
+            G = c
+            B = 0
+        elif 120 <= H and H < 180 :
+            R = 0 
+            G = c 
+            B = x
+        elif 180 <= H and H < 240 :
+            R = 0 
+            G = x
+            B = c
+        elif 240 <= H and H < 300 :
+            R = x 
+            G = 0 
+            B = c
+        elif 300 <= H and H < 360 :
+            R = c 
+            G = 0
+            B = x
+      
+        R = R + m
+        G = G + m
+        B = B + m
+
+        return (R, G, B)
