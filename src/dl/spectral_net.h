@@ -160,7 +160,7 @@ public:
                 auto loss_grad = mse_loss_grad(predictions, targets[i]);
                 backward(inputs[i], loss_grad, learning_rate);
             }
-            std::cout << "Epoch " << epoch + 1 << ", Average Loss: " << total_loss / inputs.size() << std::endl;
+            std::cout << "Epoch " << epoch + 1 << ", Average Loss: " << std::setprecision(8) << total_loss / inputs.size() << std::endl;
         }
     }
 

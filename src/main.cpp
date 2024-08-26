@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
     std::cout << "From input: " << fromInput_xyz.x() << "," << fromInput_xyz.y() << "," << fromInput_xyz.z() << std::endl;
     std::cout << "Target xyz: " << inputs[0][0] << "," << inputs[0][1] << "," << inputs[0][2] << std::endl;
 
-    return 0;
+
 
     SpectralNet model;
     

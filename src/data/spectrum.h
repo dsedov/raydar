@@ -243,24 +243,14 @@ public:
     Spectrum(const float* data) : data_(data, data + RESPONSE_SAMPLES) {}
     Spectrum(float r, float g, float b) : data_(RESPONSE_SAMPLES) {
         // Convert RGB to XYZ
-        color xyz = color(r, g, b).to_xyz();
 
-        // Use SpectralConverter to convert XYZ to spectrum
-        
-        std::vector<float> spectrum = {
-            0.23f, 0.87f, 0.54f, 0.11f, 0.76f, 0.39f, 0.92f, 0.65f, 0.18f, 0.43f,
-            0.71f, 0.29f, 0.83f, 0.57f, 0.05f, 0.69f, 0.34f, 0.96f, 0.48f, 0.15f,
-            0.62f, 0.88f, 0.41f, 0.79f, 0.26f, 0.53f, 0.07f, 0.94f, 0.37f, 0.81f,
-            0.19f
-        };
+        data_ = std::vector<float>(RESPONSE_SAMPLES);
 
-        // Ensure the spectrum size matches the number of wavelengths
-        if (spectrum.size() != RESPONSE_SAMPLES) {
-            throw std::runtime_error("Spectrum size does not match the number of wavelengths.");
+        double rgb_coeffs[3] = {0.5, 0.3, 0.5}; 
+        for(int i = 0; i < RESPONSE_SAMPLES; i++){
+            data_[i] = spectrum(START_WAVELENGTH + i * (END_WAVELENGTH - START_WAVELENGTH) / RESPONSE_SAMPLES, rgb_coeffs);
         }
 
-        // Copy the spectrum data
-        std::copy(spectrum.begin(), spectrum.end(), data_.begin());
     }
     float& operator[](int index) { return data_[index]; }
     const float& operator[](int index) const { return data_[index]; }
@@ -328,6 +318,14 @@ private:
             sum += y[i];
         }
         return sum;
+    }
+
+    // modesl a spectrum function from a polynomial
+    double spectrum(double lambda, const double coeffs[3]) {
+        // Normalize lambda to 0-1 range
+        double x = (lambda - 360.0) / (830.0 - 360.0);
+        double y = coeffs[0] * x * x + coeffs[1] * x + coeffs[2];
+        return 0.5 * y / std::sqrt(1.0 + y * y) + 0.5;
     }
   
 };
