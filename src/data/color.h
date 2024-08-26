@@ -112,21 +112,45 @@ public:
 };
 
 class color : public vec3 {
+
     public:
+        enum ColorSpace {
+            RGB_LIN,
+            SRGB,
+            XYZ,
+            LAB,
+            NO_COLORSPACE
+        };
         // Inherit constructors from vec3
         using vec3::vec3;
 
         // Add conversion constructor from vec3
         color(const vec3& v) : vec3(v) {}
-        const color from_xyz() {
-            const mat3x3& m = xyz_rgb_matrix(rgb_colorspace::sRGB());
-            color result = mat3x3_times(m, color(x(), y(), z()));
-            return result;
+        const color to_rgb() {
+            if(color_space_ == ColorSpace::RGB_LIN) {
+                return *this;
+            } else if (color_space_ == ColorSpace::XYZ) {
+                const mat3x3& m = xyz_rgb_matrix(rgb_colorspace::sRGB());
+                color result = mat3x3_times(m, color(x(), y(), z()));
+                result.set_color_space(ColorSpace::RGB_LIN);
+                return result;
+            } else {
+                std::cerr << "Color space not supported" << std::endl;
+                return color(0, 0, 0);
+            }
         }
         const color to_xyz() {
-            const mat3x3& m = rgb_xyz_matrix(rgb_colorspace::sRGB());
-            color result = mat3x3_times(m, color(x(), y(), z()));
-            return result;
+            if(color_space_ == ColorSpace::RGB_LIN) {
+                const mat3x3& m = rgb_xyz_matrix(rgb_colorspace::sRGB());
+                color result = mat3x3_times(m, color(x(), y(), z()));
+                result.set_color_space(ColorSpace::XYZ);
+                return result;
+            } else if (color_space_ == ColorSpace::XYZ) {
+                return *this;
+            } else {
+                std::cerr << "Color space not supported" << std::endl;
+                return color(0, 0, 0);
+            }
         }
         // Add assignment operator from vec3
         color& operator=(const vec3& v) {
@@ -140,7 +164,15 @@ class color : public vec3 {
         // Add conversion operator to vec3
         operator vec3() const { return vec3(x(), y(), z()); }
 
+        void set_color_space(ColorSpace color_space) {
+            color_space_ = color_space;
+        }
+        ColorSpace get_color_space() const {
+            return color_space_;
+        }
+
     private:
+        ColorSpace color_space_ = ColorSpace::RGB_LIN;
         const mat3x3 xyz_rgb_matrix(const rgb_colorspace& cs) {
             const mat3x3 m = rgb_xyz_matrix(cs);
             mat3x3 result = mat3x3_inverse(m);

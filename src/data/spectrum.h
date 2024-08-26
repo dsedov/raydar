@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <memory>
 #include <string>
+#include <iomanip>
 
 class Observer {
 public:
@@ -259,7 +260,7 @@ public:
 
     color to_rgb( const Observer& observer) const {
         color xyz = to_XYZ(observer);
-        color rgb = xyz.from_xyz();
+        color rgb = xyz.to_rgb();
 
         return rgb;
     }
@@ -323,7 +324,7 @@ private:
     // modesl a spectrum function from a polynomial
     double spectrum(double lambda, const double coeffs[3]) {
         // Normalize lambda to 0-1 range
-        double x = (lambda - 360.0) / (830.0 - 360.0);
+        double x = (lambda - START_WAVELENGTH) / (END_WAVELENGTH- START_WAVELENGTH);
         double y = coeffs[0] * x * x + coeffs[1] * x + coeffs[2];
         return 0.5 * y / std::sqrt(1.0 + y * y) + 0.5;
     }

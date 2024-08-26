@@ -19,44 +19,23 @@
 
 #include "helpers/strings.h"
 
-#include "dl/spectral_net.h"
 
 int main(int argc, char *argv[]) {
 
     settings settings(argc, argv);
     if(settings.error > 0) return 1;
 
-    auto [inputs, targets] = SpectralNet::loadDataFromCSV("color_spectral_xyz.csv");
-    Spectrum fromInput = Spectrum(targets[0]);
-    color fromInput_xyz = fromInput.to_XYZ(Observer(Observer::CIE2006_2Deg, 31, 400, 700));
-    std::cout << "From input: " << fromInput_xyz.x() << "," << fromInput_xyz.y() << "," << fromInput_xyz.z() << std::endl;
-    std::cout << "Target xyz: " << inputs[0][0] << "," << inputs[0][1] << "," << inputs[0][2] << std::endl;
-
-
-
-    SpectralNet model;
-    
-
-    model.train(inputs, targets, 1000, 0.02);
-    model.saveWeights("spectral_net_weights.bin");
-
-    //SpectralNet loadedModel;
-    //loadedModel.loadWeights("spectral_net_weights.bin");
 
     // Validate RGB -> XYZ -> RGB
     color red(1.0, 0.0, 0.0);
     color red_xyz = red.to_xyz();
-    color red_from_xyz_validation = red_xyz.from_xyz();
+    color red_from_xyz_validation = red_xyz.to_rgb();
     std::cout << "Red: " << std::fixed << std::setprecision(2) << red.x() << "," << red.y() << "," << red.z() << " Red XYZ validation: " << red_from_xyz_validation.x() << "," << red_from_xyz_validation.y() << "," << red_from_xyz_validation.z() << std::endl;
 
     // Validate Spectrum -> XYZ -> RGB
-    
-
-    std::vector<float> red_xyz_vec = red.toVec();
-    auto output = model.forward(red_xyz_vec);
-    Spectrum red_spectrum(output);
+    Spectrum red_spectrum(1.0, 0.0, 0.0);
     color red_xyz_fromSpectrum = red_spectrum.to_XYZ(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
-    color red_from_xyz_from_spectrum = red_xyz_fromSpectrum.from_xyz();
+    color red_from_xyz_from_spectrum = red_xyz_fromSpectrum.to_rgb();
     std::cout << "XYZ: "  << std::fixed << std::setprecision(2) << red_xyz.x() << "," << red_xyz.y() << "," << red_xyz.z() << std::endl;
     std::cout << "XYZ from spectrum: " << std::fixed << std::setprecision(2) << red_xyz_fromSpectrum.x() << "," << red_xyz_fromSpectrum.y() << "," << red_xyz_fromSpectrum.z() << std::endl;
     std::cout << "Red: " << std::fixed << std::setprecision(2) << red.x() << "," << red.y() << "," << red.z() << " Red XYZ validation: " << red_from_xyz_validation.x() << "," << red_from_xyz_validation.y() << "," << red_from_xyz_validation.z() << std::endl;
