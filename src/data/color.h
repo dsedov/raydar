@@ -134,9 +134,23 @@ class color : public vec3 {
         const color to_rgb() {
             if(color_space_ == ColorSpace::RGB_LIN) {
                 return *this;
+            } else if (color_space == ColorSpace::SRGB) {
+                color result(srgb_to_linear(x()), srgb_to_linear(y()), srgb_to_linear(z()));
+                result.set_color_space(ColorSpace::RGB_LIN);
+                return result;
             } else if (color_space_ == ColorSpace::XYZ) {
                 const mat3x3& m = xyz_rgb_matrix(rgb_colorspace::sRGB());
                 color result = mat3x3_times(m, color(x(), y(), z()));
+                result.set_color_space(ColorSpace::RGB_LIN);
+                return result;
+            } else if (color_space_ == ColorSpace::LAB) {
+                color xyz_color = to_xyz();
+                result = xyz_color.to_rgb();
+                result.set_color_space(ColorSpace::RGB_LIN);
+                return result;
+            } else if (color_space_ == ColorSpace::HSL) {
+                color srgb_color = to_srgb();
+                color result = srgb_color.to_rgb();
                 result.set_color_space(ColorSpace::RGB_LIN);
                 return result;
             } else {
@@ -157,12 +171,12 @@ class color : public vec3 {
                 float a = y();
                 float b = z();
                 float Y_ = (L + 16.0)/116.0;
-                float X_ = a/500.0 + Y; 
-                float Z_ = Y - b/200.0;
+                float X_ = a/500.0 + Y_; 
+                float Z_ = Y_ - b/200.0;
 
-                X_ = cielab_cube(X_, CIELAB_E)  * wp.X
-                Y_ = cielab_cube(Y_, CIELAB_KE) * wp.Y
-                Z_ = cielab_cube(Z_, CIELAB_E)  * wp.Z
+                X_ = cielab_cube(X_, CIELAB_E)  * wp.x;
+                Y_ = cielab_cube(Y_, CIELAB_KE) * wp.y;
+                Z_ = cielab_cube(Z_, CIELAB_E)  * wp.z;
                 color result(X_, Y_, Z_);
                 result.set_color_space(ColorSpace::XYZ);
                 return result;
@@ -171,6 +185,7 @@ class color : public vec3 {
                 return color(0, 0, 0);
             }
         }
+        // From any color space to sRGB
         const color to_srgb(){
             if(color_space_ == ColorSpace::RGB_LIN) {
                 color result(linear_to_srgb(x()), linear_to_srgb(y()), linear_to_srgb(z()));
@@ -180,7 +195,58 @@ class color : public vec3 {
                 return *this;
             } else if (color_space_ == ColorSpace::XYZ) {
                 color rgb_color = to_rgb();
-                color result(linear_to_srgb(rgb_color.x()), linear_to_srgb(rgb_color.y()), linear_to_srgb(rgb_color.z()));
+                color result = rgb_color.to_srgb();
+                result.set_color_space(ColorSpace::SRGB);
+                return result;
+            } else if (color_space_ == ColorSpace::LAB) {
+                color rgb_color = to_rgb();
+                color result = rgb_color.to_srgb();
+                result.set_color_space(ColorSpace::SRGB);
+                return result;
+            } else if (color_space_ == ColorSpace::HSL) {
+                float H = x();
+                float S = y();
+                float L = z();
+                S /= 100.0;
+                L /= 100.0;
+
+                float C = (1 - abs(2 * L - 1)) * S;
+                float X = C * (1 - abs((H / 60) % 2 - 1));
+                float m = L - C/2;
+
+                float R = 0;
+                float G = 0;
+                float B = 0;
+
+                if(0 <= H && H < 60) {
+                    R = C;
+                    G = X;
+                    B = 0;
+                } else if (60 <= H && H < 120) {
+                    R = X;
+                    G = C;
+                    B = 0;
+                } else if (120 <= H && H < 180) {
+                    R = 0;
+                    G = C;
+                    B = X;
+                } else if (180 <= H && H < 240) {
+                    R = 0;
+                    G = X;
+                    B = C;
+                } else if (240 <= H && H < 300) {
+                    R = X;
+                    G = 0;
+                    B = C;
+                } else if (300 <= H && H < 360) {
+                    R = C;
+                    G = 0;
+                    B = X;
+                }
+                R = R + m;
+                G = G + m;
+                B = B + m;
+                color result(R, G, B);
                 result.set_color_space(ColorSpace::SRGB);
                 return result;
             } else {
@@ -188,8 +254,19 @@ class color : public vec3 {
                 return color(0, 0, 0);
             }
         }
-        const color to_lab(whitepoint){
-            if(color_space_ == ColorSpace::XYZ){
+        // From any color space to LAB
+        const color to_lab(whitepoint wp){
+            if (color_space_ == ColorSpace::RGB_LIN) {
+                color color_xyz = to_xyz();
+                color result = color_xyz.to_lab(wp);
+                result.set_color_space(ColorSpace::LAB);
+                return result;
+            } else if(color_space_ == ColorSpace::SRGB) {
+                color color_xyz = to_xyz();
+                color result = color_xyz.to_lab(wp);
+                result.set_color_space(ColorSpace::LAB);
+                return result;
+            } else if(color_space_ == ColorSpace::XYZ){
                 float X_ = cielab_cuberoot(x()/wp.x);
                 float Y_ = cielab_cuberoot(y()/wp.y);
                 float Z_ = cielab_cuberoot(z()/wp.z);
@@ -199,6 +276,73 @@ class color : public vec3 {
                 color result(L, a, b);  
                 result.set_color_space(ColorSpace::LAB);
                 return result;
+            } else if (color_space_ == ColorSpace::LAB) {
+                return *this;
+            } else if (color_space_ == ColorSpace::HSL) {
+                color color_xyz = to_xyz();
+                color result = color_xyz.to_lab(wp);
+                result.set_color_space(ColorSpace::LAB);
+                return result;
+            } else {
+                std::cerr << "Color space not supported" << std::endl;
+                return color(0, 0, 0);
+            }
+        }
+        // From any to HSL
+        const color to_hsl() {
+            if (color_space_ == ColorSpace::RGB_LIN) {
+                color srgb_color = to_srgb();
+                color result = srgb_color.to_hsl();
+                result.set_color_space(ColorSpace::HSL);
+                return result;
+            } else if (color_space_ == ColorSpace::SRGB) {
+                color rgb_color = to_rgb();
+                float R = rgb_color.x();
+                float G = rgb_color.y();
+                float B = rgb_color.z();
+
+                float cmin = min(R, G, B);
+                float cmax = max(R, G, B);
+                float delta = cmax - cmin;
+
+                float H = 0;
+                float S = 0;
+                float L = 0;
+
+                if (delta == 0) {
+                    H = 0;
+                } else if (cmax == R) {
+                    H = ((G - B) / delta) % 6;
+                } else if (cmax == G) {
+                    H = (B - R) / delta + 2;
+                } else {
+                    H = (R - G) / delta + 4;
+                }
+
+                H = round(H * 60);
+                if (H < 0) {
+                    H += 360;
+                }
+                L = (cmax + cmin) / 2.0;
+                S = (delta == 0) ? 0 : delta / (1 - std::abs(2 * L - 1));
+                S = +(S * 100);
+                L = +(L * 100);
+                color result(H, S, L);
+                result.set_color_space(ColorSpace::HSL);
+                return result;
+            } else if (color_space_ == ColorSpace::XYZ) {
+                color rgb_color = to_rgb();
+                color result = rgb_color.to_hsl();
+                result.set_color_space(ColorSpace::HSL);
+                return result;
+            } else if (color_space_ == ColorSpace::LAB) {
+                color rgb_color = to_rgb();
+                color result = rgb_color.to_hsl();
+                result.set_color_space(ColorSpace::HSL);
+                return result;
+            } else {
+                std::cerr << "Color space not supported" << std::endl;
+                return color(0, 0, 0);
             }
         }
         // Add assignment operator from vec3
@@ -313,15 +457,15 @@ class color : public vec3 {
         }
         inline float cielab_cube(float c, float threshold){
             if(c * c * c <= threshold)
-                return (116.0 * c - 16.0) / CIELAB_K
+                return (116.0 * c - 16.0) / CIELAB_K;
             else
-                return c * c * c 
+                return c * c * c;
         }
         inline float cielab_cuberoot(float c){
             if (c <= CIELAB_E)
-                return (CIELAB_K * c + 16.0)/116.0
+                return (CIELAB_K * c + 16.0)/116.0;
             else
-                return pow(c, 1.0/3.0)
+                return pow(c, 1.0/3.0);
         }
         
 };
