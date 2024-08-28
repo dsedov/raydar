@@ -25,6 +25,25 @@ int main(int argc, char *argv[]) {
     settings settings(argc, argv);
     if(settings.error > 0) return 1;
 
+    // Test color spaces:
+    color test(0.5, 0.5, 0.5);
+    test.set_color_space(color::ColorSpace::SRGB);
+    color srgb = test.to_srgb();
+    std::cout << "sRGB: " << std::fixed << std::setprecision(2) << srgb.x() << "," << srgb.y() << "," << srgb.z() << std::endl;
+    color rgb_lin = test.to_rgb();
+    std::cout << "RGB_lin: " << std::fixed << std::setprecision(2) << rgb_lin.x() << "," << rgb_lin.y() << "," << rgb_lin.z() << std::endl;
+    color xyz_test = test.to_xyz(whitepoint::D65());
+    std::cout << "XYZ: " << std::fixed << std::setprecision(2) << xyz_test.x() << "," << xyz_test.y() << "," << xyz_test.z() << std::endl;
+    color lab_test = test.to_lab(whitepoint::D65());
+    std::cout << "Lab: " << std::fixed << std::setprecision(2) << lab_test.x() << "," << lab_test.y() << "," << lab_test.z() << std::endl;
+    color hsl_test = test.to_hsl();
+    std::cout << "HSL: " << std::fixed << std::setprecision(2) << hsl_test.x() << "," << hsl_test.y() << "," << hsl_test.z() << std::endl;
+
+
+
+    return 0;
+
+
 
     // Validate RGB -> XYZ -> RGB
     color red(1.0, 0.0, 0.0);
