@@ -242,31 +242,63 @@ public:
         }
     }
     Spectrum(const float* data) : data_(data, data + RESPONSE_SAMPLES) {}
-    Spectrum(float r, float g, float b, float coeff_a, float coeff_b, float coeff_c, const std::vector<vec3>* lut = nullptr, float step = 0.0f) : data_(RESPONSE_SAMPLES) {
+    Spectrum(float r, float g, float b, float coeff_a, float coeff_b, float coeff_c) : data_(RESPONSE_SAMPLES) {
         // Convert RGB to XYZ
-
+        data_ = std::vector<float>(RESPONSE_SAMPLES);
+        for(int i = 0; i < RESPONSE_SAMPLES; i++){
+            data_[i] = spectrum(START_WAVELENGTH + i * (END_WAVELENGTH - START_WAVELENGTH) / RESPONSE_SAMPLES, coeff_a, coeff_b, coeff_c);
+        }
+    }
+    Spectrum(color c, const std::vector<std::vector<std::vector<vec3>>>& lut, float step = 0.1f)
+        : data_(RESPONSE_SAMPLES) {
+        // Convert RGB to XYZ
         data_ = std::vector<float>(RESPONSE_SAMPLES);
 
         vec3 rgb_coeffs;
-        if (lut != nullptr && step > 0.0f) {
-            float size = 1.0f / step;
-            float index = r + g * size + b * size * size;
-            int lower_index = static_cast<int>(index);
-            float t = index - lower_index;
 
-            if (lower_index + 1 < lut->size()) {
-                rgb_coeffs = (*lut)[lower_index] * (1.0f - t) + (*lut)[lower_index + 1] * t;
-            } else {
-                rgb_coeffs = (*lut)[lower_index];
-            }
+        int size = static_cast<int>(1.0f / step + 0.5f) + 1;
+        float r_scaled = c.x() * (size - 1);
+        float g_scaled = c.y() * (size - 1);
+        float b_scaled = c.z() * (size - 1);
+
+        int r_index = std::min(static_cast<int>(r_scaled), size - 1);
+        int g_index = std::min(static_cast<int>(g_scaled), size - 1);
+        int b_index = std::min(static_cast<int>(b_scaled), size - 1);
+
+        float r_frac = r_scaled - r_index;
+        float g_frac = g_scaled - g_index;
+        float b_frac = b_scaled - b_index;
+
+        // Check if we need to interpolate
+        if (r_frac < 1e-6 && g_frac < 1e-6 && b_frac < 1e-6) {
+            // Exact match, no interpolation needed
+            rgb_coeffs = lut[r_index][g_index][b_index];
         } else {
-            rgb_coeffs = vec3(coeff_a, coeff_b, coeff_c);
+            // Trilinear interpolation
+            vec3 c000 = lut[r_index][g_index][b_index];
+            vec3 c001 = (b_index < size - 1) ? lut[r_index][g_index][b_index + 1] : c000;
+            vec3 c010 = (g_index < size - 1) ? lut[r_index][g_index + 1][b_index] : c000;
+            vec3 c011 = (g_index < size - 1 && b_index < size - 1) ? lut[r_index][g_index + 1][b_index + 1] : c010;
+            vec3 c100 = (r_index < size - 1) ? lut[r_index + 1][g_index][b_index] : c000;
+            vec3 c101 = (r_index < size - 1 && b_index < size - 1) ? lut[r_index + 1][g_index][b_index + 1] : c100;
+            vec3 c110 = (r_index < size - 1 && g_index < size - 1) ? lut[r_index + 1][g_index + 1][b_index] : c100;
+            vec3 c111 = (r_index < size - 1 && g_index < size - 1 && b_index < size - 1) ? lut[r_index + 1][g_index + 1][b_index + 1] : c110;
+
+            vec3 c00 = c000 * (1 - r_frac) + c100 * r_frac;
+            vec3 c01 = c001 * (1 - r_frac) + c101 * r_frac;
+            vec3 c10 = c010 * (1 - r_frac) + c110 * r_frac;
+            vec3 c11 = c011 * (1 - r_frac) + c111 * r_frac;
+
+            vec3 c0 = c00 * (1 - g_frac) + c10 * g_frac;
+            vec3 c1 = c01 * (1 - g_frac) + c11 * g_frac;
+
+            rgb_coeffs = c0 * (1 - b_frac) + c1 * b_frac;
         }
 
-        for(int i = 0; i < RESPONSE_SAMPLES; i++){
-            data_[i] = spectrum(START_WAVELENGTH + i * (END_WAVELENGTH - START_WAVELENGTH) / RESPONSE_SAMPLES, rgb_coeffs.x(), rgb_coeffs.y(), rgb_coeffs.z());
+        for (int i = 0; i < RESPONSE_SAMPLES; i++) {
+            float wavelength = START_WAVELENGTH + i * (END_WAVELENGTH - START_WAVELENGTH) / RESPONSE_SAMPLES;
+            data_[i] = spectrum(wavelength, rgb_coeffs.x(), rgb_coeffs.y(), rgb_coeffs.z());
         }
-
     }
     float& operator[](int index) { return data_[index]; }
     const float& operator[](int index) const { return data_[index]; }
@@ -463,18 +495,26 @@ public:
         return lookup_table;
     }
 
-    static std::vector<vec3> load_lookup_tables(float step = 0.1) {
-        const int size = static_cast<int>(1.0 / step)+1;
+    
+    static std::vector<std::vector<std::vector<vec3>>> load_lookup_tables(float step = 0.1) {
+        const int size = static_cast<int>(1.0 / step + 0.5) + 1;
         const int total_size = size * size * size;
-        std::cout << "Loading lookup table with total size: " << total_size << std::endl;
+        std::cout << "Loading lookup table with dimensions: " << size << "x" << size << "x" << size << std::endl;
+        
         std::ifstream infile("lookup_table.bin", std::ios::binary);
-        std::vector<vec3> lookup_table(total_size);
+        std::vector<std::vector<std::vector<vec3>>> lookup_table(size, std::vector<std::vector<vec3>>(size, std::vector<vec3>(size)));
 
         if (infile.is_open()) {
-            infile.read(reinterpret_cast<char*>(lookup_table.data()), total_size * sizeof(vec3));
+            for (int i = 0; i < size; ++i) {
+                for (int j = 0; j < size; ++j) {
+                    for (int k = 0; k < size; ++k) {
+                        infile.read(reinterpret_cast<char*>(&lookup_table[i][j][k]), sizeof(vec3));
+                    }
+                }
+            }
             infile.close();
 
-            if (infile.gcount() == total_size * sizeof(vec3)) {
+            if (infile.gcount() == sizeof(vec3)) {
                 std::cout << "Lookup table loaded from lookup_table.bin" << std::endl;
             } else {
                 std::cerr << "Error: Incomplete data in lookup_table.bin" << std::endl;

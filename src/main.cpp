@@ -25,37 +25,23 @@ int main(int argc, char *argv[]) {
     settings settings(argc, argv);
     if(settings.error > 0) return 1;
 
-    // Test color spaces:
-    color test(0.5, 0.5, 0.5);
-    test.set_color_space(color::ColorSpace::SRGB);
-    color srgb = test.to_srgb();
-    std::cout << "sRGB: " << std::fixed << std::setprecision(2) << srgb.x() << "," << srgb.y() << "," << srgb.z() << std::endl;
-    color rgb_lin = test.to_rgb();
-    std::cout << "RGB_lin: " << std::fixed << std::setprecision(2) << rgb_lin.x() << "," << rgb_lin.y() << "," << rgb_lin.z() << std::endl;
-    color xyz_test = test.to_xyz(whitepoint::D65());
-    std::cout << "XYZ: " << std::fixed << std::setprecision(2) << xyz_test.x() << "," << xyz_test.y() << "," << xyz_test.z() << std::endl;
-    color lab_test = test.to_lab(whitepoint::D65());
-    std::cout << "Lab: " << std::fixed << std::setprecision(2) << lab_test.x() << "," << lab_test.y() << "," << lab_test.z() << std::endl;
-    color hsl_test = test.to_hsl();
-    std::cout << "HSL: " << std::fixed << std::setprecision(2) << hsl_test.x() << "," << hsl_test.y() << "," << hsl_test.z() << std::endl;
-
-    // Try to find coeffs for a given rgb value
-    vec3 rgb_coeffs = Spectrum::find_coeff(0.4, 0.04, 0.66);
-    Spectrum test_spectrum = Spectrum(1.0, 0.0, 0.0, rgb_coeffs.x(), rgb_coeffs.y(), rgb_coeffs.z());
-    color test_spectrum_rgb = test_spectrum.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
-    std::cout << "Test spectrum RGB: " << std::fixed << std::setprecision(2) << test_spectrum_rgb.x() << "," << test_spectrum_rgb.y() << "," << test_spectrum_rgb.z() << std::endl;
-
 
     std::vector<vec3> lookup_table;
     std::ifstream file("lookup_table.bin", std::ios::binary);
     if (file.good()) {
         std::cout << "Loading existing lookup table..." << std::endl;
-        lookup_table = Spectrum::load_lookup_tables();
+        std::vector<std::vector<std::vector<vec3>>> proper_lookup_table = Spectrum::load_lookup_tables();
+
+        color target_rgb = color(0.83, 0.25, 0.40);
+        target_rgb.set_color_space(color::ColorSpace::SRGB);
+        Spectrum target_spectrum = Spectrum(target_rgb, proper_lookup_table);
+        color possible_rgb = target_spectrum.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700)).to_srgb();
+        std::cout << "Target RGB: " << target_rgb.x() << "," << target_rgb.y() << "," << target_rgb.z() << std::endl;
+        std::cout << "Possible RGB: " << possible_rgb.x() << "," << possible_rgb.y() << "," << possible_rgb.z() << std::endl;
     } else {
         std::cout << "Lookup table not found. Computing new lookup table..." << std::endl;
         lookup_table = Spectrum::compute_lookup_tables();
     }
-    std::cout << "Lookup table size: " << lookup_table.size() << std::endl;
 
     return 0;
 
