@@ -45,8 +45,18 @@ int main(int argc, char *argv[]) {
     color test_spectrum_rgb = test_spectrum.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
     std::cout << "Test spectrum RGB: " << std::fixed << std::setprecision(2) << test_spectrum_rgb.x() << "," << test_spectrum_rgb.y() << "," << test_spectrum_rgb.z() << std::endl;
 
-    std::cout << "Computing lookup tables" << std::endl;
-    Spectrum::compute_lookup_tables();
+
+    std::vector<vec3> lookup_table;
+    std::ifstream file("lookup_table.bin", std::ios::binary);
+    if (file.good()) {
+        std::cout << "Loading existing lookup table..." << std::endl;
+        lookup_table = Spectrum::load_lookup_tables();
+    } else {
+        std::cout << "Lookup table not found. Computing new lookup table..." << std::endl;
+        lookup_table = Spectrum::compute_lookup_tables();
+    }
+    std::cout << "Lookup table size: " << lookup_table.size() << std::endl;
+
     return 0;
 
 

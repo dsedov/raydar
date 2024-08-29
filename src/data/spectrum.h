@@ -242,14 +242,29 @@ public:
         }
     }
     Spectrum(const float* data) : data_(data, data + RESPONSE_SAMPLES) {}
-    Spectrum(float r, float g, float b, float coeff_a, float coeff_b, float coeff_c) : data_(RESPONSE_SAMPLES) {
+    Spectrum(float r, float g, float b, float coeff_a, float coeff_b, float coeff_c, const std::vector<vec3>* lut = nullptr, float step = 0.0f) : data_(RESPONSE_SAMPLES) {
         // Convert RGB to XYZ
 
         data_ = std::vector<float>(RESPONSE_SAMPLES);
 
-        double rgb_coeffs[3] = {coeff_a, coeff_b, coeff_c}; 
+        vec3 rgb_coeffs;
+        if (lut != nullptr && step > 0.0f) {
+            float size = 1.0f / step;
+            float index = r + g * size + b * size * size;
+            int lower_index = static_cast<int>(index);
+            float t = index - lower_index;
+
+            if (lower_index + 1 < lut->size()) {
+                rgb_coeffs = (*lut)[lower_index] * (1.0f - t) + (*lut)[lower_index + 1] * t;
+            } else {
+                rgb_coeffs = (*lut)[lower_index];
+            }
+        } else {
+            rgb_coeffs = vec3(coeff_a, coeff_b, coeff_c);
+        }
+
         for(int i = 0; i < RESPONSE_SAMPLES; i++){
-            data_[i] = spectrum(START_WAVELENGTH + i * (END_WAVELENGTH - START_WAVELENGTH) / RESPONSE_SAMPLES, rgb_coeffs);
+            data_[i] = spectrum(START_WAVELENGTH + i * (END_WAVELENGTH - START_WAVELENGTH) / RESPONSE_SAMPLES, rgb_coeffs.x(), rgb_coeffs.y(), rgb_coeffs.z());
         }
 
     }
@@ -305,8 +320,6 @@ public:
         vec3 coeffs = start_coeffs;
         color target_rgb = color(r, g, b);
         color target_lab = target_rgb.to_lab(whitepoint::D65());
-        std::cout << "Target RGB: " << target_rgb.x() << " " << target_rgb.y() << " " << target_rgb.z() << std::endl;
-
         for(int i = 0; i < MAX_ITERATIONS; i++){
             bool found = false;
             {
@@ -384,28 +397,23 @@ public:
         }
         Spectrum test_spectrum(r, g, b, coeffs.x(), coeffs.y(), coeffs.z());
         color current_rgb = test_spectrum.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
-        std::cout << " Current RGB: " << current_rgb.x() << " " << current_rgb.y() << " " << current_rgb.z() << std::endl;
+        std::cout << "Target RGB: " << target_rgb.x() << " " << target_rgb.y() << " " << target_rgb.z() << " Current RGB: " << current_rgb.x() << " " << current_rgb.y() << " " << current_rgb.z() << std::endl;
         return coeffs;
     }
     static std::vector<vec3> compute_lookup_tables(float step = 0.1) {
-        const int size = static_cast<int>(1.0 / step);
+
+        const int size = static_cast<int>(1.0 / step) + 1;  // Changed to include 1.0
         const int total_size = size * size * size;
+        std::cout << "Computing lookup table with total size: " << total_size << std::endl;
         std::vector<vec3> lookup_table(total_size, vec3(0.0, 0.0, 0.0));
 
-        // Function to compute index given x, y, z coordinates
-        auto compute_index = [size](int x, int y, int z) {
-            return x + y * size + z * size * size;
-        };
-
         #include <thread>
-        #include <mutex>
         #include <vector>
         #include <fstream>
         #include <iostream>
 
         const int num_threads = std::thread::hardware_concurrency();
         std::vector<std::thread> threads;
-        std::mutex mtx;
 
         auto worker = [&](int start, int end) {
             vec3 start_coeffs = {0.0, 0.0, 0.0};
@@ -414,7 +422,6 @@ public:
                 float G = ((i / size) % size) * step;
                 float B = (i % size) * step;
                 vec3 coeffs = find_coeff(R, G, B, start_coeffs);
-                std::lock_guard<std::mutex> lock(mtx);
                 lookup_table[i] = coeffs;
             }
         };
@@ -443,21 +450,23 @@ public:
         return lookup_table;
     }
 
-    static std::vector<vec3> load_lookup_tables() {
+    static std::vector<vec3> load_lookup_tables(float step = 0.1) {
+        const int size = static_cast<int>(1.0 / step)+1;
+        const int total_size = size * size * size;
+        std::cout << "Loading lookup table with total size: " << total_size << std::endl;
         std::ifstream infile("lookup_table.bin", std::ios::binary);
-        std::vector<vec3> lookup_table;
+        std::vector<vec3> lookup_table(total_size);
 
         if (infile.is_open()) {
-            infile.seekg(0, std::ios::end);
-            size_t fileSize = infile.tellg();
-            infile.seekg(0, std::ios::beg);
-
-            size_t numElements = fileSize / sizeof(vec3);
-            lookup_table.resize(numElements);
-
-            infile.read(reinterpret_cast<char*>(lookup_table.data()), fileSize);
+            infile.read(reinterpret_cast<char*>(lookup_table.data()), total_size * sizeof(vec3));
             infile.close();
-            std::cout << "Lookup table loaded from lookup_table.bin" << std::endl;
+
+            if (infile.gcount() == total_size * sizeof(vec3)) {
+                std::cout << "Lookup table loaded from lookup_table.bin" << std::endl;
+            } else {
+                std::cerr << "Error: Incomplete data in lookup_table.bin" << std::endl;
+                lookup_table.clear();
+            }
         } else {
             std::cerr << "Unable to open file for reading" << std::endl;
         }
@@ -482,10 +491,10 @@ private:
     }
 
     // modesl a spectrum function from a polynomial
-    double spectrum(double lambda, const double coeffs[3]) {
+    double spectrum(double lambda, float coeff_a, float coeff_b, float coeff_c) {
         // Normalize lambda to 0-1 range
         double x = (lambda - START_WAVELENGTH) / (END_WAVELENGTH- START_WAVELENGTH);
-        double y = coeffs[0] * x * x + coeffs[1] * x + coeffs[2];
+        double y = coeff_a * x * x + coeff_b * x + coeff_c;
         return 0.5 * y / std::sqrt(1.0 + y * y) + 0.5;
     }
   
