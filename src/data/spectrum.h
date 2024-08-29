@@ -402,7 +402,7 @@ public:
     }
     static std::vector<vec3> compute_lookup_tables(float step = 0.1) {
 
-        const int size = static_cast<int>(1.0 / step) + 1;  // Changed to include 1.0
+        const int size = static_cast<int>(1.0 / step + 0.5) + 1;  // Changed to include 1.0
         const int total_size = size * size * size;
         std::cout << "Computing lookup table with total size: " << total_size << std::endl;
         std::vector<vec3> lookup_table(total_size, vec3(0.0, 0.0, 0.0));
@@ -418,9 +418,19 @@ public:
         auto worker = [&](int start, int end) {
             vec3 start_coeffs = {0.0, 0.0, 0.0};
             for (int i = start; i < end; ++i) {
-                float R = (i / (size * size)) * step;
-                float G = ((i / size) % size) * step;
-                float B = (i % size) * step;
+                int r_index = i / (size * size);
+                int g_index = (i / size) % size;
+                int b_index = i % size;
+                
+                float R = r_index * step;
+                float G = g_index * step;
+                float B = b_index * step;
+                
+                // Ensure we don't exceed 1.0 due to floating point precision
+                R = std::min(R, 1.0f);
+                G = std::min(G, 1.0f);
+                B = std::min(B, 1.0f);
+
                 vec3 coeffs = find_coeff(R, G, B, start_coeffs);
                 lookup_table[i] = coeffs;
             }
