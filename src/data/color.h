@@ -373,6 +373,11 @@ class color : public vec3 {
         ColorSpace get_color_space() const {
             return color_space_;
         }
+        void clamp() {
+            e[0] = std::max(0.0, std::min(e[0], 1.0));
+            e[1] = std::max(0.0, std::min(e[1], 1.0));
+            e[2] = std::max(0.0, std::min(e[2], 1.0));
+        }
 
     private:
         ColorSpace color_space_ = ColorSpace::RGB_LIN;

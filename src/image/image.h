@@ -38,11 +38,11 @@ public:
     // RGB 
     // RGB methods
     void set_pixel(int x, int y, float r, float g, float b) {
-        set_pixel(x, y, Spectrum(r, g, b));
+        set_pixel(x, y, Spectrum(r, g, b, 0.0, 0.0, 0.0));
     }
 
     void add_to_pixel(int x, int y, float r, float g, float b) {
-        add_to_pixel(x, y, Spectrum(r, g, b));
+        add_to_pixel(x, y, Spectrum(r, g, b, 0.0, 0.0, 0.0));
     }
 
     void add_to_pixel(int x, int y, const color& color) {

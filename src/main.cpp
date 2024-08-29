@@ -39,28 +39,15 @@ int main(int argc, char *argv[]) {
     color hsl_test = test.to_hsl();
     std::cout << "HSL: " << std::fixed << std::setprecision(2) << hsl_test.x() << "," << hsl_test.y() << "," << hsl_test.z() << std::endl;
 
-
-
-    return 0;
-
-
-
-    // Validate RGB -> XYZ -> RGB
-    color red(1.0, 0.0, 0.0);
-    color red_xyz = red.to_xyz();
-    color red_from_xyz_validation = red_xyz.to_rgb();
-    std::cout << "Red: " << std::fixed << std::setprecision(2) << red.x() << "," << red.y() << "," << red.z() << " Red XYZ validation: " << red_from_xyz_validation.x() << "," << red_from_xyz_validation.y() << "," << red_from_xyz_validation.z() << std::endl;
-
-    // Validate Spectrum -> XYZ -> RGB
-    Spectrum red_spectrum(1.0, 0.0, 0.0);
-    color red_xyz_fromSpectrum = red_spectrum.to_XYZ(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
-    color red_from_xyz_from_spectrum = red_xyz_fromSpectrum.to_rgb();
-    std::cout << "XYZ: "  << std::fixed << std::setprecision(2) << red_xyz.x() << "," << red_xyz.y() << "," << red_xyz.z() << std::endl;
-    std::cout << "XYZ from spectrum: " << std::fixed << std::setprecision(2) << red_xyz_fromSpectrum.x() << "," << red_xyz_fromSpectrum.y() << "," << red_xyz_fromSpectrum.z() << std::endl;
-    std::cout << "Red: " << std::fixed << std::setprecision(2) << red.x() << "," << red.y() << "," << red.z() << " Red XYZ validation: " << red_from_xyz_validation.x() << "," << red_from_xyz_validation.y() << "," << red_from_xyz_validation.z() << std::endl;
-    std::cout << "Red: " << std::fixed << std::setprecision(2) << red.x() << "," << red.y() << "," << red.z() << " Red from spectrum: " << red_from_xyz_from_spectrum.x() << "," << red_from_xyz_from_spectrum.y() << "," << red_from_xyz_from_spectrum.z() << std::endl;
+    // Try to find coeffs for a given rgb value
+    vec3 rgb_coeffs = Spectrum::find_coeff(1.0, 0.0, 0.0);
+    Spectrum test_spectrum = Spectrum(1.0, 0.0, 0.0, rgb_coeffs.x(), rgb_coeffs.y(), rgb_coeffs.z());
+    color test_spectrum_rgb = test_spectrum.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
+    std::cout << "Test spectrum RGB: " << std::fixed << std::setprecision(2) << test_spectrum_rgb.x() << "," << test_spectrum_rgb.y() << "," << test_spectrum_rgb.z() << std::endl;
 
     return 0;
+
+
     
 
     hittable_list world;
@@ -98,11 +85,6 @@ int main(int argc, char *argv[]) {
     Observer observer(Observer::CIE1931_2Deg, Spectrum::RESPONSE_SAMPLES, Spectrum::START_WAVELENGTH, Spectrum::END_WAVELENGTH);
 
 
-    for (const auto& c : macbeth_colors) {
-        Spectrum s = Spectrum(c.x(), c.y(), c.z());
-        color c2 = s.to_rgb(observer);
-        std::cout << "In: " << c << " Out: " << c2 << std::endl;
-    }
 
     // IMAGE
     ImagePNG image(settings.image_width, settings.image_height, Spectrum::RESPONSE_SAMPLES, observer);
