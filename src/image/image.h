@@ -6,8 +6,8 @@
 
 class Image {
 public:
-    Image(int width, int height, int num_wavelengths, const Observer& observer) 
-        : width_(width), height_(height), num_wavelengths_(num_wavelengths), observer_(observer) {
+    Image(int width, int height, int num_wavelengths, std::vector<std::vector<std::vector<vec3>>> lookup_table, const Observer& observer) 
+        : width_(width), height_(height), num_wavelengths_(num_wavelengths), lookup_table_(lookup_table), observer_(observer) {
         row_size_ = width_ * num_wavelengths_;
         image_buffer_ = std::vector<float>(width * height * num_wavelengths);
         std::fill(image_buffer_.begin(), image_buffer_.end(), 0.0f);
@@ -22,14 +22,12 @@ public:
             image_buffer_[index + i] = spectrum[i];
         }
     }
-
     void add_to_pixel(int x, int y, const Spectrum& spectrum) {
         int index = y * row_size_ + x * num_wavelengths_;
         for (int i = 0; i < num_wavelengths_; ++i) {
             image_buffer_[index + i] += spectrum[i];
         }
     }
-
     Spectrum get_pixel(int x, int y) const {
         int index = y * row_size_ + x * num_wavelengths_;
         return Spectrum(image_buffer_.data() + index);
@@ -38,11 +36,11 @@ public:
     // RGB 
     // RGB methods
     void set_pixel(int x, int y, float r, float g, float b) {
-        set_pixel(x, y, Spectrum(r, g, b, 0.0, 0.0, 0.0));
+        set_pixel(x, y, Spectrum(color(r, g, b), lookup_table_));
     }
 
     void add_to_pixel(int x, int y, float r, float g, float b) {
-        add_to_pixel(x, y, Spectrum(r, g, b, 0.0, 0.0, 0.0));
+        add_to_pixel(x, y, Spectrum(color(r, g, b), lookup_table_));
     }
 
     void add_to_pixel(int x, int y, const color& color) {
@@ -85,4 +83,5 @@ protected:
     int row_size_;
     std::vector<float> image_buffer_;
     const Observer& observer_;
+    std::vector<std::vector<std::vector<vec3>>> lookup_table_;
 };

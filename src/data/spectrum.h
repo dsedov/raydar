@@ -252,6 +252,7 @@ public:
     Spectrum(color c, const std::vector<std::vector<std::vector<vec3>>>& lut, float step = 0.1f)
         : data_(RESPONSE_SAMPLES) {
         // Convert RGB to XYZ
+        c.set_color_space(color::ColorSpace::RGB_LIN);
         data_ = std::vector<float>(RESPONSE_SAMPLES);
 
         vec3 rgb_coeffs;
@@ -349,19 +350,19 @@ public:
         #define MAX_ITERATIONS 200000
         vec3 coeffs = start_coeffs;
         color target_rgb = color(r, g, b);
-        target_rgb.set_color_space(color::ColorSpace::SRGB);
+        target_rgb.set_color_space(color::ColorSpace::RGB_LIN);
 
         for(int i = 0; i < MAX_ITERATIONS; i++){
             bool found = false;
             {
                 Spectrum test_spectrum(r, g, b, coeffs.x(), coeffs.y(), coeffs.z());
-                color current_rgb = test_spectrum.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700)).to_srgb();
+                color current_rgb = test_spectrum.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
 
                 Spectrum test_spectrum_A(r, g, b, coeffs.x() + LEARNING_RATE, coeffs.y(), coeffs.z());
-                color current_rgb_A = test_spectrum_A.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700)).to_srgb();
+                color current_rgb_A = test_spectrum_A.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
 
                 Spectrum test_spectrum_B(r, g, b, coeffs.x() - LEARNING_RATE, coeffs.y(), coeffs.z());
-                color current_rgb_B = test_spectrum_B.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700)).to_srgb();
+                color current_rgb_B = test_spectrum_B.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
 
                 if( distance(current_rgb, target_rgb) > distance(current_rgb_A, target_rgb) && distance(current_rgb_A, target_rgb) < distance(current_rgb_B, target_rgb)){
                     coeffs += vec3(LEARNING_RATE, 0.0, 0.0);
@@ -374,13 +375,13 @@ public:
             }
             {
                 Spectrum test_spectrum(r, g, b, coeffs.x(), coeffs.y(), coeffs.z());
-                color current_rgb = test_spectrum.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700)).to_srgb();
+                color current_rgb = test_spectrum.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
 
                 Spectrum test_spectrum_A(r, g, b, coeffs.x(), coeffs.y() + LEARNING_RATE, coeffs.z());
-                color current_rgb_A = test_spectrum_A.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700)).to_srgb();
+                color current_rgb_A = test_spectrum_A.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
 
                 Spectrum test_spectrum_B(r, g, b, coeffs.x(), coeffs.y() - LEARNING_RATE, coeffs.z());
-                color current_rgb_B = test_spectrum_B.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700)).to_srgb();
+                color current_rgb_B = test_spectrum_B.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
 
                 if( distance(current_rgb, target_rgb) > distance(current_rgb_A, target_rgb) && distance(current_rgb_A, target_rgb) < distance(current_rgb_B, target_rgb)){
                     coeffs += vec3(0.0, LEARNING_RATE, 0.0);
@@ -393,13 +394,13 @@ public:
             }
             {
                 Spectrum test_spectrum(r, g, b, coeffs.x(), coeffs.y(), coeffs.z());
-                color current_rgb = test_spectrum.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700)).to_srgb();
+                color current_rgb = test_spectrum.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
 
                 Spectrum test_spectrum_A(r, g, b, coeffs.x(), coeffs.y(), coeffs.z() + LEARNING_RATE);
-                color current_rgb_A = test_spectrum_A.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700)).to_srgb();
+                color current_rgb_A = test_spectrum_A.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
 
                 Spectrum test_spectrum_B(r, g, b, coeffs.x(), coeffs.y(), coeffs.z() - LEARNING_RATE);
-                color current_rgb_B = test_spectrum_B.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700)).to_srgb();
+                color current_rgb_B = test_spectrum_B.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
 
                 if( distance(current_rgb, target_rgb) > distance(current_rgb_A, target_rgb) && distance(current_rgb_A, target_rgb) < distance(current_rgb_B, target_rgb)){
                     coeffs += vec3(0.0, 0.0, LEARNING_RATE);
@@ -409,9 +410,6 @@ public:
                     coeffs -= vec3(0.0, 0.0, LEARNING_RATE);
                     found = true;
                 }
-                //std::cout << " Coeffs:      " << coeffs.x() << " " << coeffs.y() << " " << coeffs.z() << std::endl;
-                //std::cout << " Target RGB:  " << target_rgb.x() << " " << target_rgb.y() << " " << target_rgb.z() << std::endl;
-                //std::cout << " Current RGB: " << current_rgb.x() << " " << current_rgb.y() << " " << current_rgb.z() << std::endl;
                 if(distance(current_rgb, target_rgb) < SEARCH_TOLERANCE){
                     std::cout << "Inside tolerance at iteration " << i << std::endl;
                     break;
@@ -431,7 +429,7 @@ public:
             
         }
         Spectrum test_spectrum(r, g, b, coeffs.x(), coeffs.y(), coeffs.z());
-        color current_rgb = test_spectrum.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700)).to_srgb();
+        color current_rgb = test_spectrum.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
         std::cout << "Target RGB: " << target_rgb.x() << " " << target_rgb.y() << " " << target_rgb.z() << " Current RGB: " << current_rgb.x() << " " << current_rgb.y() << " " << current_rgb.z() << std::endl;
         return coeffs;
     }
