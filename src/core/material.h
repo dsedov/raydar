@@ -6,6 +6,7 @@
 #include "../data/hittable.h"
 #include "../data/pdf.h"
 #include "../data/onb.h"
+#include "../data/spectrum.h"
 class hit_record;
 class scatter_record {
   public:

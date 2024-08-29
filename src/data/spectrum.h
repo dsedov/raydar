@@ -491,9 +491,7 @@ public:
         }
 
         return lookup_table;
-    }
-
-    
+    }    
     static std::vector<std::vector<std::vector<vec3>>> load_lookup_tables(float step = 0.1) {
         const int size = static_cast<int>(1.0 / step + 0.5) + 1;
         const int total_size = size * size * size;
@@ -526,6 +524,41 @@ public:
     }
     // Other methods as needed (e.g., arithmetic operations, etc.)
 
+    Spectrum& operator+=(const Spectrum& v) {
+        for (size_t i = 0; i < data_.size(); ++i) {
+            data_[i] += v.data_[i];
+        }
+        return *this;
+    }
+    Spectrum& operator-=(const Spectrum& v) {
+        for (size_t i = 0; i < data_.size(); ++i) {
+            data_[i] -= v.data_[i];
+        }
+        return *this;
+    }
+
+    Spectrum& operator*=(double t) {
+        for (size_t i = 0; i < data_.size(); ++i) {
+            data_[i] *= t;
+        }
+        return *this;
+    }
+    Spectrum& operator*=(const Spectrum& v) {
+        for (size_t i = 0; i < data_.size(); ++i) {
+            data_[i] *= v.data_[i];
+        }
+        return *this;
+    }
+
+    Spectrum& operator/=(double t) {
+        return *this *= 1/t;
+    }
+    Spectrum& operator/=(const Spectrum& v) {
+        for (size_t i = 0; i < data_.size(); ++i) {
+            data_[i] /= v.data_[i];
+        }
+        return *this;
+    }
 private:
     std::vector<float> data_;
 
