@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
     std::cout << "HSL: " << std::fixed << std::setprecision(2) << hsl_test.x() << "," << hsl_test.y() << "," << hsl_test.z() << std::endl;
 
     // Try to find coeffs for a given rgb value
-    vec3 rgb_coeffs = Spectrum::find_coeff(1.0, 0.0, 0.0);
+    vec3 rgb_coeffs = Spectrum::find_coeff(0.4, 0.04, 0.66);
     Spectrum test_spectrum = Spectrum(1.0, 0.0, 0.0, rgb_coeffs.x(), rgb_coeffs.y(), rgb_coeffs.z());
     color test_spectrum_rgb = test_spectrum.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
     std::cout << "Test spectrum RGB: " << std::fixed << std::setprecision(2) << test_spectrum_rgb.x() << "," << test_spectrum_rgb.y() << "," << test_spectrum_rgb.z() << std::endl;

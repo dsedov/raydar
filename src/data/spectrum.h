@@ -299,7 +299,7 @@ public:
         return result;
     }
     static vec3 find_coeff(float r, float g, float b){
-        #define LEARNING_RATE 0.0001
+        #define LEARNING_RATE 0.0005
         #define SEARCH_TOLERANCE 0.001
         #define MAX_ITERATIONS 200000
         vec3 coeffs = {0.0, 0.0, 0.0};
