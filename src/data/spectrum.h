@@ -298,11 +298,11 @@ public:
         result.set_color_space(color::ColorSpace::XYZ);
         return result;
     }
-    static vec3 find_coeff(float r, float g, float b){
+    static vec3 find_coeff(float r, float g, float b, vec3 start_coeffs = {0.0, 0.0, 0.0}){
         #define LEARNING_RATE 0.0005
         #define SEARCH_TOLERANCE 0.001
         #define MAX_ITERATIONS 200000
-        vec3 coeffs = {0.0, 0.0, 0.0};
+        vec3 coeffs = start_coeffs;
         color target_rgb = color(r, g, b);
         color target_lab = target_rgb.to_lab(whitepoint::D65());
         std::cout << "Target RGB: " << target_rgb.x() << " " << target_rgb.y() << " " << target_rgb.z() << std::endl;
@@ -382,7 +382,87 @@ public:
             }
             
         }
+        Spectrum test_spectrum(r, g, b, coeffs.x(), coeffs.y(), coeffs.z());
+        color current_rgb = test_spectrum.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
+        std::cout << " Current RGB: " << current_rgb.x() << " " << current_rgb.y() << " " << current_rgb.z() << std::endl;
         return coeffs;
+    }
+    static std::vector<vec3> compute_lookup_tables(float step = 0.1) {
+        const int size = static_cast<int>(1.0 / step);
+        const int total_size = size * size * size;
+        std::vector<vec3> lookup_table(total_size, vec3(0.0, 0.0, 0.0));
+
+        // Function to compute index given x, y, z coordinates
+        auto compute_index = [size](int x, int y, int z) {
+            return x + y * size + z * size * size;
+        };
+
+        #include <thread>
+        #include <mutex>
+        #include <vector>
+        #include <fstream>
+        #include <iostream>
+
+        const int num_threads = std::thread::hardware_concurrency();
+        std::vector<std::thread> threads;
+        std::mutex mtx;
+
+        auto worker = [&](int start, int end) {
+            vec3 start_coeffs = {0.0, 0.0, 0.0};
+            for (int i = start; i < end; ++i) {
+                float R = (i / (size * size)) * step;
+                float G = ((i / size) % size) * step;
+                float B = (i % size) * step;
+                vec3 coeffs = find_coeff(R, G, B, start_coeffs);
+                std::lock_guard<std::mutex> lock(mtx);
+                lookup_table[i] = coeffs;
+            }
+        };
+
+        int chunk_size = total_size / num_threads;
+        for (int i = 0; i < num_threads; ++i) {
+            int start = i * chunk_size;
+            int end = (i == num_threads - 1) ? total_size : (i + 1) * chunk_size;
+            threads.emplace_back(worker, start, end);
+        }
+
+        for (auto& thread : threads) {
+            thread.join();
+        }
+
+        // Serialize the lookup table to a file
+        std::ofstream outfile("lookup_table.bin", std::ios::binary);
+        if (outfile.is_open()) {
+            outfile.write(reinterpret_cast<const char*>(lookup_table.data()), lookup_table.size() * sizeof(vec3));
+            outfile.close();
+            std::cout << "Lookup table serialized to lookup_table.bin" << std::endl;
+        } else {
+            std::cerr << "Unable to open file for writing" << std::endl;
+        }
+
+        return lookup_table;
+    }
+
+    static std::vector<vec3> load_lookup_tables() {
+        std::ifstream infile("lookup_table.bin", std::ios::binary);
+        std::vector<vec3> lookup_table;
+
+        if (infile.is_open()) {
+            infile.seekg(0, std::ios::end);
+            size_t fileSize = infile.tellg();
+            infile.seekg(0, std::ios::beg);
+
+            size_t numElements = fileSize / sizeof(vec3);
+            lookup_table.resize(numElements);
+
+            infile.read(reinterpret_cast<char*>(lookup_table.data()), fileSize);
+            infile.close();
+            std::cout << "Lookup table loaded from lookup_table.bin" << std::endl;
+        } else {
+            std::cerr << "Unable to open file for reading" << std::endl;
+        }
+
+        return lookup_table;
     }
     // Other methods as needed (e.g., arithmetic operations, etc.)
 
