@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
     if (file.good()) {
         std::cout << "Loading existing lookup table..." << std::endl;
         lookup_table = Spectrum::load_lookup_tables();
-
+        Spectrum::setLookupTable(lookup_table);
         color target_rgb = color(0.83, 0.25, 0.40);
         target_rgb.set_color_space(color::ColorSpace::SRGB);
         Spectrum target_spectrum = Spectrum(target_rgb, lookup_table);
