@@ -251,9 +251,7 @@ public:
             data_[i] = spectrum(START_WAVELENGTH + i * (END_WAVELENGTH - START_WAVELENGTH) / RESPONSE_SAMPLES, coeff_a, coeff_b, coeff_c);
         }
     }
-    Spectrum(float r, float g, float b) : data_(RESPONSE_SAMPLES) {
-        return Spectrum(r, g, b, Spectrum::lookup_table);
-    }
+    Spectrum(float r, float g, float b) : Spectrum(color(r, g, b, color::ColorSpace::RGB_LIN), Spectrum::lookup_table) {}
     Spectrum(color c, const std::vector<std::vector<std::vector<vec3>>>& lut, float step = 0.1f)
         : data_(RESPONSE_SAMPLES) {
         // Convert RGB to XYZ
@@ -566,7 +564,7 @@ public:
     }
 private:
     std::vector<float> data_;
-    static std::vector<std::vector<std::vector<vec3>>> lookup_table;
+    static inline std::vector<std::vector<std::vector<vec3>>> lookup_table;
     // D50 from 400 to 700nm in 10nm step
     static inline double d50_spd[31] = {49.3081,56.5128,60.0338,57.8175,74.8249,87.2472,90.6122,91.3681,95.1085,91.9627,95.7237,96.6133,97.129,102.099,100.755,102.317,100,97.735,98.918,93.4988,97.6878,99.2691,99.0415,95.7218,98.8572,95.6672,98.1898,103.003,99.133,87.3809,91.6035};
     static inline double d65_spd[31] = {82.7549,91.486,93.4318,86.6823,104.865,117.008,117.812,114.861,115.923,108.811,109.354,107.802,104.79,107.689,104.405,104.046,100,96.3342,95.788,88.6856,90.0062,89.5991,87.6987,83.2886,83.6992,80.0268,80.2146,82.2778,78.2842,69.7213,71.6091};

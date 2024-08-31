@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
         std::cout << "Possible RGB: " << possible_rgb.x() << "," << possible_rgb.y() << "," << possible_rgb.z() << std::endl;
     } else {
         std::cout << "Lookup table not found. Computing new lookup table..." << std::endl;
-        Spectrum::compute_lookup_tables();
+        Spectrum::compute_lookup_tables(0.01);
         return 0;
     }
 

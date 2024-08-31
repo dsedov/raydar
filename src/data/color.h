@@ -131,6 +131,7 @@ class color : public vec3 {
 
         // Add conversion constructor from vec3
         color(const vec3& v) : vec3(v) {}
+        color(float r, float g, float b, ColorSpace color_space) : vec3(r, g, b), color_space_(color_space) {}
         const color to_rgb() {
             if(color_space_ == ColorSpace::RGB_LIN) {
                 return *this;
