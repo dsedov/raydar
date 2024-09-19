@@ -30,17 +30,17 @@ int main(int argc, char *argv[]) {
     std::ifstream file("lookup_table.bin", std::ios::binary);
     if (file.good()) {
         std::cout << "Loading existing lookup table..." << std::endl;
-        lookup_table = Spectrum::load_lookup_tables(0.01);
-        Spectrum::setLookupTable(lookup_table);
+        lookup_table = spectrum::load_lookup_tables(0.01);
+        spectrum::setLookupTable(lookup_table);
         color target_rgb = color(0.83, 0.25, 0.40);
         target_rgb.set_color_space(color::ColorSpace::SRGB);
-        Spectrum target_spectrum = Spectrum(target_rgb, lookup_table);
-        color possible_rgb = target_spectrum.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700)).to_srgb();
+        spectrum target_spectrum = spectrum(target_rgb, lookup_table);
+        color possible_rgb = target_spectrum.to_rgb(observer(observer::CIE1931_2Deg, 31, 400, 700)).to_srgb();
         std::cout << "Target RGB: " << target_rgb.x() << "," << target_rgb.y() << "," << target_rgb.z() << std::endl;
         std::cout << "Possible RGB: " << possible_rgb.x() << "," << possible_rgb.y() << "," << possible_rgb.z() << std::endl;
     } else {
         std::cout << "Lookup table not found. Computing new lookup table..." << std::endl;
-        Spectrum::compute_lookup_tables(0.01);
+        spectrum::compute_lookup_tables(0.01);
         return 0;
     }
 
@@ -51,12 +51,12 @@ int main(int argc, char *argv[]) {
     hittable_list lights;
 
     // Initialize SpectralConverter
-    Observer observer(Observer::CIE1931_2Deg, Spectrum::RESPONSE_SAMPLES, Spectrum::START_WAVELENGTH, Spectrum::END_WAVELENGTH);
+    observer observer(observer::CIE1931_2Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
 
 
 
     // IMAGE
-    ImagePNG image(settings.image_width, settings.image_height, Spectrum::RESPONSE_SAMPLES, lookup_table, observer);
+    ImagePNG image(settings.image_width, settings.image_height, spectrum::RESPONSE_SAMPLES, lookup_table, observer);
 
     // LOAD USD FILE
     rd::usd::loader loader(settings.usd_file);

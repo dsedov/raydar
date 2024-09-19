@@ -8,9 +8,9 @@
 #include <string>
 #include <iomanip>
 
-class Observer {
+class observer {
 public:
-    enum StandardObserver {
+    enum standard_observer {
         CIE1931_2Deg,
         CIE1931_2Deg_Judd,
         CIE1931_2Deg_JuddVos,
@@ -20,7 +20,7 @@ public:
         CIE2006_2Deg,
         CIE2006_10Deg
     };
-    Observer(enum StandardObserver stdobs, int samples, double start, double end) {
+    observer(enum standard_observer stdobs, int samples, double start, double end) {
 
         switch (stdobs) {
             case CIE1931_2Deg:
@@ -229,7 +229,7 @@ public:
 
 };
 
-class Spectrum {
+class spectrum {
 public:
     static constexpr int RESPONSE_SAMPLES = 31; // 1nm resolution from 380nm to 740nm
     static constexpr float START_WAVELENGTH = 400.0f;
@@ -237,22 +237,22 @@ public:
     static void setLookupTable(const std::vector<std::vector<std::vector<vec3>>>& table) { lookup_table = table; }
     static const std::vector<std::vector<std::vector<vec3>>>& getLookupTable() { return lookup_table; }
 
-    Spectrum() : data_(RESPONSE_SAMPLES) {}
-    Spectrum(const std::vector<float>& data) : data_(data) {
+    spectrum() : data_(RESPONSE_SAMPLES) {}
+    spectrum(const std::vector<float>& data) : data_(data) {
         for(int i; i < data.size(); i++){
             std::cout << " D: " << data[i];
         }
     }
-    Spectrum(const float* data) : data_(data, data + RESPONSE_SAMPLES) {}
-    Spectrum(float r, float g, float b, float coeff_a, float coeff_b, float coeff_c) : data_(RESPONSE_SAMPLES) {
+    spectrum(const float* data) : data_(data, data + RESPONSE_SAMPLES) {}
+    spectrum(float r, float g, float b, float coeff_a, float coeff_b, float coeff_c) : data_(RESPONSE_SAMPLES) {
         // Convert RGB to XYZ
         data_ = std::vector<float>(RESPONSE_SAMPLES);
         for(int i = 0; i < RESPONSE_SAMPLES; i++){
-            data_[i] = spectrum(START_WAVELENGTH + i * (END_WAVELENGTH - START_WAVELENGTH) / RESPONSE_SAMPLES, coeff_a, coeff_b, coeff_c);
+            data_[i] = spectrum_function(START_WAVELENGTH + i * (END_WAVELENGTH - START_WAVELENGTH) / RESPONSE_SAMPLES, coeff_a, coeff_b, coeff_c);
         }
     }
-    Spectrum(float r, float g, float b) : Spectrum(color(r, g, b, color::ColorSpace::RGB_LIN), Spectrum::lookup_table) {}
-    Spectrum(color c, const std::vector<std::vector<std::vector<vec3>>>& lut, float step = 0.01f)
+    spectrum(float r, float g, float b) : spectrum(color(r, g, b, color::ColorSpace::RGB_LIN), spectrum::lookup_table) {}
+    spectrum(color c, const std::vector<std::vector<std::vector<vec3>>>& lut, float step = 0.01f)
         : data_(RESPONSE_SAMPLES) {
         // Convert RGB to XYZ
         c.set_color_space(color::ColorSpace::RGB_LIN);
@@ -301,7 +301,7 @@ public:
 
         for (int i = 0; i < RESPONSE_SAMPLES; i++) {
             float wavelength = START_WAVELENGTH + i * (END_WAVELENGTH - START_WAVELENGTH) / RESPONSE_SAMPLES;
-            data_[i] = spectrum(wavelength, rgb_coeffs.x(), rgb_coeffs.y(), rgb_coeffs.z());
+            data_[i] = spectrum_function(wavelength, rgb_coeffs.x(), rgb_coeffs.y(), rgb_coeffs.z());
         }
     }
     float& operator[](int index) { return data_[index]; }
@@ -309,13 +309,13 @@ public:
     
     int num_wavelengths() const { return static_cast<int>(data_.size()); }
 
-    color to_rgb( const Observer& observer) const {
+    color to_rgb( const observer& observer) const {
         color xyz = to_XYZ(observer);
         color rgb = xyz.to_rgb();
 
         return rgb;
     }
-    color to_XYZ( const Observer& observer) const {
+    color to_XYZ( const observer& observer) const {
         color xyz;
         
         std::vector<double> x_bar(observer.get_length());
@@ -358,14 +358,14 @@ public:
         for(int i = 0; i < MAX_ITERATIONS; i++){
             bool found = false;
             {
-                Spectrum test_spectrum(r, g, b, coeffs.x(), coeffs.y(), coeffs.z());
-                color current_rgb = test_spectrum.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
+                spectrum test_spectrum(r, g, b, coeffs.x(), coeffs.y(), coeffs.z());
+                color current_rgb = test_spectrum.to_rgb(observer(observer::CIE1931_2Deg, 31, 400, 700));
 
-                Spectrum test_spectrum_A(r, g, b, coeffs.x() + LEARNING_RATE, coeffs.y(), coeffs.z());
-                color current_rgb_A = test_spectrum_A.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
+                spectrum test_spectrum_A(r, g, b, coeffs.x() + LEARNING_RATE, coeffs.y(), coeffs.z());
+                color current_rgb_A = test_spectrum_A.to_rgb(observer(observer::CIE1931_2Deg, 31, 400, 700));
 
-                Spectrum test_spectrum_B(r, g, b, coeffs.x() - LEARNING_RATE, coeffs.y(), coeffs.z());
-                color current_rgb_B = test_spectrum_B.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
+                spectrum test_spectrum_B(r, g, b, coeffs.x() - LEARNING_RATE, coeffs.y(), coeffs.z());
+                color current_rgb_B = test_spectrum_B.to_rgb(observer(observer::CIE1931_2Deg, 31, 400, 700));
 
                 if( distance(current_rgb, target_rgb) > distance(current_rgb_A, target_rgb) && distance(current_rgb_A, target_rgb) < distance(current_rgb_B, target_rgb)){
                     coeffs += vec3(LEARNING_RATE, 0.0, 0.0);
@@ -377,14 +377,14 @@ public:
                 }
             }
             {
-                Spectrum test_spectrum(r, g, b, coeffs.x(), coeffs.y(), coeffs.z());
-                color current_rgb = test_spectrum.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
+                spectrum test_spectrum(r, g, b, coeffs.x(), coeffs.y(), coeffs.z());
+                color current_rgb = test_spectrum.to_rgb(observer(observer::CIE1931_2Deg, 31, 400, 700));
 
-                Spectrum test_spectrum_A(r, g, b, coeffs.x(), coeffs.y() + LEARNING_RATE, coeffs.z());
-                color current_rgb_A = test_spectrum_A.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
+                spectrum test_spectrum_A(r, g, b, coeffs.x(), coeffs.y() + LEARNING_RATE, coeffs.z());
+                color current_rgb_A = test_spectrum_A.to_rgb(observer(observer::CIE1931_2Deg, 31, 400, 700));
 
-                Spectrum test_spectrum_B(r, g, b, coeffs.x(), coeffs.y() - LEARNING_RATE, coeffs.z());
-                color current_rgb_B = test_spectrum_B.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
+                spectrum test_spectrum_B(r, g, b, coeffs.x(), coeffs.y() - LEARNING_RATE, coeffs.z());
+                color current_rgb_B = test_spectrum_B.to_rgb(observer(observer::CIE1931_2Deg, 31, 400, 700));
 
                 if( distance(current_rgb, target_rgb) > distance(current_rgb_A, target_rgb) && distance(current_rgb_A, target_rgb) < distance(current_rgb_B, target_rgb)){
                     coeffs += vec3(0.0, LEARNING_RATE, 0.0);
@@ -396,14 +396,14 @@ public:
                 }
             }
             {
-                Spectrum test_spectrum(r, g, b, coeffs.x(), coeffs.y(), coeffs.z());
-                color current_rgb = test_spectrum.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
+                spectrum test_spectrum(r, g, b, coeffs.x(), coeffs.y(), coeffs.z());
+                color current_rgb = test_spectrum.to_rgb(observer(observer::CIE1931_2Deg, 31, 400, 700));
 
-                Spectrum test_spectrum_A(r, g, b, coeffs.x(), coeffs.y(), coeffs.z() + LEARNING_RATE);
-                color current_rgb_A = test_spectrum_A.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
+                spectrum test_spectrum_A(r, g, b, coeffs.x(), coeffs.y(), coeffs.z() + LEARNING_RATE);
+                color current_rgb_A = test_spectrum_A.to_rgb(observer(observer::CIE1931_2Deg, 31, 400, 700));
 
-                Spectrum test_spectrum_B(r, g, b, coeffs.x(), coeffs.y(), coeffs.z() - LEARNING_RATE);
-                color current_rgb_B = test_spectrum_B.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
+                spectrum test_spectrum_B(r, g, b, coeffs.x(), coeffs.y(), coeffs.z() - LEARNING_RATE);
+                color current_rgb_B = test_spectrum_B.to_rgb(observer(observer::CIE1931_2Deg, 31, 400, 700));
 
                 if( distance(current_rgb, target_rgb) > distance(current_rgb_A, target_rgb) && distance(current_rgb_A, target_rgb) < distance(current_rgb_B, target_rgb)){
                     coeffs += vec3(0.0, 0.0, LEARNING_RATE);
@@ -431,8 +431,8 @@ public:
             }
             
         }
-        Spectrum test_spectrum(r, g, b, coeffs.x(), coeffs.y(), coeffs.z());
-        color current_rgb = test_spectrum.to_rgb(Observer(Observer::CIE1931_2Deg, 31, 400, 700));
+        spectrum test_spectrum(r, g, b, coeffs.x(), coeffs.y(), coeffs.z());
+        color current_rgb = test_spectrum.to_rgb(observer(observer::CIE1931_2Deg, 31, 400, 700));
         std::cout << "Target RGB: " << target_rgb.x() << " " << target_rgb.y() << " " << target_rgb.z() << " Current RGB: " << current_rgb.x() << " " << current_rgb.y() << " " << current_rgb.z() << std::endl;
         return coeffs;
     }
@@ -527,36 +527,36 @@ public:
     }
     // Other methods as needed (e.g., arithmetic operations, etc.)
 
-    Spectrum& operator+=(const Spectrum& v) {
+    spectrum& operator+=(const spectrum& v) {
         for (size_t i = 0; i < data_.size(); ++i) {
             data_[i] += v.data_[i];
         }
         return *this;
     }
-    Spectrum& operator-=(const Spectrum& v) {
+    spectrum& operator-=(const spectrum& v) {
         for (size_t i = 0; i < data_.size(); ++i) {
             data_[i] -= v.data_[i];
         }
         return *this;
     }
 
-    Spectrum& operator*=(double t) {
+    spectrum& operator*=(double t) {
         for (size_t i = 0; i < data_.size(); ++i) {
             data_[i] *= t;
         }
         return *this;
     }
-    Spectrum& operator*=(const Spectrum& v) {
+    spectrum& operator*=(const spectrum& v) {
         for (size_t i = 0; i < data_.size(); ++i) {
             data_[i] *= v.data_[i];
         }
         return *this;
     }
 
-    Spectrum& operator/=(double t) {
+    spectrum& operator/=(double t) {
         return *this *= 1/t;
     }
-    Spectrum& operator/=(const Spectrum& v) {
+    spectrum& operator/=(const spectrum& v) {
         for (size_t i = 0; i < data_.size(); ++i) {
             data_[i] /= v.data_[i];
         }
@@ -578,7 +578,7 @@ private:
     }
 
     // modesl a spectrum function from a polynomial
-    double spectrum(double lambda, float coeff_a, float coeff_b, float coeff_c) {
+    double spectrum_function(double lambda, float coeff_a, float coeff_b, float coeff_c) {
         // Normalize lambda to 0-1 range
         double x = (lambda - START_WAVELENGTH) / (END_WAVELENGTH- START_WAVELENGTH);
         double y = coeff_a * x * x + coeff_b * x + coeff_c;

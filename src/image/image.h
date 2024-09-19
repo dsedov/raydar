@@ -6,7 +6,7 @@
 
 class Image {
 public:
-    Image(int width, int height, int num_wavelengths, std::vector<std::vector<std::vector<vec3>>> lookup_table, const Observer& observer) 
+    Image(int width, int height, int num_wavelengths, std::vector<std::vector<std::vector<vec3>>> lookup_table, const observer& observer) 
         : width_(width), height_(height), num_wavelengths_(num_wavelengths), lookup_table_(lookup_table), observer_(observer) {
         row_size_ = width_ * num_wavelengths_;
         image_buffer_ = std::vector<float>(width * height * num_wavelengths);
@@ -16,31 +16,31 @@ public:
     virtual ~Image() {}
     virtual void save(const char* filename) = 0;
 
-    void set_pixel(int x, int y, const Spectrum& spectrum) {
+    void set_pixel(int x, int y, const spectrum& spectrum) {
         int index = y * row_size_ + x * num_wavelengths_;
         for (int i = 0; i < num_wavelengths_; ++i) {
             image_buffer_[index + i] = spectrum[i];
         }
     }
-    void add_to_pixel(int x, int y, const Spectrum& spectrum) {
+    void add_to_pixel(int x, int y, const spectrum& spectrum) {
         int index = y * row_size_ + x * num_wavelengths_;
         for (int i = 0; i < num_wavelengths_; ++i) {
             image_buffer_[index + i] += spectrum[i];
         }
     }
-    Spectrum get_pixel(int x, int y) const {
+    spectrum get_pixel(int x, int y) const {
         int index = y * row_size_ + x * num_wavelengths_;
-        return Spectrum(image_buffer_.data() + index);
+        return spectrum(image_buffer_.data() + index);
     }
 
     // RGB 
     // RGB methods
     void set_pixel(int x, int y, float r, float g, float b) {
-        set_pixel(x, y, Spectrum(color(r, g, b), lookup_table_));
+        set_pixel(x, y, spectrum(color(r, g, b), lookup_table_));
     }
 
     void add_to_pixel(int x, int y, float r, float g, float b) {
-        add_to_pixel(x, y, Spectrum(color(r, g, b), lookup_table_));
+        add_to_pixel(x, y, spectrum(color(r, g, b), lookup_table_));
     }
 
     void add_to_pixel(int x, int y, const color& color) {
@@ -82,6 +82,6 @@ protected:
     int num_wavelengths_;
     int row_size_;
     std::vector<float> image_buffer_;
-    const Observer& observer_;
+    const observer& observer_;
     std::vector<std::vector<std::vector<vec3>>> lookup_table_;
 };

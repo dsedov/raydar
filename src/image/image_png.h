@@ -5,7 +5,7 @@
 
 class ImagePNG : public Image {
 public:
-    ImagePNG(int width, int height, int num_wavelengths, std::vector<std::vector<std::vector<vec3>>> lookup_table, const Observer& observer) 
+    ImagePNG(int width, int height, int num_wavelengths, std::vector<std::vector<std::vector<vec3>>> lookup_table, const observer& observer) 
         : Image(width, height, num_wavelengths, lookup_table, observer) {}
 
     ~ImagePNG() override = default;
@@ -18,7 +18,7 @@ public:
             png_bytep row = png_buffer.data() + y * width_ * 3;
             for (int x = 0; x < width_; x++) {
                 png_bytep pixel = row + x * 3;
-                Spectrum spectrum = get_pixel(x, y);
+                spectrum spectrum = get_pixel(x, y);
                 color rgb = spectrum.to_rgb(observer_);
 
                 pixel[0] = int(255.999 * intensity.clamp(linear_to_gamma(rgb.x()))); // Red channel
