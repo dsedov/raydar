@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
     std::ifstream file("lookup_table.bin", std::ios::binary);
     if (file.good()) {
         std::cout << "Loading existing lookup table..." << std::endl;
-        lookup_table = Spectrum::load_lookup_tables();
+        lookup_table = Spectrum::load_lookup_tables(0.01);
         Spectrum::setLookupTable(lookup_table);
         color target_rgb = color(0.83, 0.25, 0.40);
         target_rgb.set_color_space(color::ColorSpace::SRGB);

@@ -252,7 +252,7 @@ public:
         }
     }
     Spectrum(float r, float g, float b) : Spectrum(color(r, g, b, color::ColorSpace::RGB_LIN), Spectrum::lookup_table) {}
-    Spectrum(color c, const std::vector<std::vector<std::vector<vec3>>>& lut, float step = 0.1f)
+    Spectrum(color c, const std::vector<std::vector<std::vector<vec3>>>& lut, float step = 0.01f)
         : data_(RESPONSE_SAMPLES) {
         // Convert RGB to XYZ
         c.set_color_space(color::ColorSpace::RGB_LIN);
@@ -436,7 +436,7 @@ public:
         std::cout << "Target RGB: " << target_rgb.x() << " " << target_rgb.y() << " " << target_rgb.z() << " Current RGB: " << current_rgb.x() << " " << current_rgb.y() << " " << current_rgb.z() << std::endl;
         return coeffs;
     }
-    static std::vector<vec3> compute_lookup_tables(float step = 0.1) {
+    static std::vector<vec3> compute_lookup_tables(float step = 0.01) {
 
         const int size = static_cast<int>(1.0 / step + 0.5) + 1;  // Changed to include 1.0
         const int total_size = size * size * size;
@@ -495,7 +495,7 @@ public:
 
         return lookup_table;
     }    
-    static std::vector<std::vector<std::vector<vec3>>> load_lookup_tables(float step = 0.1) {
+    static std::vector<std::vector<std::vector<vec3>>> load_lookup_tables(float step = 0.01) {
         const int size = static_cast<int>(1.0 / step + 0.5) + 1;
         const int total_size = size * size * size;
         std::cout << "Loading lookup table with dimensions: " << size << "x" << size << "x" << size << std::endl;
