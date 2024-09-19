@@ -78,10 +78,10 @@ public:
         const int total_samples = sqrt_spp * sqrt_spp;
         ProgressBar progress_bar(total_samples);
         
-
+        std::cout << "Rendering with " << num_threads  << " threads" << std::endl;
         // Calculate total buckets
         const int total_buckets = ((image_buffer.width() + BUCKET_SIZE - 1) / BUCKET_SIZE) *
-                                ((image_buffer.height() + BUCKET_SIZE - 1) / BUCKET_SIZE);
+                                  ((image_buffer.height() + BUCKET_SIZE - 1) / BUCKET_SIZE);
 
         auto worker = [&]() {
 
@@ -197,12 +197,6 @@ public:
 
         return vec3(px, py, 0);
     }
-
-    vec3 sample_square(int s_i, int s_j) const {
-        // Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square.
-        return vec3(random_double(), random_double() - 0.5, 0);
-    }
-
     void process_bucket(const Bucket& bucket, const hittable& world, const hittable& lights) {
         const int PACKET_SIZE = 4; // Process 4 rays at a time
         const int total_samples = sqrt_spp * sqrt_spp;
@@ -222,8 +216,9 @@ public:
                             rays[pj * PACKET_SIZE + pi] = get_ray(i + pi, j + pj, s_i, s_j, 0);
                         }
                     }
-
-                    trace_packet(rays, world, lights, pixel_colors);
+                    for (int i = 0; i < rays.size(); ++i) {
+                        pixel_colors[i] += ray_color(rays[i], max_depth, world, lights);
+                    }
                 }
 
                 // Set pixel colors
@@ -233,12 +228,6 @@ public:
                     }
                 }
             }
-        }
-    }
-
-    void trace_packet(const std::array<ray, 16>& rays, const hittable& world, const hittable& lights, std::array<color, 16>& pixel_colors) {
-        for (int i = 0; i < rays.size(); ++i) {
-            pixel_colors[i] += ray_color(rays[i], max_depth, world, lights);
         }
     }
 

@@ -115,6 +115,11 @@ public:
 #define CIELAB_K 903.3
 #define CIELAB_KE pow((CIELAB_E * CIELAB_K + 16.0)/116.0, 3.0)
 
+struct spectral_sample {
+    int wavelength;
+    double value;
+};
+
 class color : public vec3 {
 
     public:
