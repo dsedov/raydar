@@ -255,7 +255,7 @@ public:
             return color_from_emission;
 
         if (srec.skip_pdf) {
-            return srec.attenuation * ray_color(srec.skip_pdf_ray, depth-1, world, lights);
+            return srec.attenuation * ray_color(srec.skip_pdf_ray, depth-1, world, lights) + color_from_emission;
         }
 
         auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);

@@ -32,14 +32,6 @@ int main(int argc, char *argv[]) {
         std::cout << "Loading existing lookup table..." << std::endl;
         lookup_table = spectrum::load_lookup_tables(0.01);
         spectrum::setLookupTable(lookup_table, 0.01);
-        color target_rgb = color(0.83, 0.25, 0.40);
-        target_rgb.set_color_space(color::ColorSpace::SRGB);
-        std::cout << "Target RGB: " << target_rgb.x() << "," << target_rgb.y() << "," << target_rgb.z() << std::endl;
-        spectrum target_spectrum = spectrum(target_rgb);
-        std::cout << "Target spectrum: "  << std::endl;
-        color possible_rgb = target_spectrum.to_rgb(observer(observer::CIE1931_2Deg, 31, 400, 700)).to_srgb();
-        std::cout << "Target RGB: " << target_rgb.x() << "," << target_rgb.y() << "," << target_rgb.z() << std::endl;
-        std::cout << "Possible RGB: " << possible_rgb.x() << "," << possible_rgb.y() << "," << possible_rgb.z() << std::endl;
     } else {
         std::cout << "Lookup table not found. Computing new lookup table..." << std::endl;
         spectrum::compute_lookup_tables(0.01);

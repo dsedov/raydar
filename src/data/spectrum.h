@@ -525,7 +525,6 @@ public:
 
         return lookup_table;
     }
-    // Other methods as needed (e.g., arithmetic operations, etc.)
 
     spectrum& operator+=(const spectrum& v) {
         for (size_t i = 0; i < data_.size(); ++i) {
@@ -613,6 +612,21 @@ public:
         }
         os << "]";
         return os;
+    }
+
+    static spectrum d65(){
+        spectrum s;
+        for(int i = 0; i < RESPONSE_SAMPLES; i++){
+            s[i] = d65_spd[i];
+        }
+        return s;
+    }
+    static spectrum d50(){
+        spectrum s;
+        for(int i = 0; i < RESPONSE_SAMPLES; i++){
+            s[i] = d50_spd[i];
+        }
+        return s;
     }
 private:
     std::vector<float> data_;

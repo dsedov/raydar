@@ -4,6 +4,7 @@
 
 #include <cstdio>
 #include <vector>
+#include <string>
 #include "../raydar.h"
 
 #include "../data/hittable.h"
@@ -36,6 +37,7 @@ namespace rd::usd::light {
         pxr::GfVec3f shadowColor;
         bool shadowEnable;
         float specular;
+        std::string textureFilePath;
         pxr::VtArray<pxr::GfVec3f> vertices;
         pxr::GfVec3f rotation;
         pxr::GfVec3f scale;
@@ -78,6 +80,14 @@ namespace rd::usd::light {
         
         pxr::UsdAttribute specularAttr = prim.GetAttribute(pxr::TfToken("inputs:specular"));
         if (specularAttr) specularAttr.Get(&light.specular);
+
+        pxr::UsdAttribute textureFileAttr = prim.GetAttribute(pxr::TfToken("inputs:texture:file"));
+        if (textureFileAttr) {
+            pxr::SdfAssetPath texturePath;
+            if (textureFileAttr.Get(&texturePath)) {
+                light.textureFilePath = texturePath.GetAssetPath();
+            }
+        }
         
         pxr::UsdAttribute verticesAttr = prim.GetAttribute(pxr::TfToken("primvars:arnold:vertices"));
         if (verticesAttr) {verticesAttr.Get(&light.vertices);
@@ -128,7 +138,7 @@ namespace rd::usd::light {
             }
         }
         for(const auto& light : areaLightsDescriptors) {
-            auto light_material = make_shared<rd::core::light>(color(1.0, 1.0, 1.0), light.intensity);
+            auto light_material = make_shared<rd::core::light>(spectrum::d65(), light.intensity);
             shared_ptr<rd::core::area_light> light_quad = make_shared<rd::core::area_light>(light.Q, light.u, light.v, light_material);
             area_lights.push_back(light_quad);
         }
