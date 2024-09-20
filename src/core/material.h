@@ -196,7 +196,13 @@ namespace rd::core {
             specular_weight(specular_weight), specular_color(specular_color), 
             specular_roughness(std::clamp(specular_roughness, 0.0, 1.0)), specular_ior(specular_ior),
             transmission_weight(transmission_weight), transmission_color(transmission_color),
-            emission_luminance(emission_luminance), emission_color(emission_color) {}
+            emission_luminance(emission_luminance), emission_color(emission_color) {
+
+                std::cout << "base_color: " << base_color << std::endl;
+                std::cout << "specular_color: " << specular_color << std::endl;
+                std::cout << "transmission_color: " << transmission_color << std::endl;
+                std::cout << "emission_color: " << emission_color << std::endl;
+            }
 
         bool scatter(const ray& r_in, const hit_record& rec, scatter_record& srec) const override {
             vec3 unit_direction = unit_vector(r_in.direction());

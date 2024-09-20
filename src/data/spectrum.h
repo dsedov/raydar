@@ -596,6 +596,15 @@ public:
         }
         return *this;
     }
+    friend std::ostream& operator<<(std::ostream& os, const spectrum& s) {
+        os << "Spectrum: [";
+        for (size_t i = 0; i < s.data_.size(); ++i) {
+            if (i > 0) os << ", ";
+            os << std::fixed << std::setprecision(4) << s.data_[i];
+        }
+        os << "]";
+        return os;
+    }
 private:
     std::vector<float> data_;
     static inline std::vector<std::vector<std::vector<vec3>>> lookup_table;
