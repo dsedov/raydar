@@ -234,7 +234,7 @@ public:
     static constexpr int RESPONSE_SAMPLES = 31; // 1nm resolution from 380nm to 740nm
     static constexpr float START_WAVELENGTH = 400.0f;
     static constexpr float END_WAVELENGTH = 700.0f;
-    static void setLookupTable(const std::vector<std::vector<std::vector<vec3>>>& table) { lookup_table = table; }
+    static void setLookupTable(const std::vector<std::vector<std::vector<vec3>>>& table, float step = 0.01f) { spectrum::lookup_table = table; spectrum::step = step; }
     static const std::vector<std::vector<std::vector<vec3>>>& getLookupTable() { return lookup_table; }
 
     spectrum() : data_(RESPONSE_SAMPLES) {}
@@ -251,8 +251,8 @@ public:
             data_[i] = spectrum_function(START_WAVELENGTH + i * (END_WAVELENGTH - START_WAVELENGTH) / RESPONSE_SAMPLES, coeff_a, coeff_b, coeff_c);
         }
     }
-    spectrum(float r, float g, float b) : spectrum(color(r, g, b, color::ColorSpace::RGB_LIN), spectrum::lookup_table) {}
-    spectrum(color c, const std::vector<std::vector<std::vector<vec3>>>& lut, float step = 0.01f)
+    spectrum(float r, float g, float b) : spectrum(color(r, g, b, color::ColorSpace::RGB_LIN)) {}
+    spectrum(color c)
         : data_(RESPONSE_SAMPLES) {
         // Convert RGB to XYZ
         c.set_color_space(color::ColorSpace::RGB_LIN);
@@ -260,7 +260,7 @@ public:
 
         vec3 rgb_coeffs;
 
-        int size = static_cast<int>(1.0f / step + 0.5f) + 1;
+        int size = static_cast<int>(1.0f / spectrum::step + 0.5f) + 1;
         float r_scaled = c.x() * (size - 1);
         float g_scaled = c.y() * (size - 1);
         float b_scaled = c.z() * (size - 1);
@@ -276,17 +276,17 @@ public:
         // Check if we need to interpolate
         if (r_frac < 1e-6 && g_frac < 1e-6 && b_frac < 1e-6) {
             // Exact match, no interpolation needed
-            rgb_coeffs = lut[r_index][g_index][b_index];
+            rgb_coeffs = spectrum::lookup_table[r_index][g_index][b_index];
         } else {
             // Trilinear interpolation
-            vec3 c000 = lut[r_index][g_index][b_index];
-            vec3 c001 = (b_index < size - 1) ? lut[r_index][g_index][b_index + 1] : c000;
-            vec3 c010 = (g_index < size - 1) ? lut[r_index][g_index + 1][b_index] : c000;
-            vec3 c011 = (g_index < size - 1 && b_index < size - 1) ? lut[r_index][g_index + 1][b_index + 1] : c010;
-            vec3 c100 = (r_index < size - 1) ? lut[r_index + 1][g_index][b_index] : c000;
-            vec3 c101 = (r_index < size - 1 && b_index < size - 1) ? lut[r_index + 1][g_index][b_index + 1] : c100;
-            vec3 c110 = (r_index < size - 1 && g_index < size - 1) ? lut[r_index + 1][g_index + 1][b_index] : c100;
-            vec3 c111 = (r_index < size - 1 && g_index < size - 1 && b_index < size - 1) ? lut[r_index + 1][g_index + 1][b_index + 1] : c110;
+            vec3 c000 = spectrum::lookup_table[r_index][g_index][b_index];
+            vec3 c001 = (b_index < size - 1) ? spectrum::lookup_table[r_index][g_index][b_index + 1] : c000;
+            vec3 c010 = (g_index < size - 1) ? spectrum::lookup_table[r_index][g_index + 1][b_index] : c000;
+            vec3 c011 = (g_index < size - 1 && b_index < size - 1) ? spectrum::lookup_table[r_index][g_index + 1][b_index + 1] : c010;
+            vec3 c100 = (r_index < size - 1) ? spectrum::lookup_table[r_index + 1][g_index][b_index] : c000;
+            vec3 c101 = (r_index < size - 1 && b_index < size - 1) ? spectrum::lookup_table[r_index + 1][g_index][b_index + 1] : c100;
+            vec3 c110 = (r_index < size - 1 && g_index < size - 1) ? spectrum::lookup_table[r_index + 1][g_index + 1][b_index] : c100;
+            vec3 c111 = (r_index < size - 1 && g_index < size - 1 && b_index < size - 1) ? spectrum::lookup_table[r_index + 1][g_index + 1][b_index + 1] : c110;
 
             vec3 c00 = c000 * (1 - r_frac) + c100 * r_frac;
             vec3 c01 = c001 * (1 - r_frac) + c101 * r_frac;
@@ -565,6 +565,7 @@ public:
 private:
     std::vector<float> data_;
     static inline std::vector<std::vector<std::vector<vec3>>> lookup_table;
+    static inline float step;
     // D50 from 400 to 700nm in 10nm step
     static inline double d50_spd[31] = {49.3081,56.5128,60.0338,57.8175,74.8249,87.2472,90.6122,91.3681,95.1085,91.9627,95.7237,96.6133,97.129,102.099,100.755,102.317,100,97.735,98.918,93.4988,97.6878,99.2691,99.0415,95.7218,98.8572,95.6672,98.1898,103.003,99.133,87.3809,91.6035};
     static inline double d65_spd[31] = {82.7549,91.486,93.4318,86.6823,104.865,117.008,117.812,114.861,115.923,108.811,109.354,107.802,104.79,107.689,104.405,104.046,100,96.3342,95.788,88.6856,90.0062,89.5991,87.6987,83.2886,83.6992,80.0268,80.2146,82.2778,78.2842,69.7213,71.6091};

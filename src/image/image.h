@@ -6,8 +6,8 @@
 
 class Image {
 public:
-    Image(int width, int height, int num_wavelengths, std::vector<std::vector<std::vector<vec3>>> lookup_table, const observer& observer) 
-        : width_(width), height_(height), num_wavelengths_(num_wavelengths), lookup_table_(lookup_table), observer_(observer) {
+    Image(int width, int height, int num_wavelengths, const observer& observer) 
+        : width_(width), height_(height), num_wavelengths_(num_wavelengths), observer_(observer) {
         row_size_ = width_ * num_wavelengths_;
         image_buffer_ = std::vector<float>(width * height * num_wavelengths);
         std::fill(image_buffer_.begin(), image_buffer_.end(), 0.0f);
@@ -36,11 +36,11 @@ public:
     // RGB 
     // RGB methods
     void set_pixel(int x, int y, float r, float g, float b) {
-        set_pixel(x, y, spectrum(color(r, g, b), lookup_table_));
+        set_pixel(x, y, spectrum(color(r, g, b)));
     }
 
     void add_to_pixel(int x, int y, float r, float g, float b) {
-        add_to_pixel(x, y, spectrum(color(r, g, b), lookup_table_));
+        add_to_pixel(x, y, spectrum(color(r, g, b)));
     }
 
     void add_to_pixel(int x, int y, const color& color) {
@@ -83,5 +83,4 @@ protected:
     int row_size_;
     std::vector<float> image_buffer_;
     const observer& observer_;
-    std::vector<std::vector<std::vector<vec3>>> lookup_table_;
 };
