@@ -217,7 +217,9 @@ public:
                         }
                     }
                     for (int i = 0; i < rays.size(); ++i) {
-                        pixel_colors[i] += ray_color(rays[i], max_depth, world, lights);
+                        for (int wl = 0; wl < spectrum::RESPONSE_SAMPLES; ++wl) {
+                            pixel_colors[i][wl] += ray_color(rays[i], max_depth, world, lights)[wl];
+                        }
                     }
                 }
 

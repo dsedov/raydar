@@ -596,6 +596,15 @@ public:
         }
         return *this;
     }
+
+
+    float get_wavelength(int index) const {
+        if (index < 0 || index >= static_cast<int>(data_.size())) {
+            throw std::out_of_range("Index out of range");
+        }
+        return START_WAVELENGTH + index * (END_WAVELENGTH - START_WAVELENGTH) / (data_.size() - 1);
+    }
+
     friend std::ostream& operator<<(std::ostream& os, const spectrum& s) {
         os << "Spectrum: [";
         for (size_t i = 0; i < s.data_.size(); ++i) {
