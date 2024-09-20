@@ -10,7 +10,7 @@
 class hit_record;
 class scatter_record {
   public:
-    color attenuation;
+    spectrum attenuation;
     shared_ptr<pdf> pdf_ptr;
     bool skip_pdf;
     ray skip_pdf_ray;
@@ -30,8 +30,8 @@ namespace rd::core {
         ) const {
             return 0;
         }
-        virtual color emitted(const ray& r_in, const hit_record& rec, double u, double v, const point3& p) const {
-            return color(0,0,0);
+        virtual spectrum emitted(const ray& r_in, const hit_record& rec, double u, double v, const point3& p) const {
+            return spectrum(color(0,0,0));
         }
         virtual bool is_visible() const {
             return visible;
@@ -51,7 +51,7 @@ namespace rd::core {
     };
     class lambertian : public material {
     public:
-        lambertian(const color& albedo) : albedo(albedo) {}
+        lambertian(const spectrum& albedo) : albedo(albedo) {}
 
         bool scatter(const ray& r_in, const hit_record& rec, scatter_record& srec) const override {
             onb uvw(rec.normal);
@@ -75,11 +75,11 @@ namespace rd::core {
         
 
     private:
-        color albedo;
+        spectrum albedo;
     };
     class constant : public material {
     public:
-        constant(const color& c) : albedo(c) {}
+        constant(const spectrum& c) : albedo(c) {}
 
         bool scatter(const ray& r_in, const hit_record& rec, scatter_record& srec) 
         const override {
@@ -87,17 +87,17 @@ namespace rd::core {
             return false;
         }
 
-        color emitted(const ray& r_in, const hit_record& rec, double u, double v, const point3& p) const override {
+        spectrum emitted(const ray& r_in, const hit_record& rec, double u, double v, const point3& p) const override {
             // Instead of scattering, we emit the constant color
             return albedo;
         }
 
     private:
-        color albedo;
+        spectrum albedo;
     };
     class light : public material {
     public:
-        light(const color& light_color, double light_intensity) : light_color(light_color), light_intensity(light_intensity) {
+        light(const spectrum& light_color, double light_intensity) : light_color(light_color), light_intensity(light_intensity) {
             set_visible(true), set_cast_shadow(false);
         }
 
@@ -106,20 +106,20 @@ namespace rd::core {
             return false;
         }
 
-        color emitted(const ray& r_in, const hit_record& rec, double u, double v, const point3& p) const override {
+        spectrum emitted(const ray& r_in, const hit_record& rec, double u, double v, const point3& p) const override {
             if (!rec.front_face)
-                return color(0,0,0);
+                return spectrum(color(0,0,0));
             return light_color * light_intensity;
         }
 
     private:
-        color light_color;
+        spectrum light_color;
         double light_intensity;
 
     };
     class metal : public material {
     public:
-        metal(const color& albedo, double fuzz) : albedo(albedo), fuzz(fuzz < 1 ? fuzz : 1) {}
+        metal(const spectrum& albedo, double fuzz) : albedo(albedo), fuzz(fuzz < 1 ? fuzz : 1) {}
 
         bool scatter(const ray& r_in, const hit_record& rec, scatter_record& srec)
         const override {
@@ -138,7 +138,7 @@ namespace rd::core {
         }
 
     private:
-        color albedo;
+        spectrum albedo;
         double fuzz;
     };
     class dielectric : public material {
@@ -147,7 +147,7 @@ namespace rd::core {
 
         bool scatter(const ray& r_in, const hit_record& rec, scatter_record& srec)
         const override {
-            srec.attenuation = color(1.0, 1.0, 0.9);
+            srec.attenuation = spectrum(color(1.0, 1.0, 0.9));
             double ri = rec.front_face ? (1.0/refraction_index) : refraction_index;
 
             vec3 unit_direction = unit_vector(r_in.direction());
@@ -188,10 +188,10 @@ namespace rd::core {
     class advanced_pbr_material : public material {
     public:
         advanced_pbr_material(
-            double base_weight, const color& base_color, double base_metalness,
-            double specular_weight, const color& specular_color, double specular_roughness, double specular_ior,
-            double transmission_weight, const color& transmission_color,
-            double emission_luminance, const color& emission_color
+            double base_weight, const spectrum& base_color, double base_metalness,
+            double specular_weight, const spectrum& specular_color, double specular_roughness, double specular_ior,
+            double transmission_weight, const spectrum& transmission_color,
+            double emission_luminance, const spectrum& emission_color
         ) : base_weight(base_weight), base_color(base_color), base_metalness(base_metalness),
             specular_weight(specular_weight), specular_color(specular_color), 
             specular_roughness(std::clamp(specular_roughness, 0.0, 1.0)), specular_ior(specular_ior),
@@ -201,7 +201,7 @@ namespace rd::core {
         bool scatter(const ray& r_in, const hit_record& rec, scatter_record& srec) const override {
             vec3 unit_direction = unit_vector(r_in.direction());
             vec3 reflected = reflect(unit_direction, rec.normal);
-            color weighted_base_color = base_color * base_weight;
+            spectrum weighted_base_color = base_color * base_weight;
 
             // Calculate the total weight
             double total_weight = base_weight + specular_weight + transmission_weight;
@@ -256,26 +256,26 @@ namespace rd::core {
             auto cosine = dot(rec.normal, unit_vector(scattered.direction()));
             return cosine < 0 ? 0 : cosine / pi;
         }
-        color emitted(const ray& r_in, const hit_record& rec, double u, double v, const point3& p) const override {
-            return emission_luminance * emission_color;
+        spectrum emitted(const ray& r_in, const hit_record& rec, double u, double v, const point3& p) const override {
+            return emission_color * emission_luminance;
         }
 
         double gamma = 1.0;
         double offset = 0.0;
-        color tint = color(1.0, 1.0, 1.0);
+        spectrum tint = spectrum(color(1.0, 1.0, 1.0));
 
     private:
         double base_weight;
-        color base_color;
+        spectrum base_color;
         double base_metalness;
         double specular_weight;
-        color specular_color;
+        spectrum specular_color;
         double specular_roughness;
         double specular_ior;
         double transmission_weight;
-        color transmission_color;
+        spectrum transmission_color;
         double emission_luminance;
-        color emission_color;
+        spectrum emission_color;
         static double reflectance(double cosine, double ref_idx) {
             // Use Schlick's approximation for reflectance.
             auto r0 = (1 - ref_idx) / (1 + ref_idx);

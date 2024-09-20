@@ -203,8 +203,8 @@ public:
 
         for (int j = bucket.start_y; j < bucket.end_y; j += PACKET_SIZE) {
             for (int i = bucket.start_x; i < bucket.end_x; i += PACKET_SIZE) {
-                std::array<color, PACKET_SIZE * PACKET_SIZE> pixel_colors;
-                pixel_colors.fill(color(0, 0, 0));
+                std::array<spectrum, PACKET_SIZE * PACKET_SIZE> pixel_colors;
+                pixel_colors.fill( spectrum(color(0, 0, 0)));
 
                 for (int s = 0; s < total_samples; ++s) {
                     int s_i = s % sqrt_spp;
@@ -231,7 +231,7 @@ public:
         }
     }
 
-    color ray_color(const ray& r, int depth, const hittable& world, const hittable& lights) const {
+    spectrum ray_color(const ray& r, int depth, const hittable& world, const hittable& lights) const {
         if (depth <= 0)
             return color(0,0,0);
 
@@ -246,7 +246,7 @@ public:
         }
 
         scatter_record srec;
-        color color_from_emission = rec.mat->emitted(r, rec, rec.u, rec.v, rec.p);
+        spectrum color_from_emission = rec.mat->emitted(r, rec, rec.u, rec.v, rec.p);
 
         if (!rec.mat->scatter(r, rec, srec))
             return color_from_emission;
@@ -263,7 +263,7 @@ public:
 
         double scattering_pdf = rec.mat->scattering_pdf(r, rec, scattered);
 
-        color color_from_scatter = (srec.attenuation * scattering_pdf * ray_color(scattered, depth-1, world, lights)) / pdf_val;
+        spectrum color_from_scatter = (srec.attenuation * scattering_pdf * ray_color(scattered, depth-1, world, lights)) / pdf_val;
 
         return color_from_emission + color_from_scatter;
     }

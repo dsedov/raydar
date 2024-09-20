@@ -552,7 +552,41 @@ public:
         }
         return *this;
     }
-
+    spectrum operator*(double t) const {
+        spectrum result = *this;
+        for (size_t i = 0; i < result.data_.size(); ++i) {
+            result.data_[i] *= t;
+        }
+        return result;
+    }
+    spectrum operator/(double t) const {
+        spectrum result = *this;
+        for (size_t i = 0; i < result.data_.size(); ++i) {
+            result.data_[i] /= t;
+        }
+        return result;
+    }
+    spectrum operator*(const spectrum& v) const {
+        spectrum result = *this;
+        for (size_t i = 0; i < result.data_.size(); ++i) {
+            result.data_[i] *= v.data_[i];
+        }
+        return result;
+    }
+    spectrum operator+(const spectrum& v) const {
+        spectrum result = *this;
+        for (size_t i = 0; i < result.data_.size(); ++i) {
+            result.data_[i] += v.data_[i];
+        }
+        return result;
+    }
+    spectrum operator-(const spectrum& v) const {
+        spectrum result = *this;
+        for (size_t i = 0; i < result.data_.size(); ++i) {
+            result.data_[i] -= v.data_[i];
+        }
+        return result;
+    }
     spectrum& operator/=(double t) {
         return *this *= 1/t;
     }
@@ -587,3 +621,4 @@ private:
     }
   
 };
+
