@@ -229,7 +229,8 @@ namespace rd::core {
                 srec.skip_pdf = true;
 
             } else {
-                double refraction_ratio = rec.front_face ? (1.0 / specular_ior) : specular_ior;
+                double computed_ior = specular_ior + (r_in.wavelength - 550.0) / 300.0 / 8.0;
+                double refraction_ratio = rec.front_face ? (1.0 / computed_ior) : computed_ior;
                 double cos_theta = fmin(dot(-unit_direction, rec.normal), 1.0);
                 double sin_theta = sqrt(1.0 - cos_theta * cos_theta);
                 bool cannot_refract = refraction_ratio * sin_theta > 1.0;

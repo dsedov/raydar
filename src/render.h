@@ -218,6 +218,7 @@ public:
                     }
                     for (int i = 0; i < rays.size(); ++i) {
                         for (int wl = 0; wl < spectrum::RESPONSE_SAMPLES; ++wl) {
+                            rays[i].wavelength = spectrum::START_WAVELENGTH + wl * spectrum::RESPONSE_SAMPLES;
                             pixel_colors[i][wl] += ray_color(rays[i], max_depth, world, lights)[wl];
                         }
                     }

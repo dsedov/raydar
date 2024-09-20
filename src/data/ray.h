@@ -8,7 +8,7 @@ class ray {
     ray() {}
 
     ray(const point3& origin, const vec3& direction, const int depth = 0) : orig(origin), dir(direction), depth(depth) {}
-
+    float wavelength = -1.0;
     const point3& origin() const  { return orig; }
     const vec3& direction() const { return dir; }
 
@@ -20,7 +20,7 @@ class ray {
     }
     
   private:
-  int depth = 0;
+    int depth = 0;
     point3 orig;
     vec3 dir;
     
