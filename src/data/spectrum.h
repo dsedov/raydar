@@ -1,4 +1,6 @@
-#pragma once
+#ifndef SPECTRUM_H
+#define SPECTRUM_H
+
 #include <vector>
 #include <array>
 #include <cmath>
@@ -7,6 +9,9 @@
 #include <memory>
 #include <string>
 #include <iomanip>
+#include <thread>
+#include <fstream>
+#include <iostream>
 
 class observer {
 public:
@@ -444,10 +449,7 @@ public:
         std::cout << "Computing lookup table with total size: " << total_size << std::endl;
         std::vector<vec3> lookup_table(total_size, vec3(0.0, 0.0, 0.0));
 
-        #include <thread>
-        #include <vector>
-        #include <fstream>
-        #include <iostream>
+        
 
         const int num_threads = std::thread::hardware_concurrency();
         std::vector<std::thread> threads;
@@ -655,3 +657,4 @@ private:
   
 };
 
+#endif // SPECTRUM_H

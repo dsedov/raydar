@@ -1,4 +1,6 @@
-#pragma once
+#ifndef IMAGE_H
+#define IMAGE_H
+
 #include <iostream>
 #include <vector>
 #include "data/color.h"
@@ -84,3 +86,5 @@ protected:
     std::vector<float> image_buffer_;
     const observer& observer_;
 };
+
+#endif // IMAGE_H

@@ -1,5 +1,9 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.16)
 project(raydar)
+
+find_package(Qt5 COMPONENTS Core Widgets REQUIRED)
+set(CMAKE_AUTOMOC ON)
+
 #set(CMAKE_BUILD_TYPE Debug)
 if(APPLE)
     set(CMAKE_OSX_ARCHITECTURES "arm64")
@@ -30,7 +34,7 @@ if(OpenMP_CXX_FOUND)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
-find_package(Qt6 COMPONENTS Core Gui Widgets REQUIRED)
+
 find_package(OpenEXR REQUIRED)
 
 if (WIN32)
@@ -62,16 +66,21 @@ find_library(USD_GF_LIB usd_gf PATHS ${USD_ROOT}/lib)
 find_library(USD_USDShade_LIB usd_usdShade PATHS ${USD_ROOT}/lib)
 find_library(USD_USD_LUX_LIB usd_usdLux PATHS ${USD_ROOT}/lib)
 
-# Add the executable
-add_executable(raydar src/main.cpp)
+# Add the new render_window.cpp to your source files
+set(SOURCES
+    src/main.cpp
+    src/render.cpp
+    src/ui/render_window.cpp 
+)
+add_executable(raydar ${SOURCES})
 
-# Include directories
+# Include directories   
 target_include_directories(raydar PRIVATE include ${PNG_INCLUDE_DIR})
 target_include_directories(raydar PRIVATE src)
 target_include_directories(raydar PRIVATE ${OpenEXR_INCLUDE_DIRS})
-target_include_directories(raydar PRIVATE ${Qt6Core_INCLUDE_DIRS})
-target_include_directories(raydar PRIVATE ${Qt6Gui_INCLUDE_DIRS})
-target_include_directories(raydar PRIVATE ${Qt6Widgets_INCLUDE_DIRS})
+target_include_directories(raydar PRIVATE ${Qt5Core_INCLUDE_DIRS})
+target_include_directories(raydar PRIVATE ${Qt5Gui_INCLUDE_DIRS})
+target_include_directories(raydar PRIVATE ${Qt5Widgets_INCLUDE_DIRS})
 
 # Link libraries
 target_link_libraries(raydar PRIVATE 
@@ -85,9 +94,9 @@ target_link_libraries(raydar PRIVATE
                                 ${USD_GF_LIB}
                                 ${USD_USDShade_LIB}
                                 ${USD_USD_LUX_LIB}
-                                ${Qt6Core_LIBRARIES}
-                                ${Qt6Gui_LIBRARIES}
-                                ${Qt6Widgets_LIBRARIES}
+                                ${Qt5Core_LIBRARIES}
+                                ${Qt5Gui_LIBRARIES}
+                                ${Qt5Widgets_LIBRARIES}
                                 ${OpenEXR_LIBRARIES})
 
 # Add compile definitions if needed
@@ -103,6 +112,3 @@ if (WIN32)
             /wd4251
         )
 endif()
-# Print link libraries for debugging
-get_target_property(LINKED_LIBS raydar LINK_LIBRARIES)
-message(STATUS "Linked libraries: ${LINKED_LIBS}")
