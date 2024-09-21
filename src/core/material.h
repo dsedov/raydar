@@ -111,7 +111,7 @@ namespace rd::core {
             if (!rec.front_face)
                 return spectrum(color(0,0,0));
             if (texture) {
-                return texture->uv_value(u, v) * light_intensity;
+                return light_color * texture->uv_value(u, v) * light_intensity;
             }
             return light_color * light_intensity;
         }

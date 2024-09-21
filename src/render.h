@@ -67,7 +67,7 @@ public:
     
     /* Public Camera Parameters Here */
     render(Image & image_buffer, rd::core::camera camera) : image_buffer(image_buffer), camera(camera) { }
-    int mtpool_bucket_prog_render(const hittable& world, const hittable& lights) {
+    int mtpool_bucket_prog_render(const hittable& world, const hittable& lights, std::atomic<bool>& should_continue_rendering) {
         initialize();
         auto start_time = std::chrono::high_resolution_clock::now();
         const int num_threads = std::thread::hardware_concurrency();
@@ -86,6 +86,10 @@ public:
         auto worker = [&]() {
 
             while (true) {
+                if (!should_continue_rendering) {
+                    break;
+                }
+
                 int bucket_index = next_bucket.fetch_add(1);
                 if (bucket_index >= total_buckets) {
                     break;
@@ -217,7 +221,7 @@ public:
                         }
                     }
                     for (int i = 0; i < rays.size(); ++i) {
-                        bool sample_wavelength = false;
+                        bool sample_wavelength = true;
                         if (sample_wavelength) {
                             for (int wl = 0; wl < spectrum::RESPONSE_SAMPLES; ++wl) {
                                 rays[i].wavelength = spectrum::START_WAVELENGTH + wl * spectrum::RESPONSE_SAMPLES;

@@ -30,6 +30,8 @@ if(OpenMP_CXX_FOUND)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
+find_package(Qt6 COMPONENTS Core Gui Widgets REQUIRED)
+find_package(OpenEXR REQUIRED)
 
 if (WIN32)
     set(PNG_INCLUDE_DIR "D:/dev/vcpkg/packages/libpng_x64-windows/include")
@@ -66,6 +68,10 @@ add_executable(raydar src/main.cpp)
 # Include directories
 target_include_directories(raydar PRIVATE include ${PNG_INCLUDE_DIR})
 target_include_directories(raydar PRIVATE src)
+target_include_directories(raydar PRIVATE ${OpenEXR_INCLUDE_DIRS})
+target_include_directories(raydar PRIVATE ${Qt6Core_INCLUDE_DIRS})
+target_include_directories(raydar PRIVATE ${Qt6Gui_INCLUDE_DIRS})
+target_include_directories(raydar PRIVATE ${Qt6Widgets_INCLUDE_DIRS})
 
 # Link libraries
 target_link_libraries(raydar PRIVATE 
@@ -78,7 +84,11 @@ target_link_libraries(raydar PRIVATE
                                 ${USD_VT_LIB}
                                 ${USD_GF_LIB}
                                 ${USD_USDShade_LIB}
-                                ${USD_USD_LUX_LIB})
+                                ${USD_USD_LUX_LIB}
+                                ${Qt6Core_LIBRARIES}
+                                ${Qt6Gui_LIBRARIES}
+                                ${Qt6Widgets_LIBRARIES}
+                                ${OpenEXR_LIBRARIES})
 
 # Add compile definitions if needed
 target_compile_definitions(raydar PRIVATE ${PNG_DEFINITIONS} NOMINMAX WIN32_LEAN_AND_MEAN)

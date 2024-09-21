@@ -108,8 +108,8 @@ public:
                 png_bytep pixel = row + x * 3;
                 spectrum spectrum = get_pixel(x, y);
                 color rgb = spectrum.to_rgb(observer_);
-                
-                std::cout << rgb << std::endl;
+
+                // std::cout << rgb << std::endl;
 
                 pixel[0] = int(255.999 * intensity.clamp(linear_to_gamma(rgb.x()))); // Red channel
                 pixel[1] = int(255.999 * intensity.clamp(linear_to_gamma(rgb.y()))); // Green channel

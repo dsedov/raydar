@@ -11,6 +11,7 @@ class settings {
     int image_height = 768;
     int samples = 4;
     int max_depth = 3;
+    bool show_ui = false;
     std::string usd_file;
     std::string image_file = "output.png";
 
@@ -25,7 +26,8 @@ class settings {
             ("r,resolution", "Resolution (two integers)", cxxopts::value<std::vector<int>>()->default_value("1024,768"))
             ("s,samples", "Number of samples", cxxopts::value<int>()->default_value("4"))
             ("d,depth", "Max depth", cxxopts::value<int>()->default_value("10"))
-            ("h,help", "Print usage");
+            ("h,help", "Print usage")
+            ("ui", "Show UI", cxxopts::value<bool>()->default_value("false"));
 
         auto result = options.parse(argc, argv);    
         if (result.count("help")) {
@@ -70,9 +72,13 @@ class settings {
         if (result.count("samples")) samples = result["samples"].as<int>();
 
         std::cout << "Samples: " << samples << std::endl;
+
+        // UI
+        if (result.count("ui")) show_ui = result["ui"].as<bool>();
+        std::cout << "Show UI: " << show_ui << std::endl;
     }
 
-    std::string get_file_name(int width, int height, int samples, int seconds){
+    std::string get_file_name(int width, int height, int samples, int seconds) const{
         std::string file_name = image_file;
         size_t dot_pos = file_name.find_last_of(".");
         std::string name = file_name.substr(0, dot_pos);

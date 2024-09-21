@@ -19,13 +19,14 @@
 
 #include "helpers/strings.h"
 
+#include "ui/render_window.h"
+#include <QApplication>
+#include <thread>
+#include <atomic>
 
-int main(int argc, char *argv[]) {
+std::atomic<bool> should_continue_rendering(true);
 
-    settings settings(argc, argv);
-    if(settings.error > 0) return 1;
-
-
+int render_scene(const settings& settings) {
     std::vector<std::vector<std::vector<vec3>>> lookup_table;
     std::ifstream file("lookup_table.bin", std::ios::binary);
     if (file.good()) {
@@ -37,9 +38,6 @@ int main(int argc, char *argv[]) {
         spectrum::compute_lookup_tables(0.01);
         return 0;
     }
-
-
-    
 
     hittable_list world;
     hittable_list lights;
@@ -104,14 +102,37 @@ int main(int argc, char *argv[]) {
 
 
     std::cout << "Rendering scene" << std::endl;
-    int seconds_to_render = render.mtpool_bucket_prog_render(world, lights);
-
+    int seconds_to_render = render.mtpool_bucket_prog_render(world, lights, should_continue_rendering);
 
 
     // Save the image with the new file name
-
     image.normalize();
     image.save(settings.get_file_name(image.width(), image.height(), settings.samples, seconds_to_render).c_str());
-
     return 0;
+}
+
+int main(int argc, char *argv[]) {
+    settings settings(argc, argv);
+    if(settings.error > 0) return 1;
+
+    if(settings.show_ui){
+        QApplication app(argc, argv);
+        RenderWindow window(settings.image_width, settings.image_height);
+        
+        std::thread render_thread([&settings]() {
+            render_scene(settings);
+        });
+
+        QObject::connect(&app, &QApplication::aboutToQuit, [&]() {
+            should_continue_rendering = false;
+            if (render_thread.joinable()) {
+                render_thread.join();
+            }
+        });
+
+        window.show();
+        return app.exec();
+    } else {
+        return render_scene(settings);
+    }
 }
