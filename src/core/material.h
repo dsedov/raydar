@@ -7,6 +7,7 @@
 #include "../data/pdf.h"
 #include "../data/onb.h"
 #include "../data/spectrum.h"
+#include "../image/image_png.h"
 class hit_record;
 class scatter_record {
   public:
@@ -97,7 +98,7 @@ namespace rd::core {
     };
     class light : public material {
     public:
-        light(const spectrum& light_color, double light_intensity) : light_color(light_color), light_intensity(light_intensity) {
+        light(const spectrum& light_color, double light_intensity, std::shared_ptr<ImagePNG> texture = nullptr) : light_color(light_color), light_intensity(light_intensity), texture(texture) {
             set_visible(true), set_cast_shadow(false);
         }
 
@@ -109,12 +110,16 @@ namespace rd::core {
         spectrum emitted(const ray& r_in, const hit_record& rec, double u, double v, const point3& p) const override {
             if (!rec.front_face)
                 return spectrum(color(0,0,0));
+            if (texture) {
+                return texture->uv_value(u, v) * light_intensity;
+            }
             return light_color * light_intensity;
         }
 
     private:
         spectrum light_color;
         double light_intensity;
+        std::shared_ptr<ImagePNG> texture;
 
     };
     class metal : public material {

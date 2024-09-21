@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
     
     // LOAD AREA LIGHTS
     std::cout << "Loading area lights from USD stage" << std::endl;
-    std::vector<std::shared_ptr<rd::core::area_light>> area_lights = rd::usd::light::extractAreaLightsFromUsdStage(loader.get_stage());
+    std::vector<std::shared_ptr<rd::core::area_light>> area_lights = rd::usd::light::extractAreaLightsFromUsdStage(loader.get_stage(), observer);
 
     for(const auto& light : area_lights){
          world.add(light);

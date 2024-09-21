@@ -25,6 +25,8 @@
 #include <pxr/usd/usdShade/shader.h>
 #include <pxr/usd/usdLux/rectLight.h>
 
+#include "../image/image_png.h"
+
 namespace rd::usd::light {
     struct AreaLight {
         pxr::GfVec3f color;
@@ -125,7 +127,7 @@ namespace rd::usd::light {
         
         return light;
     }
-    std::vector<std::shared_ptr<rd::core::area_light>> extractAreaLightsFromUsdStage(const pxr::UsdStageRefPtr& stage) {
+    std::vector<std::shared_ptr<rd::core::area_light>> extractAreaLightsFromUsdStage(const pxr::UsdStageRefPtr& stage, const observer& observer) {
         std::vector<AreaLight> areaLightsDescriptors;
         std::vector<std::shared_ptr<rd::core::area_light>> area_lights;
         
@@ -138,9 +140,20 @@ namespace rd::usd::light {
             }
         }
         for(const auto& light : areaLightsDescriptors) {
-            auto light_material = make_shared<rd::core::light>(spectrum::d65(), light.intensity);
-            shared_ptr<rd::core::area_light> light_quad = make_shared<rd::core::area_light>(light.Q, light.u, light.v, light_material);
-            area_lights.push_back(light_quad);
+            if (light.textureFilePath != "") {
+                std::cout << "Loading texture: " << light.textureFilePath << std::endl;
+                auto texture_ptr = std::make_shared<ImagePNG>(ImagePNG::load(light.textureFilePath.c_str(), observer));
+
+                auto light_material = make_shared<rd::core::light>(spectrum::d65(), light.intensity, texture_ptr);
+                shared_ptr<rd::core::area_light> light_quad = make_shared<rd::core::area_light>(light.Q, light.u, light.v, light_material);
+                area_lights.push_back(light_quad);
+            }
+            else {
+                auto light_material = make_shared<rd::core::light>(spectrum::d65(), light.intensity);
+                shared_ptr<rd::core::area_light> light_quad = make_shared<rd::core::area_light>(light.Q, light.u, light.v, light_material);
+                area_lights.push_back(light_quad);
+            }
+            
         }
         
         return area_lights;
