@@ -1,11 +1,13 @@
 #include "render_window.h"
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QMouseEvent>
 #include <QResizeEvent>
 #include <QProgressBar>
 #include <QTimer>
+
 RenderWindow::RenderWindow(int width, int height, QWidget *parent)
-    : QMainWindow(parent), m_width(width), m_height(height)
+    : QMainWindow(parent), m_width(width), m_height(height), m_gain(1.0f), m_gamma(2.2f)
 {
     setWindowTitle("Render Window");
     observer_ptr = new observer(observer::CIE1931_2Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
@@ -13,6 +15,19 @@ RenderWindow::RenderWindow(int width, int height, QWidget *parent)
     m_image = new QImage(m_width, m_height, QImage::Format_RGB888);
     m_image->fill(Qt::black);
     
+    setupUI();
+
+    resize(1000, 600);
+    updateImageLabelSize();
+
+    // Run update_image on a timer every second
+    QTimer *timer = new QTimer(this);
+    connect(timer, &QTimer::timeout, this, &RenderWindow::update_image);
+    timer->start(1000);
+}
+
+void RenderWindow::setupUI()
+{
     m_imageLabel = new QLabel(this);
     m_imageLabel->setPixmap(QPixmap::fromImage(*m_image));
     m_imageLabel->setScaledContents(true);
@@ -28,12 +43,37 @@ RenderWindow::RenderWindow(int width, int height, QWidget *parent)
     m_progressBar = new QProgressBar(this);
     m_progressBar->setRange(0, 100);
     m_progressBar->setValue(0);
-    
+
+    // Create sliders
+    m_gainSlider = new QSlider(Qt::Vertical, this);
+    m_gainSlider->setRange(100, 100000);  // 1.0 to 100.0
+    m_gainSlider->setValue(100);  // Initial value 1.0
+    connect(m_gainSlider, &QSlider::valueChanged, this, &RenderWindow::updateGain);
+
+    m_gammaSlider = new QSlider(Qt::Vertical, this);
+    m_gammaSlider->setRange(0, 1000);  // 0.0 to 10.0
+    m_gammaSlider->setValue(100);  // Initial value 2.2
+    connect(m_gammaSlider, &QSlider::valueChanged, this, &RenderWindow::updateGamma);
+
+    m_gainLabel = new QLabel("Gain: 1.0", this);
+    m_gammaLabel = new QLabel("Gamma: 2.2", this);
+
     QWidget *centralWidget = new QWidget(this);
-    QVBoxLayout *layout = new QVBoxLayout(centralWidget);
-    layout->addWidget(m_scrollArea);
-    layout->addWidget(m_progressBar);
-    layout->addWidget(m_metadataLabel);
+    QHBoxLayout *mainLayout = new QHBoxLayout(centralWidget);
+    
+    QVBoxLayout *imageLayout = new QVBoxLayout();
+    imageLayout->addWidget(m_scrollArea);
+    imageLayout->addWidget(m_progressBar);
+    imageLayout->addWidget(m_metadataLabel);
+
+    QVBoxLayout *sliderLayout = new QVBoxLayout();
+    sliderLayout->addWidget(m_gainLabel);
+    sliderLayout->addWidget(m_gainSlider);
+    sliderLayout->addWidget(m_gammaLabel);
+    sliderLayout->addWidget(m_gammaSlider);
+
+    mainLayout->addLayout(imageLayout);
+    mainLayout->addLayout(sliderLayout);
     
     setCentralWidget(centralWidget);
     
@@ -41,19 +81,44 @@ RenderWindow::RenderWindow(int width, int height, QWidget *parent)
     m_scrollArea->setMouseTracking(true);
     centralWidget->setMouseTracking(true);
     setMouseTracking(true);
-
-    resize(800, 600);
-    updateImageLabelSize();
-    // Run update_image on a timer ever second
-    QTimer *timer = new QTimer(this);
-    connect(timer, &QTimer::timeout, this, &RenderWindow::update_image);
-    timer->start(1000);
 }
+
+void RenderWindow::updateGain(int value)
+{
+    m_gain = value / 100.0f;
+    m_gainLabel->setText(QString("Gain: %1").arg(m_gain, 0, 'f', 2));
+    update_image();
+}
+
+void RenderWindow::updateGamma(int value)
+{
+    m_gamma = value / 100.0f;
+    m_gammaLabel->setText(QString("Gamma: %1").arg(m_gamma, 0, 'f', 2));
+    update_image();
+}
+
+void RenderWindow::update_image()
+{
+    static const interval intensity(0.000, 0.999);
+    for (int i = 0; i < m_image_buffer->width(); i++) {
+        for (int j = 0; j < m_image_buffer->height(); j++) {
+            spectrum color_spectrum = m_image_buffer->get_pixel(i, j) / ( m_gain * m_gain);
+            color color_rgb = color_spectrum.to_rgb(observer_ptr);
+            float r = intensity.clamp(linear_to_gamma2(color_rgb.x(), m_gamma));
+            float g = intensity.clamp(linear_to_gamma2(color_rgb.y(), m_gamma));
+            float b = intensity.clamp(linear_to_gamma2(color_rgb.z(), m_gamma));
+            m_image->setPixelColor(i, j, QColor::fromRgbF(r, g, b));
+        }
+    }
+    updateImageLabelSize();
+}
+
 void RenderWindow::updateProgress(int progress, int total)
 {
     int percentage = static_cast<int>((static_cast<double>(progress) / total) * 100);
     m_progressBar->setValue(percentage);
 }
+
 void RenderWindow::updateBucket(int x, int y, ImagePNG* image)
 {
     
@@ -63,21 +128,7 @@ void RenderWindow::updateBucket(int x, int y, ImagePNG* image)
         }
     }
 }
-void RenderWindow::update_image(){
 
-    static const interval intensity(0.000, 0.999);
-    for (int i = 0; i < m_image_buffer->width(); i++) {
-        for (int j = 0; j < m_image_buffer->height(); j++) {
-            spectrum color_spectrum = m_image_buffer->get_pixel(i, j);
-            color color_rgb = color_spectrum.to_rgb(observer_ptr);
-            int r = int(255.999 * intensity.clamp(linear_to_gamma(color_rgb.x()))); // Red channel
-            int g = int(255.999 * intensity.clamp(linear_to_gamma(color_rgb.y()))); // Green channel
-            int b = int(255.999 * intensity.clamp(linear_to_gamma(color_rgb.z()))); // Blue channel
-            m_image->setPixelColor(i, j, QColor(r, g, b));
-        }
-    }
-    updateImageLabelSize();
-}
 void RenderWindow::updatePixel(int x, int y, uint8_t r, uint8_t g, uint8_t b, const QString& metadata)
 {
     if (x < 0 || x >= m_width || y < 0 || y >= m_height)

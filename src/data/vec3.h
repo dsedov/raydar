@@ -179,6 +179,13 @@ inline vec3 random_cosine_direction() {
 
     return vec3(x, y, z);
 }
+inline double linear_to_gamma2(double linear_component, float gamma = 2.2)
+{   
+    if (linear_component > 0)
+        return std::pow(linear_component, (1/gamma));
+
+    return 0;
+}
 inline double linear_to_gamma(double linear_component)
 {
     if (linear_component > 0)

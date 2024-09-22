@@ -7,7 +7,9 @@
 #include <QScrollArea>
 #include <QMap>
 #include <QProgressBar> // Assuming this is needed for the progress bar
+#include <QSlider>
 #include "../image/image_png.h"
+
 class RenderWindow : public QMainWindow
 {
     Q_OBJECT
@@ -18,13 +20,16 @@ public:
 public slots:
     void updateProgress(int progress, int total);
     void updateBucket(int x, int y, ImagePNG* image);
+    void updateGain(int value);
+    void updateGamma(int value);
+
 protected:
     void mouseMoveEvent(QMouseEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
 
-
 private:
     void updateImageLabelSize();
+    void setupUI();
 
     int m_width;
     int m_height;
@@ -36,9 +41,12 @@ private:
     QProgressBar *m_progressBar;
     observer * observer_ptr;
     ImagePNG * m_image_buffer;
-    void setupConnections() {
-
-    }
+    QSlider *m_gainSlider;
+    QSlider *m_gammaSlider;
+    QLabel *m_gainLabel;
+    QLabel *m_gammaLabel;
+    float m_gain;
+    float m_gamma;
     void update_image();
 };
 
