@@ -1,7 +1,86 @@
 #include "render.h"
 
-render::render(Image & image_buffer, rd::core::camera camera) : QObject(), image_buffer(image_buffer), camera(camera) { }
-int render::mtpool_bucket_prog_render(const hittable& world, const hittable& lights, std::atomic<bool>& should_continue_rendering) {
+render::render(settings& settings) : QObject() { 
+    std::vector<std::vector<std::vector<vec3>>> lookup_table;
+    std::ifstream file("lookup_table.bin", std::ios::binary);
+    if (file.good()) {
+        std::cout << "Loading existing lookup table..." << std::endl;
+        lookup_table = spectrum::load_lookup_tables(0.01);
+        spectrum::setLookupTable(lookup_table, 0.01);
+    } else {
+        std::cout << "Lookup table not found. Computing new lookup table..." << std::endl;
+        spectrum::compute_lookup_tables(0.01);
+
+    }
+
+ 
+    // Initialize SpectralConverter
+    observer * observer_ptr = new observer(observer::CIE1931_2Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
+
+    // IMAGE
+    image_buffer = new ImagePNG(settings.image_width, settings.image_height, spectrum::RESPONSE_SAMPLES, observer_ptr);
+    world = new hittable_list();
+    lights = new hittable_list();
+    // LOAD USD FILE
+    rd::usd::loader loader(settings.usd_file);
+
+    // LOAD CAMERA
+    camera = rd::usd::camera::extractCameraProperties(loader.findFirstCamera());
+
+
+    // LOAD MATERIALS
+    std::cout << "Loading materials from USD stage" << std::endl;
+    auto error_material = new rd::core::constant(color(1.0, 0.0, 0.0));
+    std::unordered_map<std::string, rd::core::material*> materials = rd::usd::material::load_materials_from_stage(loader.get_stage());
+    materials["error"] = error_material;
+
+    // LOAD GEOMETRY
+    std::cout << "Loading geometry from USD stage" << std::endl;
+    std::vector<rd::core::mesh*> scene_meshes = rd::usd::geo::extractMeshesFromUsdStage(loader.get_stage(), materials);
+    
+    // LOAD AREA LIGHTS
+    std::cout << "Loading area lights from USD stage" << std::endl;
+    std::vector<rd::core::area_light*> area_lights = rd::usd::light::extractAreaLightsFromUsdStage(loader.get_stage(), observer_ptr);
+
+    for(const auto& light : area_lights){
+         world->add(light);
+         lights->add(light);
+    }
+
+
+    samples_per_pixel = settings.samples;
+    max_depth = settings.max_depth;
+
+
+    std::cout << "Scene meshes size: " << scene_meshes.size() << std::endl;
+    // for each mesh in sceneMeshes
+    int bvh_meshes_size = 0;
+    for (rd::core::mesh* mesh : scene_meshes) {
+        std::vector<rd::core::mesh*> meshes;
+        meshes = bvh_node::split(mesh, meshes);
+        
+        for(rd::core::mesh* m : meshes) {   
+            world->add(m);
+            bvh_meshes_size++;
+        }
+    }
+    std::cout << "BVH meshes size: " << bvh_meshes_size << std::endl;
+
+    std::cout << "Building BVH" << std::endl;
+    auto bvh_shared = new bvh_node(world);
+    world = new hittable_list(bvh_shared);
+}
+int render::render_scene(settings& settings){
+    std::cout << "Rendering scene" << std::endl;
+    int seconds_to_render = mtpool_bucket_prog_render();
+
+
+    // Save the image with the new file name
+    image_buffer->normalize();
+    image_buffer->save(settings.get_file_name(image_buffer->width(), image_buffer->height(), settings.samples, seconds_to_render).c_str());
+    return seconds_to_render;
+}
+int render::mtpool_bucket_prog_render() {
     initialize();
     auto start_time = std::chrono::high_resolution_clock::now();
     const int num_threads = std::thread::hardware_concurrency();
@@ -14,28 +93,25 @@ int render::mtpool_bucket_prog_render(const hittable& world, const hittable& lig
     
     std::cout << "Rendering with " << num_threads  << " threads" << std::endl;
     // Calculate total buckets
-    const int total_buckets = ((image_buffer.width() + BUCKET_SIZE - 1) / BUCKET_SIZE) *
-                                ((image_buffer.height() + BUCKET_SIZE - 1) / BUCKET_SIZE);
+    const int total_buckets = ((image_buffer->width() + BUCKET_SIZE - 1) / BUCKET_SIZE) *
+                                ((image_buffer->height() + BUCKET_SIZE - 1) / BUCKET_SIZE);
 
     auto worker = [&]() {
 
         while (true) {
-            if (!should_continue_rendering) {
-                break;
-            }
 
             int bucket_index = next_bucket.fetch_add(1);
             if (bucket_index >= total_buckets) {
                 break;
             }
 
-            int start_x = (bucket_index % (image_buffer.width() / BUCKET_SIZE)) * BUCKET_SIZE;
-            int start_y = (bucket_index / (image_buffer.width() / BUCKET_SIZE)) * BUCKET_SIZE;
+            int start_x = (bucket_index % (image_buffer->width() / BUCKET_SIZE)) * BUCKET_SIZE;
+            int start_y = (bucket_index / (image_buffer->width() / BUCKET_SIZE)) * BUCKET_SIZE;
             Bucket bucket{start_x, start_y, 
-                        std::min(start_x + BUCKET_SIZE, image_buffer.width()), 
-                        std::min(start_y + BUCKET_SIZE, image_buffer.height())};
+                        std::min(start_x + BUCKET_SIZE, image_buffer->width()), 
+                        std::min(start_y + BUCKET_SIZE, image_buffer->height())};
 
-            process_bucket(bucket, world, lights);
+            process_bucket(bucket);
 
             int completed = buckets_completed.fetch_add(1) + 1;
             int current_progress = completed * total_samples / total_buckets;
@@ -72,10 +148,10 @@ void render::initialize(bool is_vertical_fov, bool fov_in_degrees) {
     double viewport_height, viewport_width;
     if (is_vertical_fov) {
         viewport_height = 2.0 * focal_length * tan(fov_radians / 2.0);
-        viewport_width = viewport_height * (double(image_buffer.width()) / image_buffer.height());
+        viewport_width = viewport_height * (double(image_buffer->width()) / image_buffer->height());
     } else {
         viewport_width = 2.0 * focal_length * tan(fov_radians / 2.0);
-        viewport_height = viewport_width / (double(image_buffer.width()) / image_buffer.height());
+        viewport_height = viewport_width / (double(image_buffer->width()) / image_buffer->height());
     }
 
 
@@ -93,8 +169,8 @@ void render::initialize(bool is_vertical_fov, bool fov_in_degrees) {
     vec3 viewport_v = viewport_height * -v;  // Vector down viewport vertical edge
 
     // Calculate the horizontal and vertical delta vectors from pixel to pixel.
-    pixel_delta_u = viewport_u / image_buffer.width();
-    pixel_delta_v = viewport_v / image_buffer.height();
+    pixel_delta_u = viewport_u / image_buffer->width();
+    pixel_delta_v = viewport_v / image_buffer->height();
 
     // Calculate the location of the upper left pixel.
     auto viewport_upper_left = camera.center - (focal_length * w) - viewport_u/2 - viewport_v/2;
@@ -125,10 +201,9 @@ vec3 render::sample_square_stratified(int s_i, int s_j) const {
 
     return vec3(px, py, 0);
 }
-void render::process_bucket(const Bucket& bucket, const hittable& world, const hittable& lights) {
+void render::process_bucket(const Bucket& bucket) {
     const int PACKET_SIZE = 4; // Process 4 rays at a time
     const int total_samples = sqrt_spp * sqrt_spp;
-
     for (int j = bucket.start_y; j < bucket.end_y; j += PACKET_SIZE) {
         for (int i = bucket.start_x; i < bucket.end_x; i += PACKET_SIZE) {
             std::array<spectrum, PACKET_SIZE * PACKET_SIZE> pixel_colors;
@@ -145,15 +220,15 @@ void render::process_bucket(const Bucket& bucket, const hittable& world, const h
                     }
                 }
                 for (int i = 0; i < rays.size(); ++i) {
-                    bool sample_wavelength = true;
+                    bool sample_wavelength = false;
                     if (sample_wavelength) {
                         for (int wl = 0; wl < spectrum::RESPONSE_SAMPLES; ++wl) {
                             rays[i].wavelength = spectrum::START_WAVELENGTH + wl * spectrum::RESPONSE_SAMPLES;
-                            pixel_colors[i][wl] += ray_color(rays[i], max_depth, world, lights)[wl];
+                            pixel_colors[i][wl] += ray_color(rays[i], max_depth)[wl];
                         }
                     } 
                     else {
-                        pixel_colors[i] += ray_color(rays[i], max_depth, world, lights);
+                        pixel_colors[i] += ray_color(rays[i], max_depth);
                     }
                 }
             }
@@ -161,7 +236,7 @@ void render::process_bucket(const Bucket& bucket, const hittable& world, const h
             // Set pixel colors
             for (int pj = 0; pj < PACKET_SIZE && j + pj < bucket.end_y; ++pj) {
                 for (int pi = 0; pi < PACKET_SIZE && i + pi < bucket.end_x; ++pi) {
-                    image_buffer.set_pixel(i + pi, j + pj, pixel_colors[pj * PACKET_SIZE + pi] * pixel_samples_scale);
+                    image_buffer->set_pixel(i + pi, j + pj, pixel_colors[pj * PACKET_SIZE + pi] * pixel_samples_scale);
                 }
             }
         }
@@ -175,18 +250,18 @@ void render::updateProgress(int current, int total) {
     emit progressUpdated(current, total);
 }
 
-spectrum render::ray_color(const ray& r, int depth, const hittable& world, const hittable& lights) const {
+spectrum render::ray_color(const ray& r, int depth) const {
     if (depth <= 0)
         return color(0,0,0);
 
     hit_record rec;
-    if (!world.hit(r, interval(0.001, infinity), rec))
+    if (!world->hit(r, interval(0.001, infinity), rec))
         return background_color;
 
     if (!rec.mat->is_visible()) {
         const double bias = 0.0001;
         ray continued_ray(rec.p + bias * r.direction(), r.direction(), r.get_depth());
-        return ray_color(continued_ray, depth, world, lights);
+        return ray_color(continued_ray, depth);
     }
 
     scatter_record srec;
@@ -196,10 +271,10 @@ spectrum render::ray_color(const ray& r, int depth, const hittable& world, const
         return color_from_emission;
 
     if (srec.skip_pdf) {
-        return srec.attenuation * ray_color(srec.skip_pdf_ray, depth-1, world, lights) + color_from_emission;
+        return srec.attenuation * ray_color(srec.skip_pdf_ray, depth-1) + color_from_emission;
     }
 
-    auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
+    auto light_ptr = new hittable_pdf(lights, rec.p);
     mixture_pdf p(light_ptr, srec.pdf_ptr);
 
     ray scattered = ray(rec.p, p.generate(), r.get_depth() + 1);
@@ -207,7 +282,7 @@ spectrum render::ray_color(const ray& r, int depth, const hittable& world, const
 
     double scattering_pdf = rec.mat->scattering_pdf(r, rec, scattered);
 
-    spectrum color_from_scatter = (srec.attenuation * scattering_pdf * ray_color(scattered, depth-1, world, lights)) / pdf_val;
+    spectrum color_from_scatter = (srec.attenuation * scattering_pdf * ray_color(scattered, depth-1)) / pdf_val;
 
     return color_from_emission + color_from_scatter;
 }

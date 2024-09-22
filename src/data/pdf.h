@@ -1,8 +1,6 @@
 #ifndef PDF_H
 #define PDF_H
 
-#include "../raydar.h"
-
 #include "onb.h"
 
 
@@ -45,7 +43,7 @@ class cosine_pdf : public pdf {
 };
 class mixture_pdf : public pdf {
   public:
-    mixture_pdf(shared_ptr<pdf> p0, shared_ptr<pdf> p1) {
+    mixture_pdf(pdf* p0, pdf* p1) {
         p[0] = p0;
         p[1] = p1;
     }
@@ -62,24 +60,24 @@ class mixture_pdf : public pdf {
     }
 
   private:
-    shared_ptr<pdf> p[2];
+    pdf* p[2];
 };
 class hittable_pdf : public pdf {
   public:
-    hittable_pdf(const hittable& objects, const point3& origin)
+    hittable_pdf(hittable* objects, const point3& origin)
       : objects(objects), origin(origin)
     {}
 
     double value(const vec3& direction) const override {
-        return objects.pdf_value(origin, direction);
+        return objects->pdf_value(origin, direction);
     }
 
     vec3 generate() const override {
-        return objects.random(origin);
+        return objects->random(origin);
     }
 
   private:
-    const hittable& objects;
+    hittable* objects;
     point3 origin;
 };
 #endif

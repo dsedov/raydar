@@ -2,6 +2,7 @@
 #include <QVBoxLayout>
 #include <QMouseEvent>
 #include <QResizeEvent>
+#include <QProgressBar>
 
 RenderWindow::RenderWindow(int width, int height, QWidget *parent)
     : QMainWindow(parent), m_width(width), m_height(height)
@@ -23,9 +24,14 @@ RenderWindow::RenderWindow(int width, int height, QWidget *parent)
     m_metadataLabel->setAlignment(Qt::AlignCenter);
     m_metadataLabel->setText("Hover over the image to see metadata");
     
+    m_progressBar = new QProgressBar(this);
+    m_progressBar->setRange(0, 100);
+    m_progressBar->setValue(0);
+    
     QWidget *centralWidget = new QWidget(this);
     QVBoxLayout *layout = new QVBoxLayout(centralWidget);
     layout->addWidget(m_scrollArea);
+    layout->addWidget(m_progressBar);
     layout->addWidget(m_metadataLabel);
     
     setCentralWidget(centralWidget);
@@ -37,6 +43,11 @@ RenderWindow::RenderWindow(int width, int height, QWidget *parent)
 
     resize(800, 600);
     updateImageLabelSize();
+}
+void RenderWindow::updateProgress(int progress, int total)
+{
+    int percentage = static_cast<int>((static_cast<double>(progress) / total) * 100);
+    m_progressBar->setValue(percentage);
 }
 
 void RenderWindow::updatePixel(int x, int y, uint8_t r, uint8_t g, uint8_t b, const QString& metadata)

@@ -18,7 +18,7 @@ class triangle {
 public:
     triangle(const point3& v0, const point3& v1, const point3& v2, 
              const vec3& n0, const vec3& n1, const vec3& n2, 
-             shared_ptr<rd::core::material> mat)
+             rd::core::material* mat)
         : v0(v0), v1(v1), v2(v2), n0(n0), n1(n1), n2(n2), mat(mat) {
         edge1 = v1 - v0;
         edge2 = v2 - v0;
@@ -82,7 +82,7 @@ private:
     point3 v0, v1, v2;
     vec3 n0, n1, n2;  // Vertex normals
     vec3 edge1, edge2, face_normal;
-    shared_ptr<rd::core::material> mat;
+    rd::core::material* mat;
 };
 
 #endif

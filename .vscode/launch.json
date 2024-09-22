@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/raydar",
-            "args": ["--file", "", "--image", "output_003_not_frozen.png", "--samples", "1", "--resolution", "960,540"],
+            "args": ["--file", "spectral_lightbooth.usda", "--image", "out_debug.png", "--samples", "4", "--resolution", "960,540"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/bin/",
             "environment": [],

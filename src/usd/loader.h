@@ -3,7 +3,6 @@
 
 #include <cstdio>
 #include <vector>
-#include "../raydar.h"
 
 #include "../data/hittable.h"
 #include "../data/hittable_list.h"

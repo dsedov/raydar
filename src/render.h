@@ -1,12 +1,27 @@
 #ifndef RENDER_H
 #define RENDER_H
 
-#include "raydar.h"
 #include "data/interval.h"
 #include "data/hittable.h"
 #include "image/image.h"
 #include "core/material.h"
 #include "core/camera.h"
+#include "helpers/settings.h"
+
+#include "data/hittable_list.h"
+#include "data/bvh.h"
+
+
+#include "image/image_png.h"
+#include "helpers/settings.h"
+
+#include "usd/light.h"
+#include "usd/material.h"
+#include "usd/camera.h"
+#include "usd/geo.h"
+#include "usd/loader.h"
+
+#include "helpers/strings.h"
 #include <thread>
 
 #include <QObject>
@@ -65,15 +80,19 @@ public:
     int max_depth         = 10;
     rd::core::camera camera;
 
-    render(Image & image_buffer, rd::core::camera camera);
-    int mtpool_bucket_prog_render(const hittable& world, const hittable& lights, std::atomic<bool>& should_continue_rendering);
+    render(settings& settings);
+    int render_scene(settings& settings);
+    
 
 signals:
-    void progressUpdated(int current, int total);
+    void progressUpdated(int progress, int total);
 
 private:
-    /* Private Camera Variables Here */
-    Image & image_buffer;
+    hittable_list * world;
+    hittable_list * lights;
+    Image * image_buffer;
+
+    
     vec3 pixel00_loc;
     vec3 pixel_delta_u;
     vec3 pixel_delta_v;
@@ -83,11 +102,12 @@ private:
     color background_color = color(0.0, 0.0, 0.0) ;
     double pixel_samples_scale;
 
+    int mtpool_bucket_prog_render();
     void initialize(bool is_vertical_fov = false, bool fov_in_degrees = true);
     ray get_ray(int i, int j, int s_i, int s_j, int depth) const ;
     vec3 sample_square_stratified(int s_i, int s_j) const ;
-    void process_bucket(const Bucket& bucket, const hittable& world, const hittable& lights) ;
-    spectrum ray_color(const ray& r, int depth, const hittable& world, const hittable& lights) const ;
+    void process_bucket(const Bucket& bucket) ;
+    spectrum ray_color(const ray& r, int depth) const ;
     
     void updateProgress(int current, int total);
 };

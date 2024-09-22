@@ -5,12 +5,12 @@
 
 class ImagePNG : public Image {
 public:
-    ImagePNG(int width, int height, int num_wavelengths, const observer& observer) 
+    ImagePNG(int width, int height, int num_wavelengths, observer * observer) 
         : Image(width, height, num_wavelengths, observer) {}
 
     ~ImagePNG() override = default;
     
-    static ImagePNG load(const char* filename, const observer& obs) {
+    static ImagePNG load(const char* filename, observer * obs) {
         FILE* file = fopen(filename, "rb");
         if (!file) {
             throw std::runtime_error("Failed to open the PNG file for reading");
@@ -108,8 +108,6 @@ public:
                 png_bytep pixel = row + x * 3;
                 spectrum spectrum = get_pixel(x, y);
                 color rgb = spectrum.to_rgb(observer_);
-
-                // std::cout << rgb << std::endl;
 
                 pixel[0] = int(255.999 * intensity.clamp(linear_to_gamma(rgb.x()))); // Red channel
                 pixel[1] = int(255.999 * intensity.clamp(linear_to_gamma(rgb.y()))); // Green channel

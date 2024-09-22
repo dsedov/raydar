@@ -1,8 +1,6 @@
 #ifndef AABB_H
 #define AABB_H
 
-#include "../raydar.h"
-
 class aabb {
   public:
     interval x, y, z;

@@ -1,8 +1,6 @@
 #ifndef RD_CORE_CAMERA_H
 #define RD_CORE_CAMERA_H
 
-#include "../raydar.h"
-
 namespace rd::core {
     class camera {
         public:

@@ -23,6 +23,10 @@ if(APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native -mtune=native")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvectorize -fslp-vectorize")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffast-math -funroll-loops")
+    
+    # Disable warnings for class conversions and pragma messages for Clang
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-class-conversion -Wno-#pragma-messages")
+
 elseif(WIN32)   
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /O2 /arch:AVX2")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:fast /GL")
@@ -68,6 +72,10 @@ find_library(USD_USD_LUX_LIB usd_usdLux PATHS ${USD_ROOT}/lib)
 
 # Add the new render_window.cpp to your source files
 set(SOURCES
+    src/usd/camera.cpp
+    src/usd/geo.cpp
+    src/usd/light.cpp
+    src/usd/material.cpp
     src/main.cpp
     src/render.cpp
     src/ui/render_window.cpp 
@@ -110,5 +118,7 @@ if (WIN32)
             /wd4996
             /wd4275
             /wd4251
+            /wd4100  # Disable warning on unreferenced formal parameter
+            /wd4458  # Disable warning on class member hiding
         )
 endif()

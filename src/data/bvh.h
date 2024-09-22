@@ -1,7 +1,6 @@
 #ifndef BVH_H
 #define BVH_H
 
-#include "../raydar.h"
 #include "../core/mesh.h"
 #include "triangle.h"
 #include "aabb.h"
@@ -17,7 +16,7 @@ class bvh_node : public hittable {
         // persist the resulting bounding volume hierarchy.
     }
 
-    bvh_node(std::vector<shared_ptr<hittable>>& objects, size_t start, size_t end) {
+    bvh_node(std::vector<hittable*>& objects, size_t start, size_t end) {
         int axis = random_int(0,2);
         auto comparator = (axis == 0) ? box_x_compare
                         : (axis == 1) ? box_y_compare
@@ -42,25 +41,25 @@ class bvh_node : public hittable {
                              [axis = split_result.second](const auto& a, const auto& b) {
                                  return box_compare(a, b, axis);
                              });
-            left = make_shared<bvh_node>(objects, start, split_result.first);
-            right = make_shared<bvh_node>(objects, split_result.first, end);
+            left = new bvh_node(objects, start, split_result.first);
+            right = new bvh_node(objects, split_result.first, end);
         }
 
         bbox = aabb(left->bounding_box(), right->bounding_box());
     }
-    static std::shared_ptr<rd::core::mesh> fuse_meshes(std::vector<std::shared_ptr<rd::core::mesh>> & meshes) {
+    static rd::core::mesh* fuse_meshes(std::vector<rd::core::mesh*> & meshes) {
         std::vector<triangle> triangles;
         for(const auto& mesh : meshes) {
             triangles.insert(triangles.end(), mesh->triangles.begin(), mesh->triangles.end());
         }
-        return std::make_shared<rd::core::mesh>(triangles);
+        return new rd::core::mesh(triangles);
     }
     // Split in the middle along the given axis. Return two new meshes with the split triangles.
-    static std::vector<rd::core::mesh> & split(rd::core::mesh & mesh, std::vector<rd::core::mesh> & meshes, int level = 0) {
-        if(mesh.triangles.size() == 0) {
+    static std::vector<rd::core::mesh*> & split(rd::core::mesh * mesh, std::vector<rd::core::mesh*> & meshes, int level = 0) {
+        if(mesh->triangles.size() == 0) {
             return meshes;
         }
-        if(mesh.triangles.size() <= 10) {
+        if(mesh->triangles.size() <= 10) {
             meshes.push_back(mesh);
             return meshes;
         }
@@ -72,7 +71,7 @@ class bvh_node : public hittable {
 
         for (int axis = 0; axis < 3; ++axis) {
             std::vector<double> centroids;
-            for (const auto& triangle : mesh.triangles) {
+            for (const auto& triangle : mesh->triangles) {
                 aabb triangle_bbox = triangle.bounding_box();
                 interval axis_interval = triangle_bbox.axis_interval(axis);
                 centroids.push_back((axis_interval.min + axis_interval.max) / 2.0);
@@ -98,7 +97,7 @@ class bvh_node : public hittable {
         std::vector<triangle> left_triangles, right_triangles;
 
         // Sort triangles into left and right based on their center point
-        for (const auto& triangle : mesh.triangles) {
+        for (const auto& triangle : mesh->triangles) {
             aabb triangle_bbox = triangle.bounding_box();
             interval axis_interval = triangle_bbox.axis_interval(best_axis);
             double mid_point = (axis_interval.min + axis_interval.max) / 2.0;
@@ -110,19 +109,19 @@ class bvh_node : public hittable {
         }
 
         if (left_triangles.size() > 0) { 
-            if (left_triangles.size() == mesh.triangles.size()) {
+            if (left_triangles.size() == mesh->triangles.size()) {
                 meshes.push_back(mesh);
                 return meshes;
             }
-            rd::core::mesh left_mesh(left_triangles);
+            rd::core::mesh* left_mesh = new rd::core::mesh(left_triangles);
             meshes = split(left_mesh, meshes, level + 1);
         }
         if (right_triangles.size() > 0) {
-            if (right_triangles.size() == mesh.triangles.size()) {
+            if (right_triangles.size() == mesh->triangles.size()) {
                 meshes.push_back(mesh);
                 return meshes;
             }
-            rd::core::mesh right_mesh(right_triangles);
+            rd::core::mesh* right_mesh = new rd::core::mesh(right_triangles);
             meshes = split(right_mesh, meshes, level + 1);
         }
         return meshes;
@@ -140,31 +139,31 @@ class bvh_node : public hittable {
     aabb bounding_box() const override { return bbox; }
 
   private:
-    shared_ptr<hittable> left;
-    shared_ptr<hittable> right;
+    hittable* left;
+    hittable* right;
     aabb bbox;
 
     static bool box_compare(
-        const shared_ptr<hittable> a, const shared_ptr<hittable> b, int axis_index
+        const hittable* a, const hittable* b, int axis_index
     ) {
         auto a_axis_interval = a->bounding_box().axis_interval(axis_index);
         auto b_axis_interval = b->bounding_box().axis_interval(axis_index);
         return a_axis_interval.min < b_axis_interval.min;
     }
 
-    static bool box_x_compare (const shared_ptr<hittable> a, const shared_ptr<hittable> b) {
+    static bool box_x_compare (const hittable* a, const hittable* b) {
         return box_compare(a, b, 0);
     }
 
-    static bool box_y_compare (const shared_ptr<hittable> a, const shared_ptr<hittable> b) {
+    static bool box_y_compare (const hittable* a, const hittable* b) {
         return box_compare(a, b, 1);
     }
 
-    static bool box_z_compare (const shared_ptr<hittable> a, const shared_ptr<hittable> b) {
+    static bool box_z_compare (const hittable* a, const hittable* b) {
         return box_compare(a, b, 2);
     }
 
-    std::pair<size_t, int> find_best_split(std::vector<shared_ptr<hittable>>& objects, size_t start, size_t end) {
+    std::pair<size_t, int> find_best_split(std::vector<hittable*>& objects, size_t start, size_t end) {
         if (start >= end || start >= objects.size() || end > objects.size()) {
             std::cerr << "Invalid range in find_best_split. Returning middle split." << std::endl;
             return {start + (end - start) / 2, 0};

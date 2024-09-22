@@ -1,12 +1,17 @@
 #ifndef RD_CORE_LIGHT_H
 #define RD_CORE_LIGHT_H
 
-#include "../raydar.h"
+#include "../data/hittable.h"
+#include "../data/aabb.h"
+#include "../data/interval.h"
+#include "../data/ray.h"
+#include "../data/vec3.h"
+#include "../core/material.h"
 
 namespace rd::core {
     class area_light : public hittable {
         public:
-            area_light(const point3& Q, const vec3& u, const vec3& v, shared_ptr<rd::core::material> mat)
+            area_light(const point3& Q, const vec3& u, const vec3& v, rd::core::material* mat)
             : Q(Q), u(u), v(v), mat(mat)
             {
                 auto n = cross(u, v);
@@ -90,7 +95,7 @@ namespace rd::core {
             point3 Q;
             vec3 u, v;
             vec3 w;
-            shared_ptr<rd::core::material> mat;
+            rd::core::material * mat;
             aabb bbox;
             vec3 normal;
             double D;

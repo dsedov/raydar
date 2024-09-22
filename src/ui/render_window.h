@@ -15,16 +15,13 @@ public:
     RenderWindow(int width, int height, QWidget *parent = nullptr);
     void updatePixel(int x, int y, uint8_t r, uint8_t g, uint8_t b, const QString& metadata);
 
+public slots:
+    void updateProgress(int progress, int total);
+
 protected:
     void mouseMoveEvent(QMouseEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
 
-private slots:
-    void updateProgressBar(int percentage) {
-        // Update your progress bar or other UI elements here
-        // For example:
-        // ui->progressBar->setValue(percentage);
-    }
 
 private:
     void updateImageLabelSize();
@@ -36,6 +33,7 @@ private:
     QScrollArea *m_scrollArea;
     QLabel *m_metadataLabel;
     QMap<QString, QString> m_metadata;
+    QProgressBar *m_progressBar;
 
     void setupConnections() {
 

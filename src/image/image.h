@@ -8,7 +8,7 @@
 
 class Image {
 public:
-    Image(int width, int height, int num_wavelengths, const observer& observer) 
+    Image(int width, int height, int num_wavelengths, observer * observer) 
         : width_(width), height_(height), num_wavelengths_(num_wavelengths), observer_(observer) {
         row_size_ = width_ * num_wavelengths_;
         image_buffer_ = std::vector<float>(width * height * num_wavelengths);
@@ -84,7 +84,7 @@ protected:
     int num_wavelengths_;
     int row_size_;
     std::vector<float> image_buffer_;
-    const observer& observer_;
+    observer * observer_;
 };
 
 #endif // IMAGE_H

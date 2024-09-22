@@ -5,6 +5,8 @@
 #include <iostream>
 #include <pxr/base/gf/vec3f.h>
 #include <pxr/base/gf/vec3d.h>
+#include "../helpers/random.h"
+#include "../helpers/math.h"
 
 class vec3 {
   public:

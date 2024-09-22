@@ -1,7 +1,6 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
-
-#include "../raydar.h"
+#include <iostream>
 #include "../data/ray.h"
 #include "../data/hittable.h"
 #include "../data/pdf.h"
@@ -12,7 +11,7 @@ class hit_record;
 class scatter_record {
   public:
     spectrum attenuation;
-    shared_ptr<pdf> pdf_ptr;
+    pdf * pdf_ptr;
     bool skip_pdf;
     ray skip_pdf_ray;
 };
@@ -64,7 +63,7 @@ namespace rd::core {
 
             srec.skip_pdf = false;
             srec.attenuation = albedo;
-            srec.pdf_ptr = make_shared<cosine_pdf>(rec.normal);
+            srec.pdf_ptr = new cosine_pdf(rec.normal);
             
             return true;
         }
@@ -98,7 +97,7 @@ namespace rd::core {
     };
     class light : public material {
     public:
-        light(const spectrum& light_color, double light_intensity, std::shared_ptr<ImagePNG> texture = nullptr) : light_color(light_color), light_intensity(light_intensity), texture(texture) {
+        light(const spectrum& light_color, double light_intensity, ImagePNG * texture = nullptr) : light_color(light_color), light_intensity(light_intensity), texture(texture) {
             set_visible(true), set_cast_shadow(false);
         }
 
@@ -119,7 +118,7 @@ namespace rd::core {
     private:
         spectrum light_color;
         double light_intensity;
-        std::shared_ptr<ImagePNG> texture;
+        ImagePNG * texture;
 
     };
     class metal : public material {

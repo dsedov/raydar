@@ -2,8 +2,6 @@
 #define COLOR_H
 
 #include "vec3.h"
-
-
 #include <array>
 
 using mat3x3 = std::array<std::array<double, 3>, 3>;
