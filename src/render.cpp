@@ -53,13 +53,14 @@ render::render(settings& settings) : QObject() {
 
 
     std::cout << "Scene meshes size: " << scene_meshes.size() << std::endl;
+    std::cout << "Depth: " << max_depth << std::endl;
     // for each mesh in sceneMeshes
     int bvh_meshes_size = 0;
     for (rd::core::mesh* mesh : scene_meshes) {
-        std::vector<rd::core::mesh*> meshes;
+        std::vector<rd::core::mesh*> *meshes = new std::vector<rd::core::mesh*>();
         meshes = bvh_node::split(mesh, meshes);
         
-        for(rd::core::mesh* m : meshes) {   
+        for(rd::core::mesh* m : *meshes) {   
             world->add(m);
             bvh_meshes_size++;
         }
@@ -223,7 +224,7 @@ void render::process_bucket(const Bucket& bucket) {
                     bool sample_wavelength = false;
                     if (sample_wavelength) {
                         for (int wl = 0; wl < spectrum::RESPONSE_SAMPLES; ++wl) {
-                            rays[i].wavelength = spectrum::START_WAVELENGTH + wl * spectrum::RESPONSE_SAMPLES;
+                            rays[i].wavelength = spectrum::START_WAVELENGTH + wl * (spectrum::END_WAVELENGTH - spectrum::START_WAVELENGTH) / (spectrum::RESPONSE_SAMPLES - 1);
                             pixel_colors[i][wl] += ray_color(rays[i], max_depth)[wl];
                         }
                     } 

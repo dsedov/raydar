@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
 project(raydar)
 
-find_package(Qt5 COMPONENTS Core Widgets REQUIRED)
+find_package(Qt6 COMPONENTS Core Widgets REQUIRED)
 set(CMAKE_AUTOMOC ON)
 
-#set(CMAKE_BUILD_TYPE Debug)
 if(APPLE)
     set(CMAKE_OSX_ARCHITECTURES "arm64")
 endif()
@@ -86,9 +85,9 @@ add_executable(raydar ${SOURCES})
 target_include_directories(raydar PRIVATE include ${PNG_INCLUDE_DIR})
 target_include_directories(raydar PRIVATE src)
 target_include_directories(raydar PRIVATE ${OpenEXR_INCLUDE_DIRS})
-target_include_directories(raydar PRIVATE ${Qt5Core_INCLUDE_DIRS})
-target_include_directories(raydar PRIVATE ${Qt5Gui_INCLUDE_DIRS})
-target_include_directories(raydar PRIVATE ${Qt5Widgets_INCLUDE_DIRS})
+target_include_directories(raydar PRIVATE ${Qt6Core_INCLUDE_DIRS})
+target_include_directories(raydar PRIVATE ${Qt6Gui_INCLUDE_DIRS})
+target_include_directories(raydar PRIVATE ${Qt6Widgets_INCLUDE_DIRS})
 
 # Link libraries
 target_link_libraries(raydar PRIVATE 
@@ -102,9 +101,9 @@ target_link_libraries(raydar PRIVATE
                                 ${USD_GF_LIB}
                                 ${USD_USDShade_LIB}
                                 ${USD_USD_LUX_LIB}
-                                ${Qt5Core_LIBRARIES}
-                                ${Qt5Gui_LIBRARIES}
-                                ${Qt5Widgets_LIBRARIES}
+                                ${Qt6Core_LIBRARIES}
+                                ${Qt6Gui_LIBRARIES}
+                                ${Qt6Widgets_LIBRARIES}
                                 ${OpenEXR_LIBRARIES})
 
 # Add compile definitions if needed

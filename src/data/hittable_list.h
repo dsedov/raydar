@@ -8,15 +8,20 @@
 
 class hittable_list : public hittable {
     public:
-        std::vector<hittable*> objects;
+        std::vector<hittable*> * objects;
 
-        hittable_list() {}
-        hittable_list(hittable* object) { add(object); }
+        hittable_list() {
+            objects = new std::vector<hittable*>();
+        }
+        hittable_list(hittable * object) {
+            objects = new std::vector<hittable*>();
+            add(object);
+        }
 
-        void clear() { objects.clear(); }
+        void clear() { objects->clear(); }
 
         void add(hittable* object) {
-            objects.push_back(object);
+            objects->push_back(object);
             bbox = aabb(bbox, object->bounding_box());
         }
 
@@ -25,7 +30,7 @@ class hittable_list : public hittable {
             bool hit_anything = false;
             auto closest_so_far = ray_t.max;
 
-            for (hittable* object : objects) {
+            for (hittable* object : *objects) {
                 if (object->hit(r, interval(ray_t.min, closest_so_far), temp_rec)) {
                     hit_anything = true;
                     closest_so_far = temp_rec.t;
@@ -36,18 +41,18 @@ class hittable_list : public hittable {
             return hit_anything;
         }
         double pdf_value(const point3& origin, const vec3& direction) const override {
-            auto weight = 1.0 / objects.size();
+            auto weight = 1.0 / objects->size();
             auto sum = 0.0;
 
-            for (const auto& object : objects)
+            for (const auto& object : *objects)
                 sum += weight * object->pdf_value(origin, direction);
 
             return sum;
         }
 
         vec3 random(const point3& origin) const override {
-            auto int_size = int(objects.size());
-            return objects[random_int(0, int_size-1)]->random(origin);
+            auto int_size = int(objects->size());
+            return objects->at(random_int(0, int_size-1))->random(origin);
         }
         aabb bounding_box() const override { return bbox; }
     private:

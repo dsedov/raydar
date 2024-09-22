@@ -2,6 +2,27 @@
     "cmake.sourceDirectory": "${workspaceFolder}",
     "cmake.buildDirectory": "${workspaceFolder}/build",
     "cmake.configureOnOpen": true,
+    "cmake.configureSettings": {
+        "CMAKE_BUILD_TYPE": "Release"
+    },
+    "cmake.defaultVariants": {
+        "buildType": {
+            "default": "release",
+            "description": "The build type.",
+            "choices": {
+                "debug": {
+                    "short": "Debug",
+                    "long": "Disable optimizations - include debug information",
+                    "buildType": "Debug"
+                },
+                "release": {
+                    "short": "Release",
+                    "long": "Optimize for speed - exclude debug information",
+                    "buildType": "Release"
+                }
+            }
+        }
+    },
     "files.associations": {
         "fstream": "cpp",
         "iostream": "cpp",

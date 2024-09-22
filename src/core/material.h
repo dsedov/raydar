@@ -49,34 +49,7 @@ namespace rd::core {
             bool visible = true;
             bool cast_shadow = true;
     };
-    class lambertian : public material {
-    public:
-        lambertian(const spectrum& albedo) : albedo(albedo) {}
 
-        bool scatter(const ray& r_in, const hit_record& rec, scatter_record& srec) const override {
-            onb uvw(rec.normal);
-            auto scatter_direction = uvw.transform(random_cosine_direction());
-            
-            // Catch degenerate scatter direction
-            if (scatter_direction.near_zero())
-                scatter_direction = rec.normal;
-
-            srec.skip_pdf = false;
-            srec.attenuation = albedo;
-            srec.pdf_ptr = new cosine_pdf(rec.normal);
-            
-            return true;
-        }
-        double scattering_pdf(const ray& r_in, const hit_record& rec, const ray& scattered)
-        const override {
-            auto cosine = dot(rec.normal, unit_vector(scattered.direction()));
-            return cosine < 0 ? 0 : cosine / pi;
-        }
-        
-
-    private:
-        spectrum albedo;
-    };
     class constant : public material {
     public:
         constant(const spectrum& c) : albedo(c) {}
