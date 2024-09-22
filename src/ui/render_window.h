@@ -8,6 +8,7 @@
 #include <QMap>
 #include <QProgressBar> // Assuming this is needed for the progress bar
 #include <QSlider>
+#include <QSplitter>
 #include "../image/image_png.h"
 
 class RenderWindow : public QMainWindow
@@ -47,6 +48,7 @@ private:
     QLabel *m_gammaLabel;
     float m_gain;
     float m_gamma;
+    QSplitter *m_splitter;
     void update_image();
 };
 

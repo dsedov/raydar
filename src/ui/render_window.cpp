@@ -5,9 +5,10 @@
 #include <QResizeEvent>
 #include <QProgressBar>
 #include <QTimer>
+#include <QSplitter>
 
 RenderWindow::RenderWindow(int width, int height, QWidget *parent)
-    : QMainWindow(parent), m_width(width), m_height(height), m_gain(1.0f), m_gamma(2.2f)
+    : QMainWindow(parent), m_width(width), m_height(height), m_gain(300.0f), m_gamma(2.2f)
 {
     setWindowTitle("Render Window");
     observer_ptr = new observer(observer::CIE1931_2Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
@@ -46,19 +47,14 @@ void RenderWindow::setupUI()
 
     // Create sliders
     m_gainSlider = new QSlider(Qt::Horizontal, this);
-    m_gainSlider->setRange(100, 100000);  // 1.0 to 100.0
+    m_gainSlider->setRange(100, 100000);  // 1.0 to 1000.0
     m_gainSlider->setValue(30000); 
-    m_gain = 300.0f;
     connect(m_gainSlider, &QSlider::valueChanged, this, &RenderWindow::updateGain);
-
-    
 
     m_gammaSlider = new QSlider(Qt::Horizontal, this);
     m_gammaSlider->setRange(0, 1000);  // 0.0 to 10.0
     m_gammaSlider->setValue(220); 
-    m_gamma = 2.2f;
     connect(m_gammaSlider, &QSlider::valueChanged, this, &RenderWindow::updateGamma);
-
 
     m_gainLabel = new QLabel("Gain: 300.0", this);
     m_gammaLabel = new QLabel("Gamma: 2.2", this);
@@ -66,23 +62,27 @@ void RenderWindow::setupUI()
     QWidget *centralWidget = new QWidget(this);
     QHBoxLayout *mainLayout = new QHBoxLayout(centralWidget);
     
-    QVBoxLayout *imageLayout = new QVBoxLayout();
+    QWidget *imageWidget = new QWidget(this);
+    QVBoxLayout *imageLayout = new QVBoxLayout(imageWidget);
     imageLayout->addWidget(m_scrollArea);
     imageLayout->addWidget(m_progressBar);
     imageLayout->addWidget(m_metadataLabel);
 
-    QVBoxLayout *sliderLayout = new QVBoxLayout();
+    QWidget *sliderWidget = new QWidget(this);
+    QVBoxLayout *sliderLayout = new QVBoxLayout(sliderWidget);
     sliderLayout->addWidget(m_gainLabel);
     sliderLayout->addWidget(m_gainSlider);
     sliderLayout->addWidget(m_gammaLabel);
     sliderLayout->addWidget(m_gammaSlider);
+    sliderLayout->addStretch(1);
 
-    // create spacer
-    QSpacerItem *spacer = new QSpacerItem(10, 100, QSizePolicy::Expanding, QSizePolicy::Expanding);
-    sliderLayout->addItem(spacer);
+    m_splitter = new QSplitter(Qt::Horizontal, this);
+    m_splitter->addWidget(imageWidget);
+    m_splitter->addWidget(sliderWidget);
+    m_splitter->setStretchFactor(0, 3);  // Give more stretch to the image side
+    m_splitter->setStretchFactor(1, 1);
 
-    mainLayout->addLayout(imageLayout);
-    mainLayout->addLayout(sliderLayout);
+    mainLayout->addWidget(m_splitter);
     
     setCentralWidget(centralWidget);
     
