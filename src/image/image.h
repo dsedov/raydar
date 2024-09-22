@@ -5,7 +5,7 @@
 #include <vector>
 #include "data/color.h"
 #include "data/spectrum.h"
-
+#include "data/interval.h"
 class Image {
 public:
     Image(int width, int height, int num_wavelengths, observer * observer) 
@@ -57,6 +57,13 @@ public:
         return get_pixel(x, y).to_rgb(observer_);
     }
 
+    float max_value() const {
+        float max_value = 0.0f;
+        for (const auto& value : image_buffer_) {
+            max_value = std::max(max_value, value);
+        }
+        return max_value;
+    }
     void normalize() {
         float max_value = 0.0f;
 

@@ -32,6 +32,7 @@ int main(int argc, char *argv[]) {
         });
         // connect the render window to the render object
         QObject::connect(&render, &render::progressUpdated, &window, &RenderWindow::updateProgress);
+        QObject::connect(&render, &render::bucketFinished, &window, &RenderWindow::updateBucket);
         window.show();
         return app.exec();
     } else {

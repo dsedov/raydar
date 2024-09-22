@@ -7,7 +7,7 @@ render::render(settings& settings) : QObject() {
     load_lookup_table();
 
     // Initialize SpectralConverter
-    observer * observer_ptr = new observer(observer::CIE1931_2Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
+    observer_ptr = new observer(observer::CIE1931_2Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
 
     // IMAGE
     image_buffer = new ImagePNG(settings.image_width, settings.image_height, spectrum::RESPONSE_SAMPLES, observer_ptr);
@@ -231,10 +231,14 @@ void render::process_bucket(const Bucket& bucket) {
                 }
             }
         }
-        
-        // Update progress after each row
-        
     }
+    ImagePNG * bucket_image = new ImagePNG(bucket.end_x - bucket.start_x, bucket.end_y - bucket.start_y, spectrum::RESPONSE_SAMPLES, observer_ptr);
+    for (int pj = 0; pj < bucket.end_y - bucket.start_y; ++pj) {
+        for (int pi = 0; pi < bucket.end_x - bucket.start_x; ++pi) { 
+            bucket_image->set_pixel(pi, pj, image_buffer->get_pixel(bucket.start_x + pi, bucket.start_y + pj));
+        }
+    }
+    emit bucketFinished(bucket.start_x, bucket.start_y, bucket_image);
 }
 void render::updateProgress(int current, int total) {
     emit progressUpdated(current, total);

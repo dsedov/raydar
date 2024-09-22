@@ -86,12 +86,13 @@ public:
 
 signals:
     void progressUpdated(int progress, int total);
+    void bucketFinished(int x, int y, ImagePNG* image);
 
 private:
     hittable_list * world;
     hittable_list * lights;
     Image * image_buffer;
-
+    observer * observer_ptr ;
     
     vec3 pixel00_loc;
     vec3 pixel_delta_u;
