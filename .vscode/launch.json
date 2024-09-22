@@ -15,6 +15,19 @@
             "preLaunchTask": "CMake: build release"
         },
         {
+            "name": "Debug (Mac)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/raydar",
+            "args": ["--file", "spectral_lightbooth.usda", "--image", "out_debug.png", "--samples", "4", "--depth", "4", "--resolution", "512,512"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/bin/",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "CMake: build"
+        },
+        {
             "name": "Release (Windows)",
             "type": "cppvsdbg",
             "request": "launch",
@@ -27,24 +40,11 @@
             "preLaunchTask": "CMake: build release"
         },
         {
-            "name": "Debug (Mac)",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/bin/raydar",
-            "args": ["--file", "spectral_lightbooth.usda", "--image", "out_debug.png", "--samples", "4", "--resolution", "512,512"],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/bin/",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "lldb",
-            "preLaunchTask": "CMake: build"
-        },
-        {
             "name": "Debug (Windows)",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/raydar.exe",
-            "args": ["--file", "spectral_lightbooth.usda", "--image", "out_debug.png", "--samples", "4", "--resolution", "512,512"],
+            "args": ["--file", "spectral_lightbooth.usda", "--image", "out_debug.png", "--samples", "4", "--depth", "4", "--resolution", "512,512"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

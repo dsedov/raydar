@@ -1,19 +1,11 @@
 #include "render.h"
 
+
+
 render::render(settings& settings) : QObject() { 
-    std::vector<std::vector<std::vector<vec3>>> lookup_table;
-    std::ifstream file("lookup_table.bin", std::ios::binary);
-    if (file.good()) {
-        std::cout << "Loading existing lookup table..." << std::endl;
-        lookup_table = spectrum::load_lookup_tables(0.01);
-        spectrum::setLookupTable(lookup_table, 0.01);
-    } else {
-        std::cout << "Lookup table not found. Computing new lookup table..." << std::endl;
-        spectrum::compute_lookup_tables(0.01);
 
-    }
+    load_lookup_table();
 
- 
     // Initialize SpectralConverter
     observer * observer_ptr = new observer(observer::CIE1931_2Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
 
@@ -21,12 +13,12 @@ render::render(settings& settings) : QObject() {
     image_buffer = new ImagePNG(settings.image_width, settings.image_height, spectrum::RESPONSE_SAMPLES, observer_ptr);
     world = new hittable_list();
     lights = new hittable_list();
+
     // LOAD USD FILE
     rd::usd::loader loader(settings.usd_file);
 
     // LOAD CAMERA
     camera = rd::usd::camera::extractCameraProperties(loader.findFirstCamera());
-
 
     // LOAD MATERIALS
     std::cout << "Loading materials from USD stage" << std::endl;
@@ -47,10 +39,8 @@ render::render(settings& settings) : QObject() {
          lights->add(light);
     }
 
-
     samples_per_pixel = settings.samples;
     max_depth = settings.max_depth;
-
 
     std::cout << "Scene meshes size: " << scene_meshes.size() << std::endl;
     std::cout << "Depth: " << max_depth << std::endl;
@@ -81,6 +71,8 @@ int render::render_scene(settings& settings){
     image_buffer->save(settings.get_file_name(image_buffer->width(), image_buffer->height(), settings.samples, seconds_to_render).c_str());
     return seconds_to_render;
 }
+
+
 int render::mtpool_bucket_prog_render() {
     initialize();
     auto start_time = std::chrono::high_resolution_clock::now();
@@ -117,7 +109,7 @@ int render::mtpool_bucket_prog_render() {
             int completed = buckets_completed.fetch_add(1) + 1;
             int current_progress = completed * total_samples / total_buckets;
             progress_bar.update(current_progress);
-            //emit progressUpdated(current_progress * 100 / total_samples);  // Emit progress signal
+            updateProgress(current_progress, sqrt_spp * sqrt_spp);
         }
     };
 
@@ -137,8 +129,6 @@ int render::mtpool_bucket_prog_render() {
     std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
     return duration.count();
 }
-
-
 void render::initialize(bool is_vertical_fov, bool fov_in_degrees) {
     auto focal_length = (camera.center - camera.look_at).length();
     
@@ -243,14 +233,12 @@ void render::process_bucket(const Bucket& bucket) {
         }
         
         // Update progress after each row
-        updateProgress(j - bucket.start_y + 1, bucket.end_y - bucket.start_y);
+        
     }
 }
-
 void render::updateProgress(int current, int total) {
     emit progressUpdated(current, total);
 }
-
 spectrum render::ray_color(const ray& r, int depth) const {
     if (depth <= 0)
         return color(0,0,0);
@@ -286,4 +274,20 @@ spectrum render::ray_color(const ray& r, int depth) const {
     spectrum color_from_scatter = (srec.attenuation * scattering_pdf * ray_color(scattered, depth-1)) / pdf_val;
 
     return color_from_emission + color_from_scatter;
+}
+
+// Internal
+void render::load_lookup_table() {
+    std::vector<std::vector<std::vector<vec3>>> lookup_table;
+    std::ifstream file("lookup_table.bin", std::ios::binary);
+
+    if (file.good()) {
+        std::cout << "Loading existing lookup table..." << std::endl;
+        lookup_table = spectrum::load_lookup_tables(0.01);
+        spectrum::setLookupTable(lookup_table, 0.01);
+    } else {
+        std::cout << "Lookup table not found. Computing new lookup table..." << std::endl;
+        spectrum::compute_lookup_tables(0.01);
+
+    }
 }

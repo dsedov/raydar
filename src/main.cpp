@@ -30,7 +30,8 @@ int main(int argc, char *argv[]) {
                 render_thread.join();
             }
         });
-
+        // connect the render window to the render object
+        QObject::connect(&render, &render::progressUpdated, &window, &RenderWindow::updateProgress);
         window.show();
         return app.exec();
     } else {

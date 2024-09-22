@@ -110,6 +110,7 @@ private:
     spectrum ray_color(const ray& r, int depth) const ;
     
     void updateProgress(int current, int total);
+    void load_lookup_table();
 };
 
 #endif // RENDER_H
