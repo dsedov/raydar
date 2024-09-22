@@ -45,17 +45,22 @@ void RenderWindow::setupUI()
     m_progressBar->setValue(0);
 
     // Create sliders
-    m_gainSlider = new QSlider(Qt::Vertical, this);
+    m_gainSlider = new QSlider(Qt::Horizontal, this);
     m_gainSlider->setRange(100, 100000);  // 1.0 to 100.0
-    m_gainSlider->setValue(100);  // Initial value 1.0
+    m_gainSlider->setValue(30000); 
+    m_gain = 300.0f;
     connect(m_gainSlider, &QSlider::valueChanged, this, &RenderWindow::updateGain);
 
-    m_gammaSlider = new QSlider(Qt::Vertical, this);
+    
+
+    m_gammaSlider = new QSlider(Qt::Horizontal, this);
     m_gammaSlider->setRange(0, 1000);  // 0.0 to 10.0
-    m_gammaSlider->setValue(100);  // Initial value 2.2
+    m_gammaSlider->setValue(220); 
+    m_gamma = 2.2f;
     connect(m_gammaSlider, &QSlider::valueChanged, this, &RenderWindow::updateGamma);
 
-    m_gainLabel = new QLabel("Gain: 1.0", this);
+
+    m_gainLabel = new QLabel("Gain: 300.0", this);
     m_gammaLabel = new QLabel("Gamma: 2.2", this);
 
     QWidget *centralWidget = new QWidget(this);
@@ -71,6 +76,10 @@ void RenderWindow::setupUI()
     sliderLayout->addWidget(m_gainSlider);
     sliderLayout->addWidget(m_gammaLabel);
     sliderLayout->addWidget(m_gammaSlider);
+
+    // create spacer
+    QSpacerItem *spacer = new QSpacerItem(10, 100, QSizePolicy::Expanding, QSizePolicy::Expanding);
+    sliderLayout->addItem(spacer);
 
     mainLayout->addLayout(imageLayout);
     mainLayout->addLayout(sliderLayout);
