@@ -9,6 +9,7 @@
 #include <QProgressBar> // Assuming this is needed for the progress bar
 #include <QSlider>
 #include <QSplitter>
+#include <QPushButton>
 #include "../image/image_png.h"
 
 class RenderWindow : public QMainWindow
@@ -24,6 +25,8 @@ public slots:
     void updateGain(int value);
     void updateGamma(int value);
 
+signals:
+    void render_requested();
 protected:
     void mouseMoveEvent(QMouseEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
@@ -49,6 +52,7 @@ private:
     float m_gain;
     float m_gamma;
     QSplitter *m_splitter;
+    QPushButton *m_renderButton;  // New render button
     void update_image();
 };
 

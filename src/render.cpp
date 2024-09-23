@@ -1,21 +1,21 @@
 #include "render.h"
 
+#include <QTimer>
 
-
-render::render(settings& settings) : QObject() { 
-
+render::render(settings * settings) : QObject() { 
+    settings_ptr = settings;
     load_lookup_table();
 
     // Initialize SpectralConverter
     observer_ptr = new observer(observer::CIE1931_2Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
 
     // IMAGE
-    image_buffer = new ImagePNG(settings.image_width, settings.image_height, spectrum::RESPONSE_SAMPLES, observer_ptr);
+    image_buffer = new ImagePNG(settings_ptr->image_width, settings_ptr->image_height, spectrum::RESPONSE_SAMPLES, observer_ptr);
     world = new hittable_list();
     lights = new hittable_list();
 
     // LOAD USD FILE
-    rd::usd::loader loader(settings.usd_file);
+    rd::usd::loader loader(settings_ptr->usd_file);
 
     // LOAD CAMERA
     camera = rd::usd::camera::extractCameraProperties(loader.findFirstCamera());
@@ -39,8 +39,8 @@ render::render(settings& settings) : QObject() {
          lights->add(light);
     }
 
-    samples_per_pixel = settings.samples;
-    max_depth = settings.max_depth;
+    samples_per_pixel = settings_ptr->samples;
+    max_depth = settings_ptr->max_depth;
 
     std::cout << "Scene meshes size: " << scene_meshes.size() << std::endl;
     std::cout << "Depth: " << max_depth << std::endl;
@@ -61,14 +61,22 @@ render::render(settings& settings) : QObject() {
     auto bvh_shared = new bvh_node(world);
     world = new hittable_list(bvh_shared);
 }
-int render::render_scene(settings& settings){
+void render::render_scene_slot(){
+
+    std::thread render_thread([this]() {
+        render_scene();
+    });
+    render_thread.detach();
+
+}
+int render::render_scene(){
+
     std::cout << "Rendering scene" << std::endl;
     int seconds_to_render = mtpool_bucket_prog_render();
 
-
     // Save the image with the new file name
     image_buffer->normalize();
-    image_buffer->save(settings.get_file_name(image_buffer->width(), image_buffer->height(), settings.samples, seconds_to_render).c_str());
+    image_buffer->save(settings_ptr->get_file_name(image_buffer->width(), image_buffer->height(), settings_ptr->samples, seconds_to_render).c_str());
     return seconds_to_render;
 }
 

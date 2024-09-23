@@ -15,13 +15,13 @@ int main(int argc, char *argv[]) {
     settings settings(argc, argv);
     if(settings.error > 0) return 1;
 
-    render render(settings);
+    render render(&settings);
     if(settings.show_ui){
         QApplication app(argc, argv);
         RenderWindow window(settings.image_width, settings.image_height);
         
         std::thread render_thread([&]() {
-            render.render_scene(settings);
+            render.render_scene();
         });
 
         QObject::connect(&app, &QApplication::aboutToQuit, [&]() {
@@ -33,9 +33,10 @@ int main(int argc, char *argv[]) {
         // connect the render window to the render object
         QObject::connect(&render, &render::progressUpdated, &window, &RenderWindow::updateProgress);
         QObject::connect(&render, &render::bucketFinished, &window, &RenderWindow::updateBucket);
+        QObject::connect(&window, &RenderWindow::render_requested, &render, &render::render_scene_slot);
         window.show();
         return app.exec();
     } else {
-        return render.render_scene(settings);
+        return render.render_scene();
     }
 }

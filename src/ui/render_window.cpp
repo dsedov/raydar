@@ -6,6 +6,7 @@
 #include <QProgressBar>
 #include <QTimer>
 #include <QSplitter>
+#include <QPushButton>
 
 RenderWindow::RenderWindow(int width, int height, QWidget *parent)
     : QMainWindow(parent), m_width(width), m_height(height), m_gain(300.0f), m_gamma(2.2f)
@@ -48,7 +49,7 @@ void RenderWindow::setupUI()
     // Create sliders
     m_gainSlider = new QSlider(Qt::Horizontal, this);
     m_gainSlider->setRange(100, 100000);  // 1.0 to 1000.0
-    m_gainSlider->setValue(30000); 
+    m_gainSlider->setValue(10000); 
     connect(m_gainSlider, &QSlider::valueChanged, this, &RenderWindow::updateGain);
 
     m_gammaSlider = new QSlider(Qt::Horizontal, this);
@@ -56,7 +57,7 @@ void RenderWindow::setupUI()
     m_gammaSlider->setValue(220); 
     connect(m_gammaSlider, &QSlider::valueChanged, this, &RenderWindow::updateGamma);
 
-    m_gainLabel = new QLabel("Gain: 300.0", this);
+    m_gainLabel = new QLabel("Gain: 100.0", this);
     m_gammaLabel = new QLabel("Gamma: 2.2", this);
 
     QWidget *centralWidget = new QWidget(this);
@@ -75,6 +76,11 @@ void RenderWindow::setupUI()
     sliderLayout->addWidget(m_gammaLabel);
     sliderLayout->addWidget(m_gammaSlider);
     sliderLayout->addStretch(1);
+
+    // Add render button
+    m_renderButton = new QPushButton("Render", this);
+    connect(m_renderButton, &QPushButton::clicked, this, &RenderWindow::render_requested);
+    sliderLayout->addWidget(m_renderButton);
 
     m_splitter = new QSplitter(Qt::Horizontal, this);
     m_splitter->addWidget(imageWidget);

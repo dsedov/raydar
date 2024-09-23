@@ -80,9 +80,10 @@ public:
     int max_depth         = 10;
     rd::core::camera camera;
 
-    render(settings& settings);
-    int render_scene(settings& settings);
-    
+    render(settings * settings);
+    int render_scene();
+public slots:
+    void render_scene_slot();
 
 signals:
     void progressUpdated(int progress, int total);
@@ -93,6 +94,7 @@ private:
     hittable_list * lights;
     Image * image_buffer;
     observer * observer_ptr ;
+    settings * settings_ptr;
     
     vec3 pixel00_loc;
     vec3 pixel_delta_u;

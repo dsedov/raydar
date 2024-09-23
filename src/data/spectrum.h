@@ -335,7 +335,7 @@ public:
         for (int i = 0; i < observer->get_length(); i++) {
             illuminant_norm += d65_spd[i] * observer->y_bar[i];
         }
-        illuminant_norm /= 16.0;
+        //illuminant_norm /= 16.0;
 
         for(i = 0; i < observer->get_length()-1; i++){
            
