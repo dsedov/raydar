@@ -14,14 +14,16 @@ UiInt2::UiInt2(const QString& label, QWidget *parent, int min, int max, int step
 
     setupUI();
 
-    connect(m_spinBox1, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int) {
-        emit values_changed(m_spinBox1->value(), m_spinBox2->value());
-    });
-    connect(m_spinBox2, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int) {
-        emit values_changed(m_spinBox1->value(), m_spinBox2->value());
-    });
+    connect(m_spinBox1, &QSpinBox::editingFinished, this, &UiInt2::emitValuesChanged);
+    connect(m_spinBox2, &QSpinBox::editingFinished, this, &UiInt2::emitValuesChanged);
+
+    
 }
 
+void UiInt2::emitValuesChanged()
+{
+    emit values_changed(m_spinBox1->value(), m_spinBox2->value());
+}
 void UiInt2::setupUI()
 {
     QHBoxLayout *layout = new QHBoxLayout(this);

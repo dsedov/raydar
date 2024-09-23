@@ -85,7 +85,8 @@ public:
 public slots:
     void render_scene_slot();
     void spectrum_sampling_changed(int index);
-
+    void samples_changed(int samples);
+    void resolution_changed(int width, int height);
 signals:
     void progressUpdated(int progress, int total);
     void bucketFinished(int x, int y, ImagePNG* image);

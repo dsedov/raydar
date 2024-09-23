@@ -17,6 +17,8 @@
 #include "components/uiint.h"
 #include "components/uifloat.h"
 #include "../helpers/settings.h"
+#include "components/uidropdownmenu.h"
+
 class RenderWindow : public QMainWindow
 {
     Q_OBJECT
@@ -29,14 +31,18 @@ public slots:
     void updateBucket(int x, int y, ImagePNG* image);
     void updateGain(float value);
     void updateGamma(float value);
-    void spectrumSamplingChanged(int index);  // New slot
-    void update_resolution(int value1, int value2);
+
     void updateSamples(int value);
     void updateDepth(int value);
+private slots:
+
+    void update_resolution(int width, int height);
 
 signals:
     void render_requested();
-    void spectrum_sampling_changed(int index);  // New signal
+    void spectrum_sampling_changed(int index); 
+    void samples_changed(int samples);
+    void resolution_changed(int width, int height);
 
 protected:
     void mouseMoveEvent(QMouseEvent *event) override;
@@ -62,7 +68,7 @@ private:
     float m_gamma;
     QSplitter *m_splitter;
     QPushButton *m_renderButton;  // New render button
-    QComboBox *m_spectrumComboBox;  // New dropdown menu
+    UiDropdownMenu *m_spectrumSamplingMenu;  // Replace QComboBox with UiDropdownMenu
     UiInt *m_samplesInput;  // New samples input
     UiInt *m_depthInput;  // New depth input
     UiInt2 *m_resolutionInput;  // New resolution input

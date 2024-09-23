@@ -285,6 +285,15 @@ spectrum render::ray_color(const ray& r, int depth) const {
 
     return color_from_emission + color_from_scatter;
 }
+
+void render::samples_changed(int samples){
+    samples_per_pixel = samples;
+    initialize();
+}
+void render::resolution_changed(int width, int height){
+    image_buffer = new ImagePNG(width, height, spectrum::RESPONSE_SAMPLES, observer_ptr);
+    initialize();
+}
 void render::spectrum_sampling_changed(int index){
     full_spectrum_sampling = index == 0;
     std::cout << "Spectrum sampling changed to: " << (full_spectrum_sampling ? "full" : "stochastic") << std::endl;

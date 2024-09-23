@@ -35,6 +35,8 @@ int main(int argc, char *argv[]) {
         QObject::connect(&render, &render::bucketFinished, &window, &RenderWindow::updateBucket);
         QObject::connect(&window, &RenderWindow::render_requested, &render, &render::render_scene_slot);
         QObject::connect(&window, &RenderWindow::spectrum_sampling_changed, &render, &render::spectrum_sampling_changed);
+        QObject::connect(&window, &RenderWindow::samples_changed, &render, &render::samples_changed);
+        QObject::connect(&window, &RenderWindow::resolution_changed, &render, &render::resolution_changed);
         window.show();
         return app.exec();
     } else {

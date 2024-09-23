@@ -17,9 +17,11 @@ public:
 
 signals:
     void values_changed(int value1, int value2);
+    
 
 public slots:
     void update_values(int value1, int value2);
+    void emitValuesChanged();
 
 private:
     QLabel *m_label;

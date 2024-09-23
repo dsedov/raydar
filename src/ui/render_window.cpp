@@ -7,6 +7,7 @@
 #include "components/uiint2.h"
 #include "components/uiint.h"
 #include "components/uifloat.h"
+#include "components/uidropdownmenu.h"
 
 RenderWindow::RenderWindow(settings * settings_ptr, QWidget *parent)
     : QMainWindow(parent), m_width(settings_ptr->image_width), m_height(settings_ptr->image_height), m_gain(300.0f), m_gamma(2.2f)
@@ -56,17 +57,15 @@ void RenderWindow::setupUI()
     m_gammaInput->setValue(m_gamma);
     connect(m_gammaInput, &UiFloat::value_changed, this, &RenderWindow::updateGamma);
 
-    // Add spectrum sampling dropdown
-    QLabel *m_spectrumLabel = new QLabel("Spectrum sampling:", this);
-    m_spectrumComboBox = new QComboBox(this);
-    m_spectrumComboBox->addItem("full");
-    m_spectrumComboBox->addItem("stochastic");
-    connect(m_spectrumComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &RenderWindow::spectrumSamplingChanged);
+    // Replace spectrum sampling dropdown with UiDropdownMenu
+    QStringList spectrumOptions = {"full", "stochastic"};
+    m_spectrumSamplingMenu = new UiDropdownMenu("Spectrum:", spectrumOptions, this);
+    connect(m_spectrumSamplingMenu, &UiDropdownMenu::index_changed, this, &RenderWindow::spectrum_sampling_changed);
 
     // Add samples input
     m_samplesInput = new UiInt("Samples:", this, 1, 8912, 1);
     m_samplesInput->setValue(m_settings_ptr->samples);
-    connect(m_samplesInput, &UiInt::value_changed, this, &RenderWindow::updateSamples);
+    connect(m_samplesInput, &UiInt::value_changed, this, &RenderWindow::samples_changed);
 
     // Add depth input
     m_depthInput = new UiInt("Depth:", this, 1, 48, 1);
@@ -76,6 +75,7 @@ void RenderWindow::setupUI()
     // Add resolution input
     m_resolutionInput = new UiInt2("Resolution:", this, 16, 16384, 16);
     m_resolutionInput->setValues(m_width, m_height);
+    connect(m_resolutionInput, &UiInt2::values_changed, this, &RenderWindow::resolution_changed);
     connect(m_resolutionInput, &UiInt2::values_changed, this, &RenderWindow::update_resolution);
 
     QWidget *centralWidget = new QWidget(this);
@@ -91,8 +91,7 @@ void RenderWindow::setupUI()
     QVBoxLayout *controlLayout = new QVBoxLayout(controlWidget);
     controlLayout->addWidget(m_gainInput);
     controlLayout->addWidget(m_gammaInput);
-    controlLayout->addWidget(m_spectrumLabel);
-    controlLayout->addWidget(m_spectrumComboBox);
+    controlLayout->addWidget(m_spectrumSamplingMenu);  // Add the new UiDropdownMenu
     controlLayout->addWidget(m_samplesInput);
     controlLayout->addWidget(m_depthInput);
     controlLayout->addWidget(m_resolutionInput);
@@ -219,7 +218,15 @@ void RenderWindow::resizeEvent(QResizeEvent *event)
     QMainWindow::resizeEvent(event);
     updateImageLabelSize();
 }
-
+void RenderWindow::update_resolution(int width, int height)
+{
+    m_width = width;
+    m_height = height;
+    m_image_buffer = new ImagePNG(m_width, m_height, spectrum::RESPONSE_SAMPLES, observer_ptr);
+    m_image = new QImage(m_width, m_height, QImage::Format_RGB888);
+    m_image->fill(Qt::black);
+    update_image();
+}
 void RenderWindow::updateImageLabelSize()
 {
     QSize scrollAreaSize = m_scrollArea->viewport()->size();
@@ -227,16 +234,4 @@ void RenderWindow::updateImageLabelSize()
     QSize newSize = imageSize.scaled(scrollAreaSize, Qt::KeepAspectRatio);
     m_imageLabel->setFixedSize(newSize);
     m_imageLabel->setPixmap(QPixmap::fromImage(*m_image).scaled(newSize, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-}
-
-void RenderWindow::spectrumSamplingChanged(int index)
-{
-    emit spectrum_sampling_changed(index);
-}
-
-void RenderWindow::update_resolution(int width, int height)
-{
-    //m_width = width;
-    //m_height = height;
-    // Update other necessary components based on the new resolution
 }
