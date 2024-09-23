@@ -78,6 +78,9 @@ set(SOURCES
     src/main.cpp
     src/render.cpp
     src/ui/render_window.cpp 
+    src/ui/components/uifloat.cpp
+    src/ui/components/uiint.cpp 
+    src/ui/components/uiint2.cpp
 )
 add_executable(raydar ${SOURCES})
 

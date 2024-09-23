@@ -219,16 +219,14 @@ void render::process_bucket(const Bucket& bucket) {
                     }
                 }
                 for (int i = 0; i < rays.size(); ++i) {
-                    bool sample_wavelength = false;
-                    if (sample_wavelength) {
+                    if (full_spectrum_sampling) {
+                        pixel_colors[i] += ray_color(rays[i], max_depth);
+                    } else {
                         for (int wl = 0; wl < spectrum::RESPONSE_SAMPLES; ++wl) {
                             rays[i].wavelength = spectrum::START_WAVELENGTH + wl * (spectrum::END_WAVELENGTH - spectrum::START_WAVELENGTH) / (spectrum::RESPONSE_SAMPLES - 1);
                             pixel_colors[i][wl] += ray_color(rays[i], max_depth)[wl];
                         }
                     } 
-                    else {
-                        pixel_colors[i] += ray_color(rays[i], max_depth);
-                    }
                 }
             }
 
@@ -287,7 +285,10 @@ spectrum render::ray_color(const ray& r, int depth) const {
 
     return color_from_emission + color_from_scatter;
 }
-
+void render::spectrum_sampling_changed(int index){
+    full_spectrum_sampling = index == 0;
+    std::cout << "Spectrum sampling changed to: " << (full_spectrum_sampling ? "full" : "stochastic") << std::endl;
+}
 // Internal
 void render::load_lookup_table() {
     std::vector<std::vector<std::vector<vec3>>> lookup_table;

@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
     render render(&settings);
     if(settings.show_ui){
         QApplication app(argc, argv);
-        RenderWindow window(settings.image_width, settings.image_height);
+        RenderWindow window(&settings);
         
         std::thread render_thread([&]() {
             render.render_scene();
@@ -34,6 +34,7 @@ int main(int argc, char *argv[]) {
         QObject::connect(&render, &render::progressUpdated, &window, &RenderWindow::updateProgress);
         QObject::connect(&render, &render::bucketFinished, &window, &RenderWindow::updateBucket);
         QObject::connect(&window, &RenderWindow::render_requested, &render, &render::render_scene_slot);
+        QObject::connect(&window, &RenderWindow::spectrum_sampling_changed, &render, &render::spectrum_sampling_changed);
         window.show();
         return app.exec();
     } else {

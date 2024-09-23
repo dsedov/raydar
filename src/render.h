@@ -84,6 +84,7 @@ public:
     int render_scene();
 public slots:
     void render_scene_slot();
+    void spectrum_sampling_changed(int index);
 
 signals:
     void progressUpdated(int progress, int total);
@@ -95,6 +96,8 @@ private:
     Image * image_buffer;
     observer * observer_ptr ;
     settings * settings_ptr;
+
+    bool full_spectrum_sampling = true;
     
     vec3 pixel00_loc;
     vec3 pixel_delta_u;

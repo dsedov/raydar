@@ -3,15 +3,16 @@
 #include <QHBoxLayout>
 #include <QMouseEvent>
 #include <QResizeEvent>
-#include <QProgressBar>
 #include <QTimer>
-#include <QSplitter>
-#include <QPushButton>
+#include "components/uiint2.h"
+#include "components/uiint.h"
+#include "components/uifloat.h"
 
-RenderWindow::RenderWindow(int width, int height, QWidget *parent)
-    : QMainWindow(parent), m_width(width), m_height(height), m_gain(300.0f), m_gamma(2.2f)
+RenderWindow::RenderWindow(settings * settings_ptr, QWidget *parent)
+    : QMainWindow(parent), m_width(settings_ptr->image_width), m_height(settings_ptr->image_height), m_gain(300.0f), m_gamma(2.2f)
 {
     setWindowTitle("Render Window");
+    m_settings_ptr = settings_ptr;
     observer_ptr = new observer(observer::CIE1931_2Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
     m_image_buffer = new ImagePNG(m_width, m_height, spectrum::RESPONSE_SAMPLES, observer_ptr);
     m_image = new QImage(m_width, m_height, QImage::Format_RGB888);
@@ -46,19 +47,36 @@ void RenderWindow::setupUI()
     m_progressBar->setRange(0, 100);
     m_progressBar->setValue(0);
 
-    // Create sliders
-    m_gainSlider = new QSlider(Qt::Horizontal, this);
-    m_gainSlider->setRange(100, 100000);  // 1.0 to 1000.0
-    m_gainSlider->setValue(10000); 
-    connect(m_gainSlider, &QSlider::valueChanged, this, &RenderWindow::updateGain);
+    // Create UiFloat for gain and gamma
+    m_gainInput = new UiFloat("Gain:", this, 1, 1000, 0.1);
+    m_gainInput->setValue(m_gain);
+    connect(m_gainInput, &UiFloat::value_changed, this, &RenderWindow::updateGain);
 
-    m_gammaSlider = new QSlider(Qt::Horizontal, this);
-    m_gammaSlider->setRange(0, 1000);  // 0.0 to 10.0
-    m_gammaSlider->setValue(220); 
-    connect(m_gammaSlider, &QSlider::valueChanged, this, &RenderWindow::updateGamma);
+    m_gammaInput = new UiFloat("Gamma:", this,0.1, 10.0, 0.1);
+    m_gammaInput->setValue(m_gamma);
+    connect(m_gammaInput, &UiFloat::value_changed, this, &RenderWindow::updateGamma);
 
-    m_gainLabel = new QLabel("Gain: 100.0", this);
-    m_gammaLabel = new QLabel("Gamma: 2.2", this);
+    // Add spectrum sampling dropdown
+    QLabel *m_spectrumLabel = new QLabel("Spectrum sampling:", this);
+    m_spectrumComboBox = new QComboBox(this);
+    m_spectrumComboBox->addItem("full");
+    m_spectrumComboBox->addItem("stochastic");
+    connect(m_spectrumComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &RenderWindow::spectrumSamplingChanged);
+
+    // Add samples input
+    m_samplesInput = new UiInt("Samples:", this, 1, 8912, 1);
+    m_samplesInput->setValue(m_settings_ptr->samples);
+    connect(m_samplesInput, &UiInt::value_changed, this, &RenderWindow::updateSamples);
+
+    // Add depth input
+    m_depthInput = new UiInt("Depth:", this, 1, 48, 1);
+    m_depthInput->setValue(m_settings_ptr->max_depth);
+    connect(m_depthInput, &UiInt::value_changed, this, &RenderWindow::updateDepth);
+
+    // Add resolution input
+    m_resolutionInput = new UiInt2("Resolution:", this, 16, 16384, 16);
+    m_resolutionInput->setValues(m_width, m_height);
+    connect(m_resolutionInput, &UiInt2::values_changed, this, &RenderWindow::update_resolution);
 
     QWidget *centralWidget = new QWidget(this);
     QHBoxLayout *mainLayout = new QHBoxLayout(centralWidget);
@@ -69,22 +87,25 @@ void RenderWindow::setupUI()
     imageLayout->addWidget(m_progressBar);
     imageLayout->addWidget(m_metadataLabel);
 
-    QWidget *sliderWidget = new QWidget(this);
-    QVBoxLayout *sliderLayout = new QVBoxLayout(sliderWidget);
-    sliderLayout->addWidget(m_gainLabel);
-    sliderLayout->addWidget(m_gainSlider);
-    sliderLayout->addWidget(m_gammaLabel);
-    sliderLayout->addWidget(m_gammaSlider);
-    sliderLayout->addStretch(1);
+    QWidget *controlWidget = new QWidget(this);
+    QVBoxLayout *controlLayout = new QVBoxLayout(controlWidget);
+    controlLayout->addWidget(m_gainInput);
+    controlLayout->addWidget(m_gammaInput);
+    controlLayout->addWidget(m_spectrumLabel);
+    controlLayout->addWidget(m_spectrumComboBox);
+    controlLayout->addWidget(m_samplesInput);
+    controlLayout->addWidget(m_depthInput);
+    controlLayout->addWidget(m_resolutionInput);
+    controlLayout->addStretch(1);
 
     // Add render button
     m_renderButton = new QPushButton("Render", this);
     connect(m_renderButton, &QPushButton::clicked, this, &RenderWindow::render_requested);
-    sliderLayout->addWidget(m_renderButton);
+    controlLayout->addWidget(m_renderButton);
 
     m_splitter = new QSplitter(Qt::Horizontal, this);
     m_splitter->addWidget(imageWidget);
-    m_splitter->addWidget(sliderWidget);
+    m_splitter->addWidget(controlWidget);
     m_splitter->setStretchFactor(0, 3);  // Give more stretch to the image side
     m_splitter->setStretchFactor(1, 1);
 
@@ -98,18 +119,26 @@ void RenderWindow::setupUI()
     setMouseTracking(true);
 }
 
-void RenderWindow::updateGain(int value)
+void RenderWindow::updateGain(float value)
 {
-    m_gain = value / 100.0f;
-    m_gainLabel->setText(QString("Gain: %1").arg(m_gain, 0, 'f', 2));
+    m_gain = value;
     update_image();
 }
 
-void RenderWindow::updateGamma(int value)
+void RenderWindow::updateGamma(float value)
 {
-    m_gamma = value / 100.0f;
-    m_gammaLabel->setText(QString("Gamma: %1").arg(m_gamma, 0, 'f', 2));
+    m_gamma = value;
     update_image();
+}
+
+void RenderWindow::updateSamples(int value)
+{
+    // Implement the logic for updating samples
+}
+
+void RenderWindow::updateDepth(int value)
+{
+    // Implement the logic for updating depth
 }
 
 void RenderWindow::update_image()
@@ -198,4 +227,16 @@ void RenderWindow::updateImageLabelSize()
     QSize newSize = imageSize.scaled(scrollAreaSize, Qt::KeepAspectRatio);
     m_imageLabel->setFixedSize(newSize);
     m_imageLabel->setPixmap(QPixmap::fromImage(*m_image).scaled(newSize, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+}
+
+void RenderWindow::spectrumSamplingChanged(int index)
+{
+    emit spectrum_sampling_changed(index);
+}
+
+void RenderWindow::update_resolution(int width, int height)
+{
+    //m_width = width;
+    //m_height = height;
+    // Update other necessary components based on the new resolution
 }
