@@ -17,12 +17,14 @@
 #include <pxr/base/gf/vec3d.h>
 #include <pxr/base/gf/rotation.h>
 #include <pxr/base/gf/matrix4d.h>
+#include <pxr/base/vt/array.h>
 
 #include <pxr/usd/usdShade/material.h>
 #include <pxr/usd/usdShade/materialBindingAPI.h>
 #include <pxr/usd/usdShade/connectableAPI.h>
 #include <pxr/usd/usdShade/shader.h>
 #include <pxr/usd/usdLux/rectLight.h>
+
 
 namespace rd::usd::material {
 

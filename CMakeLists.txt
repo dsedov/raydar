@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 project(raydar)
-
+if(WIN32)  
+    set(CMAKE_PREFIX_PATH "C:/Qt/6.7.2/msvc2019_64/lib/cmake")
+endif()
 find_package(Qt6 COMPONENTS Core Widgets REQUIRED)
 set(CMAKE_AUTOMOC ON)
 
@@ -36,9 +38,6 @@ find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
-
-
-find_package(OpenEXR REQUIRED)
 
 if (WIN32)
     set(PNG_INCLUDE_DIR "D:/dev/vcpkg/packages/libpng_x64-windows/include")
@@ -88,7 +87,6 @@ add_executable(raydar ${SOURCES})
 # Include directories   
 target_include_directories(raydar PRIVATE include ${PNG_INCLUDE_DIR})
 target_include_directories(raydar PRIVATE src)
-target_include_directories(raydar PRIVATE ${OpenEXR_INCLUDE_DIRS})
 target_include_directories(raydar PRIVATE ${Qt6Core_INCLUDE_DIRS})
 target_include_directories(raydar PRIVATE ${Qt6Gui_INCLUDE_DIRS})
 target_include_directories(raydar PRIVATE ${Qt6Widgets_INCLUDE_DIRS})
@@ -107,8 +105,7 @@ target_link_libraries(raydar PRIVATE
                                 ${USD_USD_LUX_LIB}
                                 ${Qt6Core_LIBRARIES}
                                 ${Qt6Gui_LIBRARIES}
-                                ${Qt6Widgets_LIBRARIES}
-                                ${OpenEXR_LIBRARIES})
+                                ${Qt6Widgets_LIBRARIES})
 
 # Add compile definitions if needed
 target_compile_definitions(raydar PRIVATE ${PNG_DEFINITIONS} NOMINMAX WIN32_LEAN_AND_MEAN)

@@ -59,7 +59,8 @@ namespace rd::usd::material {
             std::cout << "\nLoading Material: " << usdMaterial.GetPath().GetString() << std::endl;
             float base_weight = 1.0f;
             pxr::GfVec3f baseColor(1.0f, 0.0f, 0.0f); 
-
+            pxr::VtArray<float> spectrumValues;
+            bool hasSpectral = false;
             float metalness = 0.0f;
             float transmission = 0.0f;
             float specular = 0.0f;
@@ -94,6 +95,17 @@ namespace rd::usd::material {
                     }
                     color diffuseColor(baseColor[0], baseColor[1], baseColor[2]);
                     std::cout << "Base Color: " << baseColor[0] << ", " << baseColor[1] << ", " << baseColor[2] << std::endl;
+                }
+                pxr::UsdShadeInput spectrumInput = shader.GetInput(pxr::TfToken("spectrum"));
+                if (spectrumInput) {
+                    // Read the value of the input
+                    
+                    if (spectrumInput.Get(&spectrumValues)) {
+                        std::cout << "Successfully read spectrum: " << spectrumValues << std::endl;
+                        hasSpectral = true;
+                    } else {
+                        std::cout << "Failed to read spectrum, using default" << std::endl;
+                    }
                 }
                 // Get metalness
                 pxr::UsdShadeInput metalnessInput = shader.GetInput(pxr::TfToken("metalness"));
@@ -166,7 +178,9 @@ namespace rd::usd::material {
             color diffuseColor(baseColor[0], baseColor[1], baseColor[2]);
             color emissionColor(emission_color[0], emission_color[1], emission_color[2]);
             rd::core::advanced_pbr_material* mat = new rd::core::advanced_pbr_material(
-                base_weight, diffuseColor, metalness,  // base_weight, base_color, base_metalness
+                base_weight, 
+                hasSpectral ? spectrum(spectrumValues.data()) : diffuseColor , 
+                metalness,  // base_weight, base_color, base_metalness
                 specular, color(1,1,1), specular_roughness, 1.5,  // specular_weight, specular_color, specular_roughness, specular_ior
                 transmission, color(1,1,1),  // transmission_weight, transmission_color
                 emission, emissionColor  // emission_luminance, emission_color
