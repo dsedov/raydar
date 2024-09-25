@@ -70,7 +70,8 @@ namespace rd::core {
     };
     class light : public material {
     public:
-        light(const spectrum& light_color, double light_intensity, ImagePNG * texture = nullptr) : light_color(light_color), light_intensity(light_intensity), texture(texture) {
+        light(const spectrum& light_color, double light_intensity, ImagePNG * texture = nullptr, double light_spread = 1.0) 
+        : light_color(light_color), light_intensity(light_intensity), texture(texture), light_spread(light_spread) {
             set_visible(true), set_cast_shadow(false);
         }
 
@@ -104,7 +105,7 @@ namespace rd::core {
         spectrum light_color;
         double light_intensity;
         ImagePNG * texture;
-        double light_spread = 0.7;
+        double light_spread = 1.0;
 
     };
     class metal : public material {

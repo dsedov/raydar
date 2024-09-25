@@ -22,6 +22,7 @@ namespace rd::usd::light {
         float height;
         float width;
         float intensity;
+        float spread = 1.0;
         bool normalize;
         pxr::GfVec3f shadowColor;
         bool shadowEnable;

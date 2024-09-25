@@ -34,6 +34,9 @@ namespace rd::usd::light {
         pxr::UsdAttribute specularAttr = prim.GetAttribute(pxr::TfToken("inputs:specular"));
         if (specularAttr) specularAttr.Get(&light.specular);
 
+        pxr::UsdAttribute spreadAttr = prim.GetAttribute(pxr::TfToken("inputs:spread"));
+        if (spreadAttr) spreadAttr.Get(&light.spread);
+
         pxr::UsdAttribute textureFileAttr = prim.GetAttribute(pxr::TfToken("inputs:texture:file"));
         if (textureFileAttr) {
             pxr::SdfAssetPath texturePath;
@@ -95,12 +98,12 @@ namespace rd::usd::light {
                 std::cout << "Loading texture: " << light.textureFilePath << std::endl;
                 auto texture_ptr = new ImagePNG(ImagePNG::load(light.textureFilePath.c_str(), observer));
 
-                auto light_material = new rd::core::light(spectrum::d65(), light.intensity, texture_ptr);
+                auto light_material = new rd::core::light(spectrum::d65(), light.intensity, texture_ptr, light.spread);
                 auto light_quad = new rd::core::area_light(light.Q, light.u, light.v, light_material);
                 area_lights.push_back(light_quad);
             }
             else {
-                auto light_material = new rd::core::light(spectrum::d65(), light.intensity);
+                auto light_material = new rd::core::light(spectrum::d65(), light.intensity, nullptr, light.spread);
                 auto light_quad = new rd::core::area_light(light.Q, light.u, light.v, light_material);
                 area_lights.push_back(light_quad);
             }
