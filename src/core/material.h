@@ -83,7 +83,19 @@ namespace rd::core {
             if (!rec.front_face)
                 return spectrum(color(0,0,0));
             if (texture) {
-                return light_color * texture->uv_value(u, v) * light_intensity;
+                // Calculate the angle between the light normal and the ray direction
+                double cos_angle = dot(unit_vector(rec.normal), unit_vector(-r_in.direction()));
+                
+                // Calculate the intensity based on the light spread
+                double intensity_factor = 1.0;
+                if (light_spread < 1.0) {
+                    // Use a more appropriate falloff function
+                    intensity_factor = std::pow(std::max(0.0, cos_angle), 1.0 / light_spread);
+                }
+                
+                // Apply the intensity factor to the light intensity
+                double adjusted_intensity = light_intensity * intensity_factor;
+                return light_color * texture->uv_value(u, v) * adjusted_intensity;
             }
             return light_color * light_intensity;
         }
@@ -92,6 +104,7 @@ namespace rd::core {
         spectrum light_color;
         double light_intensity;
         ImagePNG * texture;
+        double light_spread = 0.7;
 
     };
     class metal : public material {
