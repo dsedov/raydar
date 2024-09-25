@@ -333,15 +333,15 @@ public:
         // Calculate the normalization factor for illuminant
         double illuminant_norm = 0.0;
         for (int i = 0; i < observer->get_length(); i++) {
-            illuminant_norm += d65_spd[i] * observer->y_bar[i];
+            illuminant_norm +=  observer->y_bar[i];// * d65_spd[i];
         }
         //illuminant_norm /= 16.0;
 
         for(i = 0; i < observer->get_length()-1; i++){
            
-            x_bar[i] = data_[i] * observer->x_bar[i] * d65_spd[i];
-            y_bar[i] = data_[i] * observer->y_bar[i] * d65_spd[i];
-            z_bar[i] = data_[i] * observer->z_bar[i] * d65_spd[i];
+            x_bar[i] = data_[i] * observer->x_bar[i];// * d65_spd[i];
+            y_bar[i] = data_[i] * observer->y_bar[i];// * d65_spd[i];
+            z_bar[i] = data_[i] * observer->z_bar[i];// * d65_spd[i];
         }
 
         // Integrate
