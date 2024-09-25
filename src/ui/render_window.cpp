@@ -18,7 +18,7 @@ RenderWindow::RenderWindow(settings * settings_ptr, QWidget *parent)
     m_image_buffer = new ImagePNG(m_width, m_height, spectrum::RESPONSE_SAMPLES, observer_ptr);
     m_image = new QImage(m_width, m_height, QImage::Format_RGB888);
     m_image->fill(Qt::black);
-    
+    m_gain = 5;
     setupUI();
 
     resize(1000, 600);

@@ -95,7 +95,23 @@ namespace rd::usd::material {
                     }
                     color diffuseColor(baseColor[0], baseColor[1], baseColor[2]);
                     std::cout << "Base Color: " << baseColor[0] << ", " << baseColor[1] << ", " << baseColor[2] << std::endl;
+                } else {
+                    baseColorInput = shader.GetInput(pxr::TfToken("diffuseColor"));
+                    if (baseColorInput) {
+                        // Read the value of the input
+                        
+                        if (baseColorInput.Get(&baseColor)) {
+                            std::cout << "Successfully read base color: " << baseColor[0] << ", " << baseColor[1] << ", " << baseColor[2] << std::endl;
+                        } else {
+                            std::cout << "Failed to read base color, using default" << std::endl;
+                            baseColor = pxr::GfVec3f(1.0f, 0.0f, 0.0f);
+                        }
+                        color diffuseColor(baseColor[0], baseColor[1], baseColor[2]);
+                        std::cout << "Base Color: " << baseColor[0] << ", " << baseColor[1] << ", " << baseColor[2] << std::endl;
+                    }
+
                 }
+
                 pxr::UsdShadeInput spectrumInput = shader.GetInput(pxr::TfToken("spectrum"));
                 if (spectrumInput) {
                     // Read the value of the input
@@ -180,10 +196,10 @@ namespace rd::usd::material {
             rd::core::advanced_pbr_material* mat = new rd::core::advanced_pbr_material(
                 base_weight, 
                 hasSpectral ? spectrum(spectrumValues.data()) : diffuseColor , 
-                metalness,  // base_weight, base_color, base_metalness
-                specular, color(1,1,1), specular_roughness, 1.5,  // specular_weight, specular_color, specular_roughness, specular_ior
-                transmission, color(1,1,1),  // transmission_weight, transmission_color
-                emission, emissionColor  // emission_luminance, emission_color
+                metalness, 
+                specular, color(1,1,1), specular_roughness, 1.5,
+                transmission, color(1,1,1), 
+                emission, emissionColor 
             );
             materials[usdMaterial.GetPath().GetString()] = mat;
         }
