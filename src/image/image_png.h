@@ -2,6 +2,7 @@
 #include "image.h"
 #include <png.h>
 #include <vector>
+#include <cstdio>
 
 class ImagePNG : public Image {
 public:
@@ -97,7 +98,34 @@ public:
     }
     spectrum uv_value(double u, double v) const {
         return get_pixel(u * width_, v * height_);
-    }   
+    }  
+    void save_spectrum(const char* filename) override {
+        // Get file pointer for writing
+        FILE* file = fopen(filename, "wb");
+        if (!file) {
+            printf("Failed to create the SPD file\n");
+            return;
+        }
+
+        // Write the SPD data to the file
+
+        // Write resolution in binary format
+        fwrite(&width_, sizeof(int), 1, file);
+        fwrite(&height_, sizeof(int), 1, file);
+        fwrite(&spectrum::RESPONSE_SAMPLES, sizeof(int), 1, file);
+
+        // Write the SPD data to the file
+        for (int y = 0; y < height_; y++) {
+            for (int x = 0; x < width_; x++) {
+                spectrum spectrum = get_pixel(x, y);
+                auto data = spectrum.get_data();
+                fwrite(data.data(), sizeof(float), data.size(), file);
+            }
+        }
+
+        fclose(file);
+    }
+
     void save(const char* filename, float gamma = 2.2, float gain = 5) override {
         std::vector<png_byte> png_buffer(height_ * width_ * 3);
         static const interval intensity(0.000, 0.999);

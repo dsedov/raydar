@@ -79,6 +79,9 @@ int render::render_scene(){
     image_buffer->save(
         settings_ptr->get_file_name(image_buffer->width(),image_buffer->height(), settings_ptr->samples, seconds_to_render).c_str(),
         settings_ptr->gamma, settings_ptr->gain);
+    auto file_name = settings_ptr->get_file_name(image_buffer->width(),image_buffer->height(), settings_ptr->samples, seconds_to_render, false);
+    file_name += ".spd";
+    image_buffer->save_spectrum(file_name.c_str());
     return seconds_to_render;
 }
 

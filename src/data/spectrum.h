@@ -634,6 +634,10 @@ public:
         }
         return s;
     }
+    const std::vector<float>& get_data() const {
+        return data_;
+    }
+
 private:
     std::vector<float> data_;
     static inline std::vector<std::vector<std::vector<vec3>>> lookup_table;

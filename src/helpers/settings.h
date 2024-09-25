@@ -90,7 +90,7 @@ class settings {
         std::cout << "Gain: " << gain << std::endl;
     }
 
-    std::string get_file_name(int width, int height, int samples, int seconds) const{
+    std::string get_file_name(int width, int height, int samples, int seconds, bool with_extension = true) const{
         std::string file_name = image_file;
         size_t dot_pos = file_name.find_last_of(".");
         std::string name = file_name.substr(0, dot_pos);
@@ -99,7 +99,8 @@ class settings {
         // Create the new file name with resolution and samples
         std::stringstream new_file_name;
   
-        new_file_name << name << "_" << width << "x" << height << "_" << samples << "spp" << "_" << seconds << "s" << "_" << rd::strings::get_uuid() << extension;
+        new_file_name << name << "_" << width << "x" << height << "_" << samples << "spp" << "_" << seconds << "s" << "_" << rd::strings::get_uuid();
+        if (with_extension) new_file_name << extension;
         return new_file_name.str();
     }
 
