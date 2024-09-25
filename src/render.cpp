@@ -76,7 +76,9 @@ int render::render_scene(){
 
     // Save the image with the new file name
     image_buffer->normalize();
-    image_buffer->save(settings_ptr->get_file_name(image_buffer->width(), image_buffer->height(), settings_ptr->samples, seconds_to_render).c_str());
+    image_buffer->save(
+        settings_ptr->get_file_name(image_buffer->width(),image_buffer->height(), settings_ptr->samples, seconds_to_render).c_str(),
+        settings_ptr->gamma, settings_ptr->gain);
     return seconds_to_render;
 }
 

@@ -9,6 +9,8 @@ class settings {
   public:
     int image_width = 1024; 
     int image_height = 768;
+    float gamma = 1.0;
+    float gain = 1.0;
     int samples = 4;
     int max_depth = 3;
     bool show_ui = false;
@@ -27,6 +29,8 @@ class settings {
             ("s,samples", "Number of samples", cxxopts::value<int>()->default_value("4"))
             ("d,depth", "Max depth", cxxopts::value<int>()->default_value("10"))
             ("h,help", "Print usage")
+            ("gm,gamma", "Gamma", cxxopts::value<float>()->default_value("2.2"))
+            ("gn,gain", "Gain", cxxopts::value<float>()->default_value("2.7"))
             ("ui", "Show UI", cxxopts::value<bool>()->default_value("false"));
 
         auto result = options.parse(argc, argv);    
@@ -76,6 +80,14 @@ class settings {
         // UI
         if (result.count("ui")) show_ui = result["ui"].as<bool>();
         std::cout << "Show UI: " << show_ui << std::endl;
+
+        // GAMMA
+        if (result.count("gamma")) gamma = result["gamma"].as<float>();
+        std::cout << "Gamma: " << gamma << std::endl;
+
+        // GAIN
+        if (result.count("gain")) gain = result["gain"].as<float>();
+        std::cout << "Gain: " << gain << std::endl;
     }
 
     std::string get_file_name(int width, int height, int samples, int seconds) const{

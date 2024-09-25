@@ -16,7 +16,7 @@ public:
     }
 
     virtual ~Image() {}
-    virtual void save(const char* filename) = 0;
+    virtual void save(const char* filename, float gamma, float gain) = 0;
 
     void set_pixel(int x, int y, const spectrum& spectrum) {
         int index = y * row_size_ + x * num_wavelengths_;

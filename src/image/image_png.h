@@ -98,7 +98,7 @@ public:
     spectrum uv_value(double u, double v) const {
         return get_pixel(u * width_, v * height_);
     }   
-    void save(const char* filename) override {
+    void save(const char* filename, float gamma = 2.2, float gain = 5) override {
         std::vector<png_byte> png_buffer(height_ * width_ * 3);
         static const interval intensity(0.000, 0.999);
 
@@ -106,12 +106,12 @@ public:
             png_bytep row = png_buffer.data() + y * width_ * 3;
             for (int x = 0; x < width_; x++) {
                 png_bytep pixel = row + x * 3;
-                spectrum spectrum = get_pixel(x, y);
+                spectrum spectrum = get_pixel(x, y)  / ( gain * gain);
                 color rgb = spectrum.to_rgb(observer_);
 
-                pixel[0] = int(255.999 * intensity.clamp(linear_to_gamma(rgb.x()))); // Red channel
-                pixel[1] = int(255.999 * intensity.clamp(linear_to_gamma(rgb.y()))); // Green channel
-                pixel[2] = int(255.999 * intensity.clamp(linear_to_gamma(rgb.z()))); // Blue channel
+                pixel[0] = int(255.999 * intensity.clamp(linear_to_gamma2(rgb.x(), gamma))); // Red channel
+                pixel[1] = int(255.999 * intensity.clamp(linear_to_gamma2(rgb.y(), gamma))); // Green channel
+                pixel[2] = int(255.999 * intensity.clamp(linear_to_gamma2(rgb.z(), gamma))); // Blue channel
             }
         }
 
