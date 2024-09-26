@@ -24,7 +24,6 @@ class RenderWindow : public QMainWindow
     Q_OBJECT
 public:
     RenderWindow(settings * settings_ptr, QWidget *parent = nullptr);
-    void updatePixel(int x, int y, uint8_t r, uint8_t g, uint8_t b, const QString& metadata);
 
 public slots:
     void updateProgress(int progress, int total);
@@ -45,7 +44,7 @@ signals:
     void resolution_changed(int width, int height);
 
 protected:
-    void mouseMoveEvent(QMouseEvent *event) override;
+
     void resizeEvent(QResizeEvent *event) override;
 
 private:

@@ -172,46 +172,7 @@ void RenderWindow::updateBucket(int x, int y, ImagePNG* image)
     }
 }
 
-void RenderWindow::updatePixel(int x, int y, uint8_t r, uint8_t g, uint8_t b, const QString& metadata)
-{
-    if (x < 0 || x >= m_width || y < 0 || y >= m_height)
-        return;
-    
-    m_image->setPixelColor(x, y, QColor(r, g, b));
-    m_metadata[QString("%1,%2").arg(x).arg(y)] = metadata;
-    
-    m_imageLabel->setPixmap(QPixmap::fromImage(*m_image));
-}
 
-void RenderWindow::mouseMoveEvent(QMouseEvent *event)
-{
-    QPoint pos = m_scrollArea->viewport()->mapFrom(this, event->pos());
-    pos = m_imageLabel->mapFrom(m_scrollArea->viewport(), pos);
-    QRect scaledRect = m_imageLabel->rect();
-
-    if (scaledRect.contains(pos))
-    {
-        double scaleX = static_cast<double>(m_width) / scaledRect.width();
-        double scaleY = static_cast<double>(m_height) / scaledRect.height();
-
-        int originalX = static_cast<int>(pos.x() * scaleX);
-        int originalY = static_cast<int>(pos.y() * scaleY);
-
-        QString key = QString("%1,%2").arg(originalX).arg(originalY);
-        if (m_metadata.contains(key))
-        {
-            m_metadataLabel->setText(m_metadata[key]);
-        }
-        else
-        {
-            m_metadataLabel->setText(QString("Coordinates: (%1, %2)").arg(originalX).arg(originalY));
-        }
-    }
-    else
-    {
-        m_metadataLabel->setText("Hover over the image to see metadata");
-    }
-}
 
 void RenderWindow::resizeEvent(QResizeEvent *event)
 {

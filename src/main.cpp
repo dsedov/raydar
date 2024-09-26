@@ -20,16 +20,6 @@ int main(int argc, char *argv[]) {
         QApplication app(argc, argv);
         RenderWindow window(&settings);
         
-        std::thread render_thread([&]() {
-            render.render_scene();
-        });
-
-        QObject::connect(&app, &QApplication::aboutToQuit, [&]() {
-            should_continue_rendering = false;
-            if (render_thread.joinable()) {
-                render_thread.join();
-            }
-        });
         // connect the render window to the render object
         QObject::connect(&render, &render::progressUpdated, &window, &RenderWindow::updateProgress);
         QObject::connect(&render, &render::bucketFinished, &window, &RenderWindow::updateBucket);
