@@ -72,6 +72,7 @@ private:
     UiInt *m_depthInput;  // New depth input
     UiInt2 *m_resolutionInput;  // New resolution input
     void update_image();
+    bool need_to_update_image;
 };
 
 #endif // RENDER_WINDOW_H

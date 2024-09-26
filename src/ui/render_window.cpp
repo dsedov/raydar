@@ -142,6 +142,7 @@ void RenderWindow::updateDepth(int value)
 
 void RenderWindow::update_image()
 {
+    if(!need_to_update_image) return;
     static const interval intensity(0.000, 0.999);
     for (int i = 0; i < m_image_buffer->width(); i++) {
         for (int j = 0; j < m_image_buffer->height(); j++) {
@@ -170,6 +171,7 @@ void RenderWindow::updateBucket(int x, int y, ImagePNG* image)
             m_image_buffer->set_pixel(x + i, y + j, image->get_pixel(i, j));
         }
     }
+    need_to_update_image = true;
 }
 
 
