@@ -19,7 +19,6 @@ int main(int argc, char *argv[]) {
     if(settings.show_ui){
         QApplication app(argc, argv);
         RenderWindow window(&settings);
-        
         // connect the render window to the render object
         QObject::connect(&render, &render::progressUpdated, &window, &RenderWindow::updateProgress);
         QObject::connect(&render, &render::bucketFinished, &window, &RenderWindow::updateBucket);
@@ -27,6 +26,7 @@ int main(int argc, char *argv[]) {
         QObject::connect(&window, &RenderWindow::spectrum_sampling_changed, &render, &render::spectrum_sampling_changed);
         QObject::connect(&window, &RenderWindow::samples_changed, &render, &render::samples_changed);
         QObject::connect(&window, &RenderWindow::resolution_changed, &render, &render::resolution_changed);
+        
         window.show();
         return app.exec();
     } else {

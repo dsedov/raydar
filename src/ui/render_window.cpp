@@ -18,7 +18,9 @@ RenderWindow::RenderWindow(settings * settings_ptr, QWidget *parent)
     m_image_buffer = new ImagePNG(m_width, m_height, spectrum::RESPONSE_SAMPLES, observer_ptr);
     m_image = new QImage(m_width, m_height, QImage::Format_RGB888);
     m_image->fill(Qt::black);
-    m_gain = 5;
+    m_gain = settings_ptr->gain;
+    m_gamma = settings_ptr->gamma;
+
     setupUI();
 
     resize(1000, 600);
@@ -49,7 +51,7 @@ void RenderWindow::setupUI()
     m_progressBar->setValue(0);
 
     // Create UiFloat for gain and gamma
-    m_gainInput = new UiFloat("Gain:", this, 1, 1000, 0.1);
+    m_gainInput = new UiFloat("Gain:", this, 0.1, 1000, 0.1);
     m_gainInput->setValue(m_gain);
     connect(m_gainInput, &UiFloat::value_changed, this, &RenderWindow::updateGain);
 
@@ -65,12 +67,12 @@ void RenderWindow::setupUI()
     // Add samples input
     m_samplesInput = new UiInt("Samples:", this, 1, 8912, 1);
     m_samplesInput->setValue(m_settings_ptr->samples);
-    connect(m_samplesInput, &UiInt::value_changed, this, &RenderWindow::samples_changed);
+    connect(m_samplesInput, &UiInt::value_changed, this, &RenderWindow::samples_changed); 
 
     // Add depth input
     m_depthInput = new UiInt("Depth:", this, 1, 48, 1);
     m_depthInput->setValue(m_settings_ptr->max_depth);
-    connect(m_depthInput, &UiInt::value_changed, this, &RenderWindow::updateDepth);
+    connect(m_depthInput, &UiInt::value_changed, this, &RenderWindow::depth_changed);
 
     // Add resolution input
     m_resolutionInput = new UiInt2("Resolution:", this, 16, 16384, 16);
@@ -121,39 +123,34 @@ void RenderWindow::setupUI()
 void RenderWindow::updateGain(float value)
 {
     m_gain = value;
+    need_to_update_image = true;
     update_image();
 }
 
 void RenderWindow::updateGamma(float value)
 {
     m_gamma = value;
+    need_to_update_image = true;
     update_image();
-}
-
-void RenderWindow::updateSamples(int value)
-{
-    // Implement the logic for updating samples
-}
-
-void RenderWindow::updateDepth(int value)
-{
-    // Implement the logic for updating depth
 }
 
 void RenderWindow::update_image()
 {
     if(!need_to_update_image) return;
+    need_to_update_image = false;
     static const interval intensity(0.000, 0.999);
+
     for (int i = 0; i < m_image_buffer->width(); i++) {
         for (int j = 0; j < m_image_buffer->height(); j++) {
             spectrum color_spectrum = m_image_buffer->get_pixel(i, j) / ( m_gain * m_gain);
             color color_rgb = color_spectrum.to_rgb(observer_ptr);
-            float r = intensity.clamp(linear_to_gamma2(color_rgb.x(), m_gamma));
-            float g = intensity.clamp(linear_to_gamma2(color_rgb.y(), m_gamma));
-            float b = intensity.clamp(linear_to_gamma2(color_rgb.z(), m_gamma));
-            m_image->setPixelColor(i, j, QColor::fromRgbF(r, g, b));
+            float r = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.x(), m_gamma))); 
+            float g = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.y(), m_gamma)));
+            float b = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.z(), m_gamma)));
+            m_image->setPixelColor(i, j, QColor::fromRgb(r, g, b));
         }
     }
+    
     updateImageLabelSize();
 }
 
@@ -188,6 +185,7 @@ void RenderWindow::update_resolution(int width, int height)
     m_image_buffer = new ImagePNG(m_width, m_height, spectrum::RESPONSE_SAMPLES, observer_ptr);
     m_image = new QImage(m_width, m_height, QImage::Format_RGB888);
     m_image->fill(Qt::black);
+    need_to_update_image = true;
     update_image();
 }
 void RenderWindow::updateImageLabelSize()

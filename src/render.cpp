@@ -75,13 +75,14 @@ int render::render_scene(){
     int seconds_to_render = mtpool_bucket_prog_render();
 
     // Save the image with the new file name
-    image_buffer->normalize();
+    // image_buffer->normalize();
     image_buffer->save(
         settings_ptr->get_file_name(image_buffer->width(),image_buffer->height(), settings_ptr->samples, seconds_to_render).c_str(),
         settings_ptr->gamma, settings_ptr->gain);
     auto file_name = settings_ptr->get_file_name(image_buffer->width(),image_buffer->height(), settings_ptr->samples, seconds_to_render, false);
     file_name += ".spd";
     image_buffer->save_spectrum(file_name.c_str());
+    std::cout << "Finished rendering" << std::endl;
     return seconds_to_render;
 }
 

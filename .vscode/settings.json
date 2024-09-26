@@ -126,7 +126,9 @@
         "xstddef": "cpp",
         "hash_map": "cpp",
         "hash_set": "cpp",
-        "qapplication": "cpp"
+        "qapplication": "cpp",
+        "future": "cpp",
+        "stdfloat": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

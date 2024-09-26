@@ -31,8 +31,6 @@ public slots:
     void updateGain(float value);
     void updateGamma(float value);
 
-    void updateSamples(int value);
-    void updateDepth(int value);
 private slots:
 
     void update_resolution(int width, int height);
@@ -41,6 +39,7 @@ signals:
     void render_requested();
     void spectrum_sampling_changed(int index); 
     void samples_changed(int samples);
+    void depth_changed(int depth);
     void resolution_changed(int width, int height);
 
 protected:

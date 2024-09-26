@@ -127,6 +127,7 @@ public:
     }
 
     void save(const char* filename, float gamma = 2.2, float gain = 5) override {
+        std::cout << "Saving image to " << filename << " with gamma:" << gamma << " and gain:" << gain << std::endl;
         std::vector<png_byte> png_buffer(height_ * width_ * 3);
         static const interval intensity(0.000, 0.999);
 
