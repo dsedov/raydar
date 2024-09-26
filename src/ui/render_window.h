@@ -64,6 +64,7 @@ private:
     UiFloat *m_gammaInput;
     float m_gain;
     float m_gamma;
+    float m_whitebalance;
     QSplitter *m_splitter;
     QPushButton *m_renderButton;  // New render button
     UiDropdownMenu *m_spectrumSamplingMenu;  // Replace QComboBox with UiDropdownMenu
@@ -72,6 +73,9 @@ private:
     UiInt2 *m_resolutionInput;  // New resolution input
     void update_image();
     bool need_to_update_image;
+
+
+    QString style_sheet();
 };
 
 #endif // RENDER_WINDOW_H

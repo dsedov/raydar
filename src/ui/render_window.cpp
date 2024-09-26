@@ -20,6 +20,7 @@ RenderWindow::RenderWindow(settings * settings_ptr, QWidget *parent)
     m_image->fill(Qt::black);
     m_gain = settings_ptr->gain;
     m_gamma = settings_ptr->gamma;
+    m_whitebalance = 5400.0f;
 
     setupUI();
 
@@ -34,6 +35,9 @@ RenderWindow::RenderWindow(settings * settings_ptr, QWidget *parent)
 
 void RenderWindow::setupUI()
 {
+    
+    this->setStyleSheet(style_sheet());
+        
     m_imageLabel = new QLabel(this);
     m_imageLabel->setPixmap(QPixmap::fromImage(*m_image));
     m_imageLabel->setScaledContents(true);
@@ -187,6 +191,20 @@ void RenderWindow::update_resolution(int width, int height)
     m_image->fill(Qt::black);
     need_to_update_image = true;
     update_image();
+}
+QString RenderWindow::style_sheet()
+{
+    return "* { background-color: #323232; } \
+    QLabel { color: #bababa; } \
+    QPushButton { background-color: #515151; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 5px; } \
+    QPushButton:hover { background-color: #616161; } \
+    QPushButton:pressed { background-color: #414141; } \
+    QDoubleSpinBox, QSpinBox { background-color: #252525; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 5px; } \
+    QDoubleSpinBox::up-button, QSpinBox::up-button { background-color: #3a3a3a; color: #bababa; border-top-right-radius: 5px; margin-right: 1px; } \
+    QDoubleSpinBox::down-button, QSpinBox::down-button { background-color: #3a3a3a; color: #bababa; border-bottom-right-radius: 5px; margin-right: 1px; } \
+    QComboBox { background-color: #3a3a3a; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 5px; } \
+    QComboBox::drop-down { background-color: #3a3a3a; color: #bababa;  border: 1px solid #3a3a3a; border-radius: 5px; margin-right: 1px;  } \
+    ";
 }
 void RenderWindow::updateImageLabelSize()
 {
