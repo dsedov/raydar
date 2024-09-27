@@ -3,7 +3,7 @@ project(raydar)
 if(WIN32)  
     set(CMAKE_PREFIX_PATH "C:/Qt/6.7.2/msvc2019_64/lib/cmake")
 endif()
-find_package(Qt6 COMPONENTS Core Widgets REQUIRED)
+find_package(Qt6 COMPONENTS Core Widgets OpenGLWidgets REQUIRED)
 set(CMAKE_AUTOMOC ON)
 
 if(APPLE)
@@ -77,6 +77,7 @@ set(SOURCES
     src/main.cpp
     src/render.cpp
     src/ui/render_window.cpp 
+    src/ui/components/uiopenglimage.cpp
     src/ui/components/uidropdownmenu.cpp
     src/ui/components/uifloat.cpp
     src/ui/components/uiint.cpp 
@@ -90,6 +91,8 @@ target_include_directories(raydar PRIVATE src)
 target_include_directories(raydar PRIVATE ${Qt6Core_INCLUDE_DIRS})
 target_include_directories(raydar PRIVATE ${Qt6Gui_INCLUDE_DIRS})
 target_include_directories(raydar PRIVATE ${Qt6Widgets_INCLUDE_DIRS})
+target_include_directories(raydar PRIVATE ${Qt6OpenGLWidgets_INCLUDE_DIRS})
+target_include_directories(raydar PRIVATE ${Qt6OpenGL_INCLUDE_DIRS})
 
 # Link libraries
 target_link_libraries(raydar PRIVATE 
@@ -105,7 +108,9 @@ target_link_libraries(raydar PRIVATE
                                 ${USD_USD_LUX_LIB}
                                 ${Qt6Core_LIBRARIES}
                                 ${Qt6Gui_LIBRARIES}
-                                ${Qt6Widgets_LIBRARIES})
+                                ${Qt6Widgets_LIBRARIES}
+                                ${Qt6OpenGLWidgets_LIBRARIES}
+                                ${Qt6OpenGL_LIBRARIES})
 
 # Add compile definitions if needed
 target_compile_definitions(raydar PRIVATE ${PNG_DEFINITIONS} NOMINMAX WIN32_LEAN_AND_MEAN)

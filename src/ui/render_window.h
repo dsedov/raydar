@@ -18,6 +18,7 @@
 #include "components/uifloat.h"
 #include "../helpers/settings.h"
 #include "components/uidropdownmenu.h"
+#include "components/uiopenglimage.h"
 
 class RenderWindow : public QMainWindow
 {
@@ -73,8 +74,7 @@ private:
     UiInt2 *m_resolutionInput;  // New resolution input
     void update_image();
     bool need_to_update_image;
-
-
+    UIOpenGLImage *m_openGLImage;
     QString style_sheet();
 };
 

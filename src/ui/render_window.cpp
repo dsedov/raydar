@@ -8,6 +8,7 @@
 #include "components/uiint.h"
 #include "components/uifloat.h"
 #include "components/uidropdownmenu.h"
+#include "components/uiopenglimage.h"
 
 RenderWindow::RenderWindow(settings * settings_ptr, QWidget *parent)
     : QMainWindow(parent), m_width(settings_ptr->image_width), m_height(settings_ptr->image_height), m_gain(300.0f), m_gamma(2.2f)
@@ -25,7 +26,6 @@ RenderWindow::RenderWindow(settings * settings_ptr, QWidget *parent)
     setupUI();
 
     resize(1000, 600);
-    updateImageLabelSize();
 
     // Run update_image on a timer every second
     QTimer *timer = new QTimer(this);
@@ -38,14 +38,8 @@ void RenderWindow::setupUI()
     
     this->setStyleSheet(style_sheet());
         
-    m_imageLabel = new QLabel(this);
-    m_imageLabel->setPixmap(QPixmap::fromImage(*m_image));
-    m_imageLabel->setScaledContents(true);
+    m_openGLImage = new UIOpenGLImage(this);
 
-    m_scrollArea = new QScrollArea(this);
-    m_scrollArea->setWidget(m_imageLabel);
-    m_scrollArea->setWidgetResizable(true);
-    
     m_metadataLabel = new QLabel(this);
     m_metadataLabel->setAlignment(Qt::AlignCenter);
     m_metadataLabel->setText("Hover over the image to see metadata");
@@ -89,7 +83,7 @@ void RenderWindow::setupUI()
     
     QWidget *imageWidget = new QWidget(this);
     QVBoxLayout *imageLayout = new QVBoxLayout(imageWidget);
-    imageLayout->addWidget(m_scrollArea);
+    imageLayout->addWidget(m_openGLImage);  // Use m_openGLImage instead of m_scrollArea
     imageLayout->addWidget(m_progressBar);
     imageLayout->addWidget(m_metadataLabel);
 
@@ -118,8 +112,7 @@ void RenderWindow::setupUI()
     
     setCentralWidget(centralWidget);
     
-    m_imageLabel->setMouseTracking(true);
-    m_scrollArea->setMouseTracking(true);
+    m_openGLImage->setMouseTracking(true);
     centralWidget->setMouseTracking(true);
     setMouseTracking(true);
 }
@@ -144,6 +137,8 @@ void RenderWindow::update_image()
     need_to_update_image = false;
     static const interval intensity(0.000, 0.999);
 
+    QImage updatedImage(m_width, m_height, QImage::Format_RGB888);
+
     for (int i = 0; i < m_image_buffer->width(); i++) {
         for (int j = 0; j < m_image_buffer->height(); j++) {
             spectrum color_spectrum = m_image_buffer->get_pixel(i, j) / ( m_gain * m_gain);
@@ -151,11 +146,11 @@ void RenderWindow::update_image()
             float r = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.x(), m_gamma))); 
             float g = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.y(), m_gamma)));
             float b = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.z(), m_gamma)));
-            m_image->setPixelColor(i, j, QColor::fromRgb(r, g, b));
+            updatedImage.setPixelColor(i, j, QColor::fromRgb(r, g, b));
         }
     }
     
-    updateImageLabelSize();
+    m_openGLImage->setImage(updatedImage);
 }
 
 void RenderWindow::updateProgress(int progress, int total)
@@ -180,7 +175,6 @@ void RenderWindow::updateBucket(int x, int y, ImagePNG* image)
 void RenderWindow::resizeEvent(QResizeEvent *event)
 {
     QMainWindow::resizeEvent(event);
-    updateImageLabelSize();
 }
 void RenderWindow::update_resolution(int width, int height)
 {
@@ -205,12 +199,4 @@ QString RenderWindow::style_sheet()
     QComboBox { background-color: #3a3a3a; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 5px; } \
     QComboBox::drop-down { background-color: #3a3a3a; color: #bababa;  border: 1px solid #3a3a3a; border-radius: 5px; margin-right: 1px;  } \
     ";
-}
-void RenderWindow::updateImageLabelSize()
-{
-    QSize scrollAreaSize = m_scrollArea->viewport()->size();
-    QSize imageSize = m_image->size();
-    QSize newSize = imageSize.scaled(scrollAreaSize, Qt::KeepAspectRatio);
-    m_imageLabel->setFixedSize(newSize);
-    m_imageLabel->setPixmap(QPixmap::fromImage(*m_image).scaled(newSize, Qt::KeepAspectRatio, Qt::SmoothTransformation));
 }
