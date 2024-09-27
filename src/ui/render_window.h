@@ -54,9 +54,7 @@ private:
     int m_width;
     int m_height;
     QImage *m_image;
-    QLabel *m_imageLabel;
     QScrollArea *m_scrollArea;
-    QLabel *m_metadataLabel;
     QMap<QString, QString> m_metadata;
     QProgressBar *m_progressBar;
     observer * observer_ptr;

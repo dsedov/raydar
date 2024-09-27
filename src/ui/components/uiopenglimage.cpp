@@ -20,6 +20,9 @@ UIOpenGLImage::~UIOpenGLImage()
 
 void UIOpenGLImage::setImage(const QImage &image)
 {
+    image_width = image.width();
+    image_height = image.height();
+
     makeCurrent();
     if (m_texture) {
         delete m_texture;
@@ -67,7 +70,7 @@ void UIOpenGLImage::initializeGL()
         "uniform sampler2D texture;\n"
         "uniform vec2 textureSize;\n"
         "void main() {\n"
-        "    vec2 texelCoord = floor(texCoord0 * textureSize) / textureSize;\n"
+        "    vec2 texelCoord = texCoord0;\n"
         "    gl_FragColor = texture2D(texture, texelCoord);\n"
         "}\n");
     m_program->bindAttributeLocation("vertex", 0);
@@ -92,18 +95,16 @@ void UIOpenGLImage::paintGL()
     m_program->setUniformValue("textureSize", QVector2D(m_texture->width(), m_texture->height()));
 
     // Calculate aspect ratio
-    float imageAspect = float(m_texture->width()) / m_texture->height();
-    float widgetAspect = float(width()) / height();
-
+    float imageAspect = float(image_width) /float(image_height);
     // Adjust vertex coordinates to maintain aspect ratio
     float x, y;
-    if (imageAspect > widgetAspect) {
+    if (imageAspect <= 1.0f) {
         // Image is wider than the widget
         x = 1.0f;
-        y = widgetAspect / imageAspect;
+        y = imageAspect;
     } else {
         // Image is taller than the widget
-        x = imageAspect / widgetAspect;
+        x = imageAspect;
         y = 1.0f;
     }
 

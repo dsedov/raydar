@@ -40,10 +40,6 @@ void RenderWindow::setupUI()
         
     m_openGLImage = new UIOpenGLImage(this);
 
-    m_metadataLabel = new QLabel(this);
-    m_metadataLabel->setAlignment(Qt::AlignCenter);
-    m_metadataLabel->setText("Hover over the image to see metadata");
-    
     m_progressBar = new QProgressBar(this);
     m_progressBar->setRange(0, 100);
     m_progressBar->setValue(0);
@@ -85,7 +81,6 @@ void RenderWindow::setupUI()
     QVBoxLayout *imageLayout = new QVBoxLayout(imageWidget);
     imageLayout->addWidget(m_openGLImage, 1);  // Add stretch factor of 1
     imageLayout->addWidget(m_progressBar);
-    imageLayout->addWidget(m_metadataLabel);
 
     QWidget *controlWidget = new QWidget(this);
     QVBoxLayout *controlLayout = new QVBoxLayout(controlWidget);
@@ -198,5 +193,7 @@ QString RenderWindow::style_sheet()
     QDoubleSpinBox::down-button, QSpinBox::down-button { background-color: #3a3a3a; color: #bababa; border-bottom-right-radius: 5px; margin-right: 1px; } \
     QComboBox { background-color: #3a3a3a; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 5px; } \
     QComboBox::drop-down { background-color: #3a3a3a; color: #bababa;  border: 1px solid #3a3a3a; border-radius: 5px; margin-right: 1px;  } \
+    QProgressBar { background-color: #252525; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 5px; text-align: center; padding:1px; } \
+    QProgressBar::chunk { background-color: #515151; } \
     ";
 }

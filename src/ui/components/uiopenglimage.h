@@ -42,6 +42,9 @@ private:
 
     void updateProjection();
     void updateView();
+
+    int image_width;
+    int image_height;
 };
 
 #endif // UIOPENGLIMAGE_H
