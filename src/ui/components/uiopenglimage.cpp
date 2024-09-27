@@ -334,8 +334,8 @@ QPointF UIOpenGLImage::screenToImageCoordinates(const QPointF& screenPos)
     
     // Convert screen coordinates to normalized device coordinates
     QVector4D normalizedPos(
-        (screenPos.x() / width() * 2.0f - 1.0f) * x,
-        (1.0f - screenPos.y() / height() * 2.0f) * y,
+        (screenPos.x() / width() * 2.0f - 1.0f) ,
+        (1.0f - screenPos.y() / height() * 2.0f) ,
         0.0f,
         1.0f
     );
