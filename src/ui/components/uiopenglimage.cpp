@@ -91,11 +91,27 @@ void UIOpenGLImage::paintGL()
     m_program->setUniformValue("texture", 0);
     m_program->setUniformValue("textureSize", QVector2D(m_texture->width(), m_texture->height()));
 
+    // Calculate aspect ratio
+    float imageAspect = float(m_texture->width()) / m_texture->height();
+    float widgetAspect = float(width()) / height();
+
+    // Adjust vertex coordinates to maintain aspect ratio
+    float x, y;
+    if (imageAspect > widgetAspect) {
+        // Image is wider than the widget
+        x = 1.0f;
+        y = widgetAspect / imageAspect;
+    } else {
+        // Image is taller than the widget
+        x = imageAspect / widgetAspect;
+        y = 1.0f;
+    }
+
     GLfloat vertices[] = {
-        -1.0f, -1.0f,
-         1.0f, -1.0f,
-         1.0f,  1.0f,
-        -1.0f,  1.0f
+        -x, -y,
+         x, -y,
+         x,  y,
+        -x,  y
     };
 
     // Correct UV coordinates to flip the image vertically
