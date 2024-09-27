@@ -317,18 +317,39 @@ QPointF UIOpenGLImage::screenToImageCoordinates(const QPointF& screenPos)
 {
     QMatrix4x4 mvp = m_projection * m_view;
     QMatrix4x4 invMvp = mvp.inverted();
+
+    float imageAspect = float(image_width) / float(image_height);
+
+    // Adjust for aspect ratio
+    float x, y;
+    if (imageAspect <= 1.0f) {
+        // Image is wider than the widget
+        x = 1.0f;
+        y = imageAspect;
+    } else {
+        // Image is taller than the widget
+        x = imageAspect;
+        y = 1.0f;
+    }
     
+    // Convert screen coordinates to normalized device coordinates
     QVector4D normalizedPos(
-        (screenPos.x() / width()) * 2.0f - 1.0f,
-        1.0f - (screenPos.y() / height()) * 2.0f,
+        (screenPos.x() / width() * 2.0f - 1.0f) * x,
+        (1.0f - screenPos.y() / height() * 2.0f) * y,
         0.0f,
         1.0f
     );
     
     QVector4D imagePos = invMvp * normalizedPos;
     
-    return QPointF(
-        (imagePos.x() / imagePos.w() + 1.0f) * 0.5f * image_width,
-        (1.0f - (imagePos.y() / imagePos.w() + 1.0f) * 0.5f) * image_height
+    QPointF imageCoord(
+        ((imagePos.x() / imagePos.w() + x) / (2 * x)) * image_width,
+        ((y - imagePos.y() / imagePos.w()) / (2 * y)) * image_height
     );
+
+    // Clamp coordinates to image bounds
+    imageCoord.setX(qBound(0.0, imageCoord.x(), static_cast<qreal>(image_width - 1)));
+    imageCoord.setY(qBound(0.0, imageCoord.y(), static_cast<qreal>(image_height - 1)));
+
+    return imageCoord;
 }
