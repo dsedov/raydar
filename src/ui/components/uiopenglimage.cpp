@@ -4,9 +4,10 @@
 #include <QKeyEvent>
 
 UIOpenGLImage::UIOpenGLImage(QWidget *parent)
-    : QOpenGLWidget(parent), m_texture(nullptr), m_program(nullptr), m_zoom(1.0f)
+    : QOpenGLWidget(parent), m_texture(nullptr), m_program(nullptr), m_zoom(1.0f), m_translation(0, 0)
 {
     setFocusPolicy(Qt::StrongFocus);
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 }
 
 UIOpenGLImage::~UIOpenGLImage()
@@ -38,8 +39,8 @@ void UIOpenGLImage::fitInView()
         } else {
             m_zoom = float(width()) / m_texture->width();
         }
-        m_view.setToIdentity();
-        updateProjection();
+        m_translation = QVector2D(0, 0); // Reset translation when fitting to view
+        updateView();
         update();
     }
 }
@@ -121,7 +122,7 @@ void UIOpenGLImage::resizeGL(int w, int h)
 
 void UIOpenGLImage::mousePressEvent(QMouseEvent *event)
 {
-    if (event->button() == Qt::MiddleButton) {
+    if (event->button() == Qt::LeftButton) {
         m_lastPos = event->pos();
     }
 }
@@ -130,8 +131,9 @@ void UIOpenGLImage::mouseMoveEvent(QMouseEvent *event)
 {
     if (event->buttons() & Qt::LeftButton) {
         QPointF delta = QPointF(event->pos() - m_lastPos) / (m_zoom * width());
-        m_view.translate(delta.x() * 2, -delta.y() * 2);
+        m_translation += QVector2D(delta.x() * 2, -delta.y() * 2);
         m_lastPos = event->pos();
+        updateView();
         update();
     }
 }
@@ -144,10 +146,11 @@ void UIOpenGLImage::wheelEvent(QWheelEvent *event)
     QPointF mousePos = event->position() / width() * 2.0f - QPointF(1.0f, 1.0f);
     mousePos.setY(-mousePos.y());
     
-    m_view.translate(mousePos.x(), mousePos.y());
-    m_view.scale(zoomFactor, zoomFactor);
-    m_view.translate(-mousePos.x(), -mousePos.y());
+    m_translation -= QVector2D(mousePos);
+    m_translation *= zoomFactor;
+    m_translation += QVector2D(mousePos);
 
+    updateView();
     updateProjection();
     update();
 }
@@ -164,4 +167,10 @@ void UIOpenGLImage::updateProjection()
     float aspect = float(width()) / height();
     m_projection.setToIdentity();
     m_projection.ortho(-aspect / m_zoom, aspect / m_zoom, -1.0f / m_zoom, 1.0f / m_zoom, -1.0f, 1.0f);
+}
+
+void UIOpenGLImage::updateView()
+{
+    m_view.setToIdentity();
+    m_view.translate(m_translation.x(), m_translation.y());
 }

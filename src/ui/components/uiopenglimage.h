@@ -7,6 +7,7 @@
 #include <QtOpenGL/QOpenGLShaderProgram>
 #include <QMatrix4x4>
 #include <QPoint>
+#include <QVector2D>
 
 class UIOpenGLImage : public QOpenGLWidget, protected QOpenGLFunctions
 {
@@ -35,9 +36,12 @@ private:
     QMatrix4x4 m_projection;
     QMatrix4x4 m_view;
     QPoint m_lastPos;
+    QPoint m_deltaPos;
     float m_zoom;
+    QVector2D m_translation;
 
     void updateProjection();
+    void updateView();
 };
 
 #endif // UIOPENGLIMAGE_H

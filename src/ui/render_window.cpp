@@ -83,7 +83,7 @@ void RenderWindow::setupUI()
     
     QWidget *imageWidget = new QWidget(this);
     QVBoxLayout *imageLayout = new QVBoxLayout(imageWidget);
-    imageLayout->addWidget(m_openGLImage);  // Use m_openGLImage instead of m_scrollArea
+    imageLayout->addWidget(m_openGLImage, 1);  // Add stretch factor of 1
     imageLayout->addWidget(m_progressBar);
     imageLayout->addWidget(m_metadataLabel);
 
