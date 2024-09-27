@@ -148,7 +148,7 @@ void UIOpenGLImage::wheelEvent(QWheelEvent *event)
 
     QPointF normalizedPos(
         1.0f - (mousePos.x() / width()) * 2.0f,
-        1.0f - (mousePos.y() / height()) * 2.0f
+        (mousePos.y() / height()) * 2.0f - 1.0f
     );
 
     // Calculate zoom center in world space
