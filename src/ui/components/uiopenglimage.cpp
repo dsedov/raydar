@@ -39,8 +39,9 @@ void UIOpenGLImage::fitInView()
         } else {
             m_zoom = float(width()) / m_texture->width();
         }
-        m_translation = QVector2D(0, 0); // Reset translation when fitting to view
+        m_translation = QVector2D(0, 0);
         updateView();
+        updateProjection();
         update();
     }
 }
@@ -141,14 +142,26 @@ void UIOpenGLImage::mouseMoveEvent(QMouseEvent *event)
 void UIOpenGLImage::wheelEvent(QWheelEvent *event)
 {
     float zoomFactor = 1.0f + event->angleDelta().y() / 1200.0f;
+
+    // Convert mouse position to normalized device coordinates
+    QPointF mousePos = event->position();
+
+    QPointF normalizedPos(
+        1.0f - (mousePos.x() / width()) * 2.0f,
+        1.0f - (mousePos.y() / height()) * 2.0f
+    );
+
+    // Calculate zoom center in world space
+    QVector2D zoomCenter(
+        normalizedPos.x() / m_zoom + m_translation.x(),
+        normalizedPos.y() / m_zoom + m_translation.y()
+    );
+
+    // Update zoom
     m_zoom *= zoomFactor;
 
-    QPointF mousePos = event->position() / width() * 2.0f - QPointF(1.0f, 1.0f);
-    mousePos.setY(-mousePos.y());
-    
-    m_translation -= QVector2D(mousePos);
-    m_translation *= zoomFactor;
-    m_translation += QVector2D(mousePos);
+    // Update translation to keep the zoom center fixed
+    m_translation = zoomCenter - QVector2D(normalizedPos.x() / m_zoom, normalizedPos.y() / m_zoom);
 
     updateView();
     updateProjection();
