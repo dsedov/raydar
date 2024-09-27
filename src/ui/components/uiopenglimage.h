@@ -8,6 +8,8 @@
 #include <QMatrix4x4>
 #include <QPoint>
 #include <QVector2D>
+#include <QPainter>
+#include <QFontMetrics>
 
 class UIOpenGLImage : public QOpenGLWidget, protected QOpenGLFunctions
 {
@@ -33,15 +35,21 @@ protected:
 private:
     QOpenGLTexture *m_texture;
     QOpenGLShaderProgram *m_program;
+    QOpenGLShaderProgram *m_textProgram;  // Add this line
     QMatrix4x4 m_projection;
     QMatrix4x4 m_view;
     QPoint m_lastPos;
     QPoint m_deltaPos;
     float m_zoom;
     QVector2D m_translation;
-
+    QOpenGLTexture* m_textTexture;
+    QPointF m_mousePos;
+    
     void updateProjection();
     void updateView();
+    void updateTextTexture(const QString& text);
+    void renderText(const QString& text, int x, int y);
+    QPointF screenToImageCoordinates(const QPointF& screenPos);
 
     int image_width;
     int image_height;
