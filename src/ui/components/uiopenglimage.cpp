@@ -25,6 +25,8 @@ void UIOpenGLImage::setImage(const QImage &image)
         delete m_texture;
     }
     m_texture = new QOpenGLTexture(image);
+    m_texture->setMinificationFilter(QOpenGLTexture::Nearest);
+    m_texture->setMagnificationFilter(QOpenGLTexture::Nearest);
     doneCurrent();
     update();
 }
@@ -63,8 +65,10 @@ void UIOpenGLImage::initializeGL()
     m_program->addShaderFromSourceCode(QOpenGLShader::Fragment,
         "varying vec2 texCoord0;\n"
         "uniform sampler2D texture;\n"
+        "uniform vec2 textureSize;\n"
         "void main() {\n"
-        "    gl_FragColor = texture2D(texture, texCoord0);\n"
+        "    vec2 texelCoord = floor(texCoord0 * textureSize) / textureSize;\n"
+        "    gl_FragColor = texture2D(texture, texelCoord);\n"
         "}\n");
     m_program->bindAttributeLocation("vertex", 0);
     m_program->bindAttributeLocation("texCoord", 1);
@@ -85,6 +89,7 @@ void UIOpenGLImage::paintGL()
     QMatrix4x4 mvp = m_projection * m_view;
     m_program->setUniformValue("mvp", mvp);
     m_program->setUniformValue("texture", 0);
+    m_program->setUniformValue("textureSize", QVector2D(m_texture->width(), m_texture->height()));
 
     GLfloat vertices[] = {
         -1.0f, -1.0f,
