@@ -23,7 +23,7 @@ void UIOpenGLImage::setImage(const QImage &image)
     if (m_texture) {
         delete m_texture;
     }
-    m_texture = new QOpenGLTexture(image.mirrored());
+    m_texture = new QOpenGLTexture(image);
     doneCurrent();
     update();
 }
@@ -91,11 +91,12 @@ void UIOpenGLImage::paintGL()
         -1.0f,  1.0f
     };
 
+    // Correct UV coordinates to flip the image vertically
     GLfloat texCoords[] = {
-        0.0f, 1.0f,
-        1.0f, 1.0f,
-        1.0f, 0.0f,
-        0.0f, 0.0f
+        0.0f, 1.0f,  // Bottom-left
+        1.0f, 1.0f,  // Bottom-right
+        1.0f, 0.0f,  // Top-right
+        0.0f, 0.0f   // Top-left
     };
 
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, vertices);
