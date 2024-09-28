@@ -31,7 +31,8 @@ protected:
     void mouseMoveEvent(QMouseEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
-
+signals:
+    void image_position_changed(int x, int y);
 private:
     QOpenGLTexture *m_texture;
     QImage *m_image;

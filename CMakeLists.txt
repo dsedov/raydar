@@ -77,6 +77,7 @@ set(SOURCES
     src/main.cpp
     src/render.cpp
     src/ui/render_window.cpp 
+    src/ui/components/uispectralgraph.cpp
     src/ui/components/uiopenglimage.cpp
     src/ui/components/uidropdownmenu.cpp
     src/ui/components/uifloat.cpp

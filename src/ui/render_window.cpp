@@ -9,6 +9,7 @@
 #include "components/uifloat.h"
 #include "components/uidropdownmenu.h"
 #include "components/uiopenglimage.h"
+#include "components/uispectralgraph.h"
 
 RenderWindow::RenderWindow(settings * settings_ptr, QWidget *parent)
     : QMainWindow(parent), m_width(settings_ptr->image_width), m_height(settings_ptr->image_height), m_gain(300.0f), m_gamma(2.2f)
@@ -74,6 +75,9 @@ void RenderWindow::setupUI()
     connect(m_resolutionInput, &UiInt2::values_changed, this, &RenderWindow::resolution_changed);
     connect(m_resolutionInput, &UiInt2::values_changed, this, &RenderWindow::update_resolution);
 
+    // Add spectral graph
+    m_spectralGraph = new UISpectralGraph(this);
+
     QWidget *centralWidget = new QWidget(this);
     QHBoxLayout *mainLayout = new QHBoxLayout(centralWidget);
     
@@ -90,6 +94,7 @@ void RenderWindow::setupUI()
     controlLayout->addWidget(m_samplesInput);
     controlLayout->addWidget(m_depthInput);
     controlLayout->addWidget(m_resolutionInput);
+    controlLayout->addWidget(m_spectralGraph);  // Add the spectral graph
     controlLayout->addStretch(1);
 
     // Add render button
@@ -110,6 +115,8 @@ void RenderWindow::setupUI()
     m_openGLImage->setMouseTracking(true);
     centralWidget->setMouseTracking(true);
     setMouseTracking(true);
+
+    connect(m_openGLImage, &UIOpenGLImage::image_position_changed, this, &RenderWindow::update_spectral_graph);
 }
 
 void RenderWindow::updateGain(float value)
@@ -124,6 +131,12 @@ void RenderWindow::updateGamma(float value)
     m_gamma = value;
     need_to_update_image = true;
     update_image();
+}
+
+void RenderWindow::update_spectral_graph(int x, int y)
+{
+    spectrum color_spectrum = m_image_buffer->get_pixel(x, y) / ( m_gain * m_gain);
+    m_spectralGraph->update_graph(color_spectrum);
 }
 
 void RenderWindow::update_image()

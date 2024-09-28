@@ -148,12 +148,10 @@ void UIOpenGLImage::paintGL()
         float r = pixelColor.redF();
         float g = pixelColor.greenF();
         float b = pixelColor.blueF();
-        renderText(QString("X: %1, Y: %2, R: %3, G: %4, B: %5")
-            .arg(mx)
-            .arg(my)
+        renderText(QString("R:%1, G:%2, B:%3")
             .arg(r, 0, 'f', 2)
             .arg(g, 0, 'f', 2)
-            .arg(b, 0, 'f', 2), 30, height() - 30);
+            .arg(b, 0, 'f', 2), 0, height() - 30);
     }
 }
 
@@ -182,6 +180,7 @@ void UIOpenGLImage::mouseMoveEvent(QMouseEvent *event)
     // Update mouse position
     QPointF imagePos = screenToImageCoordinates(event->pos());
     m_mousePos = imagePos;
+    emit image_position_changed( int(m_mousePos.x()), int(m_mousePos.y()));
     update();
 }
 
@@ -274,7 +273,9 @@ void UIOpenGLImage::renderText(const QString& text, int x, int y)
             "varying vec2 texCoord0;\n"
             "uniform sampler2D texture;\n"
             "void main() {\n"
-            "    gl_FragColor = texture2D(texture, texCoord0);\n"
+            "    vec4 textColor = texture2D(texture, texCoord0);\n"
+            "    vec4 bgColor = vec4(0.0, 0.0, 0.0, 0.5);\n"
+            "    gl_FragColor = mix(bgColor, textColor, textColor.a);\n"
             "}\n");
         m_textProgram->bindAttributeLocation("vertex", 0);
         m_textProgram->bindAttributeLocation("texCoord", 1);

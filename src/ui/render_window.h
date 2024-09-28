@@ -19,6 +19,7 @@
 #include "../helpers/settings.h"
 #include "components/uidropdownmenu.h"
 #include "components/uiopenglimage.h"
+#include "components/uispectralgraph.h"
 
 class RenderWindow : public QMainWindow
 {
@@ -33,7 +34,7 @@ public slots:
     void updateGamma(float value);
 
 private slots:
-
+    void update_spectral_graph(int x, int y);
     void update_resolution(int width, int height);
 
 signals:
@@ -74,6 +75,7 @@ private:
     bool need_to_update_image;
     UIOpenGLImage *m_openGLImage;
     QString style_sheet();
+    UISpectralGraph *m_spectralGraph;
 };
 
 #endif // RENDER_WINDOW_H
