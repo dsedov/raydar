@@ -34,6 +34,7 @@ protected:
 
 private:
     QOpenGLTexture *m_texture;
+    QImage *m_image;
     QOpenGLShaderProgram *m_program;
     QOpenGLShaderProgram *m_textProgram;  // Add this line
     QMatrix4x4 m_projection;

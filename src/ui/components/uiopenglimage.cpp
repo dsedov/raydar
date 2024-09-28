@@ -26,6 +26,7 @@ void UIOpenGLImage::setImage(const QImage &image)
 {
     image_width = image.width();
     image_height = image.height();
+    m_image = new QImage(image);
 
     makeCurrent();
     if (m_texture) {
@@ -38,8 +39,7 @@ void UIOpenGLImage::setImage(const QImage &image)
     update();
 }
 
-void UIOpenGLImage::fitInView()
-{
+void UIOpenGLImage::fitInView() {
     if (m_texture) {
         float widgetAspect = float(width()) / height();
         float imageAspect = float(m_texture->width()) / m_texture->height();
@@ -55,8 +55,7 @@ void UIOpenGLImage::fitInView()
     }
 }
 
-void UIOpenGLImage::initializeGL()
-{
+void UIOpenGLImage::initializeGL() {
     initializeOpenGLFunctions();
 
     m_program = new QOpenGLShaderProgram;
@@ -142,7 +141,20 @@ void UIOpenGLImage::paintGL()
     m_program->release();
 
     // Render text
-    renderText(QString("X: %1, Y: %2").arg(m_mousePos.x(), 0, 'f', 2).arg(m_mousePos.y(), 0, 'f', 2), width() - 150, height() - 30);
+    if (m_image) {
+        int mx = static_cast<int>(m_mousePos.x());
+        int my = static_cast<int>(m_mousePos.y());
+        QColor pixelColor = m_image->pixelColor(mx, my);
+        float r = pixelColor.redF();
+        float g = pixelColor.greenF();
+        float b = pixelColor.blueF();
+        renderText(QString("X: %1, Y: %2, R: %3, G: %4, B: %5")
+            .arg(mx)
+            .arg(my)
+            .arg(r, 0, 'f', 2)
+            .arg(g, 0, 'f', 2)
+            .arg(b, 0, 'f', 2), 30, height() - 30);
+    }
 }
 
 void UIOpenGLImage::resizeGL(int w, int h)
