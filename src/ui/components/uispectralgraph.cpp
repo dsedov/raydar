@@ -8,6 +8,7 @@ UISpectralGraph::UISpectralGraph(QWidget *parent)
 {
     m_spectralData.resize(31);
     setMinimumSize(300, 200);
+    observer_ptr = new observer(observer::CIE1931_2Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
 }
 
 QSize UISpectralGraph::sizeHint() const
@@ -20,6 +21,7 @@ void UISpectralGraph::update_graph(const spectrum& color_spectrum)
     for (int i = 0; i < 31; ++i) {
         m_spectralData[i] = color_spectrum[i];
     }
+    color_rgb = color_spectrum.to_rgb(observer_ptr);
     updateMinMax();
     update();
 }
@@ -31,6 +33,7 @@ void UISpectralGraph::setSpectralData(const QVector<float>& data)
         return;
     }
     m_spectralData = data;
+    
     updateMinMax();
     update();
 }
@@ -89,6 +92,10 @@ void UISpectralGraph::paintEvent(QPaintEvent *)
     // Draw min and max values
     QFontMetrics fm(font);
     int textWidth = fm.horizontalAdvance(QString::number(m_maxValue, 'f', 2));
-    painter.drawText(QRectF(5, margin - 10, textWidth, 20), Qt::AlignRight, QString::number(m_maxValue, 'f', 2));
-    painter.drawText(QRectF(5, height() - margin - 10, textWidth, 20), Qt::AlignRight, QString::number(m_minValue, 'f', 2));
+    painter.drawText(QRectF(margin, margin - 10, textWidth, 20), Qt::AlignRight, QString::number(m_maxValue, 'f', 2));
+    painter.drawText(QRectF(margin, height() - margin - 10, textWidth, 20), Qt::AlignRight, QString::number(m_minValue, 'f', 2));
+
+    painter.drawText(QRectF(margin, margin + 10, textWidth, 20), Qt::AlignRight, QString::number(color_rgb.x(), 'f', 2));
+    painter.drawText(QRectF(margin, margin + 30, textWidth, 20), Qt::AlignRight, QString::number(color_rgb.y(), 'f', 2));
+    painter.drawText(QRectF(margin, margin + 50, textWidth, 20), Qt::AlignRight, QString::number(color_rgb.z(), 'f', 2));
 }

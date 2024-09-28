@@ -22,8 +22,10 @@ protected:
 
 private:
     QVector<float> m_spectralData;
+    observer* observer_ptr;
     float m_minValue;
     float m_maxValue;
+    color color_rgb;
 
     void updateMinMax();
 };
