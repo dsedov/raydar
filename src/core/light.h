@@ -90,7 +90,11 @@ namespace rd::core {
                 rec.v = b;
                 return true;
             }
-
+            void set_emission(const spectrum& c){
+                if (auto light_mat = dynamic_cast<rd::core::light*>(mat)) {
+                    light_mat->set_emission(c);
+                }
+            }
         private:
             point3 Q;
             vec3 u, v;

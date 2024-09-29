@@ -87,6 +87,7 @@ public slots:
     void spectrum_sampling_changed(int index);
     void samples_changed(int samples);
     void resolution_changed(int width, int height);
+    void lightsource_override(int index);
 signals:
     void progressUpdated(int progress, int total);
     void bucketFinished(int x, int y, ImagePNG* image);

@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
         QObject::connect(&window, &RenderWindow::spectrum_sampling_changed, &render, &render::spectrum_sampling_changed);
         QObject::connect(&window, &RenderWindow::samples_changed, &render, &render::samples_changed);
         QObject::connect(&window, &RenderWindow::resolution_changed, &render, &render::resolution_changed);
-        
+        QObject::connect(&window, &RenderWindow::lightsource_changed, &render, &render::lightsource_override);
         window.show();
         return app.exec();
     } else {

@@ -100,6 +100,9 @@ namespace rd::core {
             }
             return light_color * light_intensity;
         }
+        void set_emission(const spectrum& c){
+            light_color = c;
+        }
 
     private:
         spectrum light_color;

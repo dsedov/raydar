@@ -45,6 +45,11 @@ void RenderWindow::setupUI()
     m_progressBar->setRange(0, 100);
     m_progressBar->setValue(0);
 
+    QStringList lightsourceOptions = {"default", "D65", "D50"};
+    m_lightsource = new UiDropdownMenu("Lightsource:", lightsourceOptions, this);
+    m_lightsource->setCurrentIndex(0);
+    connect(m_lightsource, &UiDropdownMenu::index_changed, this, &RenderWindow::lightsource_changed);
+
     // Create UiFloat for gain and gamma
     m_gainInput = new UiFloat("Gain:", this, 0.1, 1000, 0.1);
     m_gainInput->setValue(m_gain);
@@ -75,8 +80,14 @@ void RenderWindow::setupUI()
     connect(m_resolutionInput, &UiInt2::values_changed, this, &RenderWindow::resolution_changed);
     connect(m_resolutionInput, &UiInt2::values_changed, this, &RenderWindow::update_resolution);
 
-    // Add spectral graph
+    // Create a QHBoxLayout for the spectral graph and its label
+    QHBoxLayout *spectralLayout = new QHBoxLayout();
+    spectralLayout->setContentsMargins(0, 0, 0, 0);
+    QLabel *spectralLabel = new QLabel("Spectral Graph:", this);
+    spectralLabel->setAlignment(Qt::AlignRight | Qt::AlignTop);
     m_spectralGraph = new UISpectralGraph(this);
+    spectralLayout->addWidget(spectralLabel, 3);
+    spectralLayout->addWidget(m_spectralGraph, 10);
 
     QWidget *centralWidget = new QWidget(this);
     QHBoxLayout *mainLayout = new QHBoxLayout(centralWidget);
@@ -88,13 +99,14 @@ void RenderWindow::setupUI()
 
     QWidget *controlWidget = new QWidget(this);
     QVBoxLayout *controlLayout = new QVBoxLayout(controlWidget);
+    controlLayout->addWidget(m_lightsource);
     controlLayout->addWidget(m_gainInput);
     controlLayout->addWidget(m_gammaInput);
     controlLayout->addWidget(m_spectrumSamplingMenu);  // Add the new UiDropdownMenu
     controlLayout->addWidget(m_samplesInput);
     controlLayout->addWidget(m_depthInput);
     controlLayout->addWidget(m_resolutionInput);
-    controlLayout->addWidget(m_spectralGraph);  // Add the spectral graph
+    controlLayout->addLayout(spectralLayout);  // Add the new spectral layout
     controlLayout->addStretch(1);
 
     // Add render button

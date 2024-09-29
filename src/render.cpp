@@ -291,7 +291,18 @@ spectrum render::ray_color(const ray& r, int depth) const {
 
     return color_from_emission + color_from_scatter;
 }
-
+void render::lightsource_override(int index){
+    for(const auto& light : *lights->objects){
+        if (auto area_light = dynamic_cast<rd::core::area_light*>(light)) {
+            if(index == 0)
+                area_light->set_emission(spectrum::d65());
+            else if(index == 1)
+                area_light->set_emission(spectrum::d65());
+            else if(index == 2)
+                area_light->set_emission(spectrum::d50());
+        }
+    }
+}
 void render::samples_changed(int samples){
     samples_per_pixel = samples;
     initialize();
