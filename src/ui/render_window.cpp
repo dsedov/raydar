@@ -50,6 +50,11 @@ void RenderWindow::setupUI()
     m_lightsource->setCurrentIndex(0);
     connect(m_lightsource, &UiDropdownMenu::index_changed, this, &RenderWindow::lightsource_changed);
 
+    QStringList observerOptions = {"CIE 1931 2 Deg", "CIE 1964 10 Deg", "CIE 2006 2 Deg", "CIE 2006 10 Deg"};
+    m_observer = new UiDropdownMenu("Observer:", observerOptions, this);
+    m_observer->setCurrentIndex(0);
+    connect(m_observer, &UiDropdownMenu::index_changed, this, &RenderWindow::update_observer);
+
     // Create UiFloat for gain and gamma
     m_gainInput = new UiFloat("Gain:", this, 0.1, 1000, 0.1);
     m_gainInput->setValue(m_gain);
@@ -100,6 +105,7 @@ void RenderWindow::setupUI()
     QWidget *controlWidget = new QWidget(this);
     QVBoxLayout *controlLayout = new QVBoxLayout(controlWidget);
     controlLayout->addWidget(m_lightsource);
+    controlLayout->addWidget(m_observer);
     controlLayout->addWidget(m_gainInput);
     controlLayout->addWidget(m_gammaInput);
     controlLayout->addWidget(m_spectrumSamplingMenu);  // Add the new UiDropdownMenu
@@ -141,6 +147,26 @@ void RenderWindow::updateGain(float value)
 void RenderWindow::updateGamma(float value)
 {
     m_gamma = value;
+    need_to_update_image = true;
+    update_image();
+}
+
+void RenderWindow::update_observer(int index)
+{   
+    switch (index) {
+        case 0:
+            observer_ptr = new observer(observer::CIE1931_2Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
+            break;
+        case 1:
+            observer_ptr = new observer(observer::CIE1964_10Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
+            break;
+        case 2:
+            observer_ptr = new observer(observer::CIE2006_2Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
+            break;
+        case 3:
+            observer_ptr = new observer(observer::CIE2006_10Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
+            break;
+    }
     need_to_update_image = true;
     update_image();
 }
@@ -189,8 +215,6 @@ void RenderWindow::updateBucket(int x, int y, ImagePNG* image)
     }
     need_to_update_image = true;
 }
-
-
 
 void RenderWindow::resizeEvent(QResizeEvent *event)
 {

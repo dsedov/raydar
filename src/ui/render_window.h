@@ -36,11 +36,12 @@ public slots:
 private slots:
     void update_spectral_graph(int x, int y);
     void update_resolution(int width, int height);
-
+    void update_observer(int index);
 signals:
     void render_requested();
     void spectrum_sampling_changed(int index); 
     void lightsource_changed(int index);
+    void observer_changed(int index);
     void samples_changed(int samples);
     void depth_changed(int depth);
     void resolution_changed(int width, int height);
@@ -69,6 +70,7 @@ private:
     QSplitter *m_splitter;
     QPushButton *m_renderButton;  // New render button
     UiDropdownMenu *m_lightsource;
+    UiDropdownMenu *m_observer;
     UiDropdownMenu *m_spectrumSamplingMenu;  // Replace QComboBox with UiDropdownMenu
     UiInt *m_samplesInput;  // New samples input
     UiInt *m_depthInput;  // New depth input
