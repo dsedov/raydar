@@ -9,6 +9,10 @@ UISpectralGraph::UISpectralGraph(QWidget *parent)
     m_spectralData.resize(31);
     setMinimumSize(300, 200);
     observer_ptr = new observer(observer::CIE1931_2Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
+    
+    // Set the background color and make the widget transparent
+    setAutoFillBackground(true);
+    setAttribute(Qt::WA_TranslucentBackground);
 }
 
 QSize UISpectralGraph::sizeHint() const
@@ -53,13 +57,19 @@ void UISpectralGraph::paintEvent(QPaintEvent *)
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
+    // Draw the background with rounded corners and border
+    painter.setPen(QPen(QColor("#1e1e1e"), 1));  // 1px border with color #1e1e1e
+    painter.setBrush(QColor("#252525"));
+    painter.drawRoundedRect(rect().adjusted(0, 0, -1, -1), 5, 5);  // Adjust rect to account for the border
+
     // Set up the drawing area
     int margin = 80;
     int graphWidth = width() - 1 * margin;
     int graphHeight = height() - 2 * margin;
 
     // Draw axes
-    painter.drawLine(margin, height() - margin, width(), height() - margin);
+    painter.setPen(Qt::white);
+    painter.drawLine(margin, height() - margin, width() - 10, height() - margin);
     painter.drawLine(margin, margin, margin, height() - margin);
 
     // Draw spectral curve

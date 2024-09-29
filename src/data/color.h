@@ -97,6 +97,10 @@ public:
         static const rgb_colorspace rec709(whitepoint(0.95047, 1.0, 1.08883), 0.640, 0.330, 0.300, 0.600, 0.150, 0.060);
         return rec709;
     }
+    static const rgb_colorspace& ACES() {
+        static const rgb_colorspace aces(whitepoint(0.95047, 1.0, 1.08883), 0.7347, 0.2653, 0.0000, 1.0000, 0.0001, -0.0774);
+        return aces;
+    }
 
     static const rgb_colorspace& Rec2020() {
         static const rgb_colorspace rec2020(whitepoint(0.95047, 1.0, 1.08883), 0.708, 0.292, 0.170, 0.797, 0.131, 0.046);
