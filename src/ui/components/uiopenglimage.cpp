@@ -7,14 +7,12 @@
 
 UIOpenGLImage::UIOpenGLImage(QWidget *parent)
     : QOpenGLWidget(parent), m_texture(nullptr), m_program(nullptr), m_zoom(1.0f), m_translation(0, 0),
-      m_textTexture(nullptr), m_mousePos(0, 0)
-{
+      m_textTexture(nullptr), m_mousePos(0, 0) {
     setFocusPolicy(Qt::StrongFocus);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 }
 
-UIOpenGLImage::~UIOpenGLImage()
-{
+UIOpenGLImage::~UIOpenGLImage() {
     makeCurrent();
     delete m_texture;
     delete m_program;
@@ -22,8 +20,7 @@ UIOpenGLImage::~UIOpenGLImage()
     doneCurrent();
 }
 
-void UIOpenGLImage::setImage(const QImage &image)
-{
+void UIOpenGLImage::setImage(const QImage &image) {
     image_width = image.width();
     image_height = image.height();
     m_image = new QImage(image);
@@ -83,8 +80,7 @@ void UIOpenGLImage::initializeGL() {
     m_view.setToIdentity();
 }
 
-void UIOpenGLImage::paintGL()
-{
+void UIOpenGLImage::paintGL() {
     glClear(GL_COLOR_BUFFER_BIT);
 
     if (!m_texture || !m_texture->isCreated()) return;
@@ -155,20 +151,17 @@ void UIOpenGLImage::paintGL()
     }
 }
 
-void UIOpenGLImage::resizeGL(int w, int h)
-{
+void UIOpenGLImage::resizeGL(int w, int h) {
     updateProjection();
 }
 
-void UIOpenGLImage::mousePressEvent(QMouseEvent *event)
-{
+void UIOpenGLImage::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         m_lastPos = event->pos();
     }
 }
 
-void UIOpenGLImage::mouseMoveEvent(QMouseEvent *event)
-{
+void UIOpenGLImage::mouseMoveEvent(QMouseEvent *event) {
     if (event->buttons() & Qt::LeftButton) {
         QPointF delta = QPointF(event->pos() - m_lastPos) / (m_zoom * width());
         m_translation += QVector2D(delta.x() * 2, -delta.y() * 2);
@@ -184,8 +177,7 @@ void UIOpenGLImage::mouseMoveEvent(QMouseEvent *event)
     update();
 }
 
-void UIOpenGLImage::wheelEvent(QWheelEvent *event)
-{
+void UIOpenGLImage::wheelEvent(QWheelEvent *event) {
     float zoomFactor = 1.0f + event->angleDelta().y() / 1200.0f;
 
     // Convert mouse position to normalized device coordinates
@@ -213,28 +205,24 @@ void UIOpenGLImage::wheelEvent(QWheelEvent *event)
     update();
 }
 
-void UIOpenGLImage::keyPressEvent(QKeyEvent *event)
-{
+void UIOpenGLImage::keyPressEvent(QKeyEvent *event) {
     if (event->key() == Qt::Key_F) {
         fitInView();
     }
 }
 
-void UIOpenGLImage::updateProjection()
-{
+void UIOpenGLImage::updateProjection() {
     float aspect = float(width()) / height();
     m_projection.setToIdentity();
     m_projection.ortho(-aspect / m_zoom, aspect / m_zoom, -1.0f / m_zoom, 1.0f / m_zoom, -1.0f, 1.0f);
 }
 
-void UIOpenGLImage::updateView()
-{
+void UIOpenGLImage::updateView() {
     m_view.setToIdentity();
     m_view.translate(m_translation.x(), m_translation.y());
 }
 
-void UIOpenGLImage::updateTextTexture(const QString& text)
-{
+void UIOpenGLImage::updateTextTexture(const QString& text) {
     QFont font("Arial", 12);
     QFontMetrics fm(font);
     QSize textSize = fm.size(Qt::TextSingleLine, text);

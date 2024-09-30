@@ -20,12 +20,14 @@
 #include "components/uidropdownmenu.h"
 #include "components/uiopenglimage.h"
 #include "components/uispectralgraph.h"
+#include "components/uiusdtreeview.h"
+#include "../usd/loader.h"
 
 class RenderWindow : public QMainWindow
 {
     Q_OBJECT
 public:
-    RenderWindow(settings * settings_ptr, QWidget *parent = nullptr);
+    RenderWindow(settings * settings_ptr, rd::usd::loader * loader, QWidget *parent = nullptr);
 
 public slots:
     void updateProgress(int progress, int total);
@@ -57,6 +59,7 @@ private:
     int m_width;
     int m_height;
     QImage *m_image;
+    rd::usd::loader * m_loader;
     QScrollArea *m_scrollArea;
     QMap<QString, QString> m_metadata;
     QProgressBar *m_progressBar;
@@ -80,6 +83,7 @@ private:
     UIOpenGLImage *m_openGLImage;
     QString style_sheet();
     UISpectralGraph *m_spectralGraph;
+    UiUSDTreeView *m_usdTreeView;
 };
 
 #endif // RENDER_WINDOW_H

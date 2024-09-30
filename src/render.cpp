@@ -2,7 +2,7 @@
 
 #include <QTimer>
 
-render::render(settings * settings) : QObject() { 
+render::render(settings * settings, rd::usd::loader * loader) : QObject() { 
     settings_ptr = settings;
     load_lookup_table();
 
@@ -13,26 +13,23 @@ render::render(settings * settings) : QObject() {
     image_buffer = new ImagePNG(settings_ptr->image_width, settings_ptr->image_height, spectrum::RESPONSE_SAMPLES, observer_ptr);
     world = new hittable_list();
     lights = new hittable_list();
-
-    // LOAD USD FILE
-    rd::usd::loader loader(settings_ptr->usd_file);
-
+    this->loader = loader;
     // LOAD CAMERA
-    camera = rd::usd::camera::extractCameraProperties(loader.findFirstCamera());
+    camera = rd::usd::camera::extractCameraProperties(loader->findFirstCamera());
 
     // LOAD MATERIALS
     std::cout << "Loading materials from USD stage" << std::endl;
     auto error_material = new rd::core::constant(color(1.0, 0.0, 0.0));
-    std::unordered_map<std::string, rd::core::material*> materials = rd::usd::material::load_materials_from_stage(loader.get_stage());
+    std::unordered_map<std::string, rd::core::material*> materials = rd::usd::material::load_materials_from_stage(loader->get_stage());
     materials["error"] = error_material;
 
     // LOAD GEOMETRY
     std::cout << "Loading geometry from USD stage" << std::endl;
-    std::vector<rd::core::mesh*> scene_meshes = rd::usd::geo::extractMeshesFromUsdStage(loader.get_stage(), materials);
+    std::vector<rd::core::mesh*> scene_meshes = rd::usd::geo::extractMeshesFromUsdStage(loader->get_stage(), materials);
     
     // LOAD AREA LIGHTS
     std::cout << "Loading area lights from USD stage" << std::endl;
-    std::vector<rd::core::area_light*> area_lights = rd::usd::light::extractAreaLightsFromUsdStage(loader.get_stage(), observer_ptr);
+    std::vector<rd::core::area_light*> area_lights = rd::usd::light::extractAreaLightsFromUsdStage(loader->get_stage(), observer_ptr);
 
     for(const auto& light : area_lights){
          world->add(light);
@@ -61,7 +58,7 @@ render::render(settings * settings) : QObject() {
     auto bvh_shared = new bvh_node(world);
     world = new hittable_list(bvh_shared);
 }
-void render::render_scene_slot(){
+void render::render_scene_slot() {
 
     std::thread render_thread([this]() {
         render_scene();
@@ -69,7 +66,7 @@ void render::render_scene_slot(){
     render_thread.detach();
 
 }
-int render::render_scene(){
+int render::render_scene() {
 
     std::cout << "Rendering scene" << std::endl;
     int seconds_to_render = mtpool_bucket_prog_render();

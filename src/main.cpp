@@ -13,12 +13,14 @@ std::atomic<bool> should_continue_rendering(true);
 
 int main(int argc, char *argv[]) {
     settings settings(argc, argv);
+
+    rd::usd::loader loader = rd::usd::loader(settings.usd_file);
     if(settings.error > 0) return 1;
 
-    render render(&settings);
+    render render(&settings, &loader);
     if(settings.show_ui){
         QApplication app(argc, argv);
-        RenderWindow window(&settings);
+        RenderWindow window(&settings, &loader);
         // connect the render window to the render object
         QObject::connect(&render, &render::progressUpdated, &window, &RenderWindow::updateProgress);
         QObject::connect(&render, &render::bucketFinished, &window, &RenderWindow::updateBucket);

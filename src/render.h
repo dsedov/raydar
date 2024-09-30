@@ -80,7 +80,7 @@ public:
     int max_depth         = 10;
     rd::core::camera camera;
 
-    render(settings * settings);
+    render(settings * settings, rd::usd::loader * loader);
     int render_scene();
 public slots:
     void render_scene_slot();
@@ -95,6 +95,7 @@ signals:
 private:
     hittable_list * world;
     hittable_list * lights;
+    rd::usd::loader * loader;
     Image * image_buffer;
     observer * observer_ptr ;
     settings * settings_ptr;

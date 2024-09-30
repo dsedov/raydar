@@ -11,11 +11,13 @@
 #include "components/uiopenglimage.h"
 #include "components/uispectralgraph.h"
 
-RenderWindow::RenderWindow(settings * settings_ptr, QWidget *parent)
+
+RenderWindow::RenderWindow(settings * settings_ptr, rd::usd::loader * loader, QWidget *parent)
     : QMainWindow(parent), m_width(settings_ptr->image_width), m_height(settings_ptr->image_height), m_gain(300.0f), m_gamma(2.2f)
 {
     setWindowTitle("Render Window");
     m_settings_ptr = settings_ptr;
+    m_loader = loader;
     observer_ptr = new observer(observer::CIE1931_2Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
     m_image_buffer = new ImagePNG(m_width, m_height, spectrum::RESPONSE_SAMPLES, observer_ptr);
     m_image = new QImage(m_width, m_height, QImage::Format_RGB888);
@@ -26,7 +28,11 @@ RenderWindow::RenderWindow(settings * settings_ptr, QWidget *parent)
 
     setupUI();
 
-    resize(1000, 600);
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QRect screenGeometry = screen->geometry();
+    int width = screenGeometry.width();  // 90% of screen width
+    int height = screenGeometry.height() * 0.9;  // 90% of screen height
+    resize(width, height);
 
     // Run update_image on a timer every second
     QTimer *timer = new QTimer(this);
@@ -38,7 +44,9 @@ void RenderWindow::setupUI()
 {
     
     this->setStyleSheet(style_sheet());
-        
+
+    m_usdTreeView = new UiUSDTreeView(this);
+    m_usdTreeView->loadUSDStage(m_loader->get_stage());
     m_openGLImage = new UIOpenGLImage(this);
 
     m_progressBar = new QProgressBar(this);
@@ -99,16 +107,19 @@ void RenderWindow::setupUI()
     
     QWidget *imageWidget = new QWidget(this);
     QVBoxLayout *imageLayout = new QVBoxLayout(imageWidget);
-    imageLayout->addWidget(m_openGLImage, 1);  // Add stretch factor of 1
+    imageLayout->setContentsMargins(0, 0, 0, 0);
+    imageLayout->addWidget(m_openGLImage, 1); 
     imageLayout->addWidget(m_progressBar);
+
 
     QWidget *controlWidget = new QWidget(this);
     QVBoxLayout *controlLayout = new QVBoxLayout(controlWidget);
+    controlLayout->setContentsMargins(0, 0, 0, 0);
     controlLayout->addWidget(m_lightsource);
     controlLayout->addWidget(m_observer);
     controlLayout->addWidget(m_gainInput);
     controlLayout->addWidget(m_gammaInput);
-    controlLayout->addWidget(m_spectrumSamplingMenu);  // Add the new UiDropdownMenu
+    controlLayout->addWidget(m_spectrumSamplingMenu); 
     controlLayout->addWidget(m_samplesInput);
     controlLayout->addWidget(m_depthInput);
     controlLayout->addWidget(m_resolutionInput);
@@ -121,10 +132,12 @@ void RenderWindow::setupUI()
     controlLayout->addWidget(m_renderButton);
 
     m_splitter = new QSplitter(Qt::Horizontal, this);
+    m_splitter->addWidget(m_usdTreeView);
     m_splitter->addWidget(imageWidget);
     m_splitter->addWidget(controlWidget);
-    m_splitter->setStretchFactor(0, 3);  // Give more stretch to the image side
-    m_splitter->setStretchFactor(1, 1);
+    m_splitter->setStretchFactor(0, 0); 
+    m_splitter->setStretchFactor(1, 50);
+    m_splitter->setStretchFactor(2, 0);
 
     mainLayout->addWidget(m_splitter);
     
@@ -232,17 +245,18 @@ void RenderWindow::update_resolution(int width, int height)
 }
 QString RenderWindow::style_sheet()
 {
-    return "* { background-color: #323232; } \
+    return "* { background-color: #323232; font-size: 12px; } \
     QLabel { color: #bababa; } \
-    QPushButton { background-color: #515151; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 5px; } \
+    QPushButton { background-color: #515151; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 4px; } \
     QPushButton:hover { background-color: #616161; } \
     QPushButton:pressed { background-color: #414141; } \
-    QDoubleSpinBox, QSpinBox { background-color: #252525; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 5px; } \
+    QDoubleSpinBox, QSpinBox { background-color: #252525; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 4px; } \
     QDoubleSpinBox::up-button, QSpinBox::up-button { background-color: #3a3a3a; color: #bababa; border-top-right-radius: 5px; margin-right: 1px; } \
     QDoubleSpinBox::down-button, QSpinBox::down-button { background-color: #3a3a3a; color: #bababa; border-bottom-right-radius: 5px; margin-right: 1px; } \
-    QComboBox { background-color: #3a3a3a; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 5px; } \
+    QComboBox { background-color: #3a3a3a; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 4px; } \
     QComboBox::drop-down { background-color: #3a3a3a; color: #bababa;  border: 1px solid #3a3a3a; border-radius: 5px; margin-right: 1px;  } \
-    QProgressBar { background-color: #252525; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 5px; text-align: center; padding:1px; } \
+    QProgressBar { background-color: #252525; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 4px; text-align: center; padding:1px; } \
     QProgressBar::chunk { background-color: #515151; } \
+    QTreeView { background-color: #252525; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 4px; } \
     ";
 }
