@@ -316,6 +316,17 @@ void render::lightsource_override(int index){
             material->set_fast_light_color(spectrum::d50());
     }
 }
+void render::render_mode_changed(int index){
+    fast_render = index == 1;
+    if(fast_render){
+        saved_samples_per_pixel = samples_per_pixel;
+        samples_changed(16);
+        emit samples_changed_internal(16);
+    } else {
+        samples_changed(saved_samples_per_pixel);
+        emit samples_changed_internal(saved_samples_per_pixel);
+    }
+}
 void render::samples_changed(int samples){
     samples_per_pixel = samples;
     initialize();

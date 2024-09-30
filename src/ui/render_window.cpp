@@ -53,6 +53,11 @@ void RenderWindow::setupUI()
     m_progressBar->setRange(0, 100);
     m_progressBar->setValue(0);
 
+    QStringList renderModeOptions = {"Full", "Fast"};
+    m_render_mode = new UiDropdownMenu("Render Mode:", renderModeOptions, this);
+    m_render_mode->setCurrentIndex(0);
+    connect(m_render_mode, &UiDropdownMenu::index_changed, this, &RenderWindow::render_mode_changed);
+
     QStringList lightsourceOptions = {"default", "D65", "D50"};
     m_lightsource = new UiDropdownMenu("Lightsource:", lightsourceOptions, this);
     m_lightsource->setCurrentIndex(0);
@@ -115,6 +120,7 @@ void RenderWindow::setupUI()
     QWidget *controlWidget = new QWidget(this);
     QVBoxLayout *controlLayout = new QVBoxLayout(controlWidget);
     controlLayout->setContentsMargins(0, 0, 0, 0);
+    controlLayout->addWidget(m_render_mode);
     controlLayout->addWidget(m_lightsource);
     controlLayout->addWidget(m_observer);
     controlLayout->addWidget(m_gainInput);
@@ -163,7 +169,11 @@ void RenderWindow::updateGamma(float value)
     need_to_update_image = true;
     update_image();
 }
-
+void RenderWindow::updateSamples(int samples) {
+    m_samplesInput->blockSignals(true);
+    m_samplesInput->setValue(samples);
+    m_samplesInput->blockSignals(false);
+}
 void RenderWindow::update_observer(int index)
 {   
     switch (index) {

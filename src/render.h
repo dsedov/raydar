@@ -88,12 +88,14 @@ public slots:
     void samples_changed(int samples);
     void resolution_changed(int width, int height);
     void lightsource_override(int index);
+    void render_mode_changed(int index);
 signals:
     void progressUpdated(int progress, int total);
     void bucketFinished(int x, int y, ImagePNG* image);
+    void samples_changed_internal(int samples);
 
 private:
-    bool fast_render = true;
+    bool fast_render = false;
     hittable_list * world;
     hittable_list * lights;
     rd::usd::loader * loader;
@@ -101,6 +103,7 @@ private:
     Image * image_buffer;
     observer * observer_ptr ;
     settings * settings_ptr;
+    int saved_samples_per_pixel = 256;
 
     bool full_spectrum_sampling = true;
     
