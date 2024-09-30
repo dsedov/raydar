@@ -58,7 +58,11 @@ include_directories(${USD_ROOT}/include)
 link_directories(${USD_ROOT}/lib)
 
 # Find all USD libraries
-file(GLOB USD_LIBRARIES "${USD_ROOT}/lib/libusd_*.dylib")
+if(WIN32)
+    file(GLOB USD_LIBRARIES "${USD_ROOT}/lib/usd_*.lib")
+else()
+    file(GLOB USD_LIBRARIES "${USD_ROOT}/lib/libusd_*.dylib")
+endif()
 
 # Add the new render_window.cpp to your source files
 set(SOURCES

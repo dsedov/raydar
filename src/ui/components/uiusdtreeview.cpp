@@ -20,6 +20,7 @@
 #include <pxr/usd/sdf/primSpec.h>
 #include <pxr/usd/sdf/types.h>
 #include <pxr/usd/sdf/reference.h>
+#include <QFileIconProvider>
 
 UiUSDTreeView::UiUSDTreeView(QWidget *parent)
     : QWidget(parent)
@@ -33,6 +34,10 @@ UiUSDTreeView::UiUSDTreeView(QWidget *parent)
 
     m_splitter->addWidget(m_topTreeView);
     m_splitter->addWidget(m_bottomTreeView);
+
+    // Set the splitter sizes to 3/4 for top and 1/4 for bottom
+    m_splitter->setStretchFactor(0, 3);
+    m_splitter->setStretchFactor(1, 1);
 
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -56,6 +61,7 @@ void UiUSDTreeView::setupBottomTreeView()
     m_bottomTreeView->setHeaderHidden(true);
     m_bottomTreeView->setAnimated(false);
     m_bottomTreeView->setExpandsOnDoubleClick(false);
+    m_bottomTreeView->setRootIsDecorated(false); // Hide the root node
 }
 
 void UiUSDTreeView::loadUSDStage(const pxr::UsdStageRefPtr stage)
@@ -94,8 +100,7 @@ void UiUSDTreeView::populateTopTree(const pxr::UsdPrim &prim, QStandardItem *par
 void UiUSDTreeView::populateBottomTree(const pxr::UsdStageRefPtr &stage)
 {
     m_bottomModel->clear();
-    QStandardItem *rootItem = new QStandardItem("USD Files");
-    m_bottomModel->appendRow(rootItem);
+    QStandardItem *rootItem = m_bottomModel->invisibleRootItem();
 
     pxr::SdfLayerRefPtr rootLayer = stage->GetRootLayer();
     addLayerToTree(rootLayer, rootItem);
@@ -113,6 +118,12 @@ void UiUSDTreeView::addLayerToTree(const pxr::SdfLayerRefPtr &layer, QStandardIt
     QFileInfo fileInfo(layerPath);
     QStandardItem *layerItem = new QStandardItem(fileInfo.fileName());
     layerItem->setToolTip(layerPath);
+
+    // Add file icon
+    QFileIconProvider iconProvider;
+    QIcon icon = iconProvider.icon(fileInfo);
+    layerItem->setIcon(icon);
+
     parentItem->appendRow(layerItem);
 
     // Add sublayers

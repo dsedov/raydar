@@ -93,9 +93,11 @@ signals:
     void bucketFinished(int x, int y, ImagePNG* image);
 
 private:
+    bool fast_render = true;
     hittable_list * world;
     hittable_list * lights;
     rd::usd::loader * loader;
+    std::vector<rd::core::material*> all_materials;
     Image * image_buffer;
     observer * observer_ptr ;
     settings * settings_ptr;

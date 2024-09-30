@@ -45,9 +45,19 @@ namespace rd::core {
         virtual void set_cast_shadow(bool v) {
             cast_shadow = v;
         }
+        virtual spectrum fast_ray_color(const ray& r_in, const hit_record& rec, double u, double v, const point3& p) const {
+            return spectrum(color(0.5,0.5,0.5));
+        }
+        virtual void set_fast_light_color(spectrum c){
+            fast_light_color = c;
+        }
+        virtual spectrum get_fast_light_color() const {
+            return fast_light_color;
+        }
         private:
             bool visible = true;
             bool cast_shadow = true;
+            spectrum fast_light_color = spectrum::d65();
     };
 
     class constant : public material {
@@ -197,7 +207,16 @@ namespace rd::core {
                 std::cout << "transmission_color: " << transmission_color << std::endl;
                 std::cout << "emission_color: " << emission_color << std::endl;
             }
-
+        spectrum fast_ray_color(const ray& r_in, const hit_record& rec, double u, double v, const point3& p) const override {
+            // Calculate the dot product of the normal and the up vector
+            double up_factor = std::max(0.0, dot(rec.normal, vec3(0.2, 0.7, 0.3)));
+            
+            // Create a simple lighting factor based on the up_factor
+            double lighting_factor = 0.3 + 0.7 * up_factor;
+            
+            // Apply the lighting factor to the base color
+            return base_color * base_weight * lighting_factor * get_fast_light_color() / 25.0;
+        }
         bool scatter(const ray& r_in, const hit_record& rec, scatter_record& srec) const override {
             vec3 unit_direction = unit_vector(r_in.direction());
             vec3 reflected = reflect(unit_direction, rec.normal);

@@ -22,6 +22,9 @@ render::render(settings * settings, rd::usd::loader * loader) : QObject() {
     auto error_material = new rd::core::constant(color(1.0, 0.0, 0.0));
     std::unordered_map<std::string, rd::core::material*> materials = rd::usd::material::load_materials_from_stage(loader->get_stage());
     materials["error"] = error_material;
+    for(const auto& material : materials){
+        all_materials.push_back(material.second);
+    }
 
     // LOAD GEOMETRY
     std::cout << "Loading geometry from USD stage" << std::endl;
@@ -260,6 +263,11 @@ spectrum render::ray_color(const ray& r, int depth) const {
     if (!world->hit(r, interval(0.001, infinity), rec))
         return background_color;
 
+    if(fast_render){
+        return rec.mat->fast_ray_color(r, rec, rec.u, rec.v, rec.p);
+    }
+
+
     if (!rec.mat->is_visible()) {
         const double bias = 0.0001;
         ray continued_ray(rec.p + bias * r.direction(), r.direction(), r.get_depth());
@@ -298,6 +306,14 @@ void render::lightsource_override(int index){
             else if(index == 2)
                 area_light->set_emission(spectrum::d50());
         }
+    }
+    for(const auto& material : all_materials){
+        if(index == 0)
+            material->set_fast_light_color(spectrum::d65());
+        else if(index == 1)
+            material->set_fast_light_color(spectrum::d65());
+        else if(index == 2)
+            material->set_fast_light_color(spectrum::d50());
     }
 }
 void render::samples_changed(int samples){
