@@ -255,7 +255,7 @@ void RenderWindow::update_resolution(int width, int height)
 }
 QString RenderWindow::style_sheet()
 {
-    return "* { background-color: #323232; font-size: 12px; } \
+    return "* { background-color: #323232; font-size: 12px; color: #bababa;} \
     QLabel { color: #bababa; } \
     QPushButton { background-color: #515151; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 4px; } \
     QPushButton:hover { background-color: #616161; } \
