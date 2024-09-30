@@ -6,6 +6,7 @@
 #include <QStandardItemModel>
 #include <QSplitter>
 #include <pxr/usd/usd/stage.h>
+#include <pxr/usd/sdf/layer.h>
 
 class UiUSDTreeView : public QWidget
 {
@@ -25,8 +26,8 @@ private:
     void setupTopTreeView();
     void setupBottomTreeView();
     void populateTopTree(const pxr::UsdPrim &prim, QStandardItem *parentItem);
-    void populateBottomTree();
-    void collectUSDFiles(const QStandardItem *item, QSet<QString> &usdFiles);
+    void populateBottomTree(const pxr::UsdStageRefPtr &stage);
+    void addLayerToTree(const pxr::SdfLayerRefPtr &layer, QStandardItem *parentItem);
 };
 
 #endif // UIUSDTREEVIEW_H

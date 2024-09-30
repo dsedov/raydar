@@ -46,8 +46,6 @@ if (WIN32)
     set(ZLIB_LIBRARY "D:/dev/vcpkg/packages/zlib_x64-windows/lib/zlib.dylib")
     set(PNG_PNG_INCLUDE_DIR ${PNG_INCLUDE_DIR})
     set(USD_ROOT "D:/Dev/pxr")
-
-    
 else()
     set(PNG_INCLUDE_DIR "/opt/homebrew/opt/libpng/include")
     set(PNG_LIBRARY "/opt/homebrew/opt/libpng/lib/libpng.dylib")
@@ -59,14 +57,8 @@ find_package(PNG REQUIRED)
 include_directories(${USD_ROOT}/include)
 link_directories(${USD_ROOT}/lib)
 
-find_library(USD_LIB usd_usd PATHS ${USD_ROOT}/lib)
-find_library(USD_USDGeom_LIB usd_usdGeom PATHS ${USD_ROOT}/lib)
-find_library(USD_TF_LIB usd_tf PATHS ${USD_ROOT}/lib)
-find_library(USD_SDF_LIB usd_sdf PATHS ${USD_ROOT}/lib)
-find_library(USD_VT_LIB usd_vt PATHS ${USD_ROOT}/lib)
-find_library(USD_GF_LIB usd_gf PATHS ${USD_ROOT}/lib)
-find_library(USD_USDShade_LIB usd_usdShade PATHS ${USD_ROOT}/lib)
-find_library(USD_USD_LUX_LIB usd_usdLux PATHS ${USD_ROOT}/lib)
+# Find all USD libraries
+file(GLOB USD_LIBRARIES "${USD_ROOT}/lib/libusd_*.dylib")
 
 # Add the new render_window.cpp to your source files
 set(SOURCES
@@ -99,15 +91,7 @@ target_include_directories(raydar PRIVATE ${Qt6OpenGL_INCLUDE_DIRS})
 # Link libraries
 target_link_libraries(raydar PRIVATE 
                                 ${PNG_LIBRARY} 
-                                ${USD_LIB} 
-                                ${USD_USDGeom_LIB} 
-                                ${USD_USDStage_LIB} 
-                                ${USD_TF_LIB} 
-                                ${USD_SDF_LIB}
-                                ${USD_VT_LIB}
-                                ${USD_GF_LIB}
-                                ${USD_USDShade_LIB}
-                                ${USD_USD_LUX_LIB}
+                                ${USD_LIBRARIES}
                                 ${Qt6Core_LIBRARIES}
                                 ${Qt6Gui_LIBRARIES}
                                 ${Qt6Widgets_LIBRARIES}

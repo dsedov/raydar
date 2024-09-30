@@ -16,6 +16,10 @@
 #include <pxr/usd/usdShade/shader.h>
 #include <pxr/usd/usdLux/rectLight.h>
 #include <pxr/usd/usdGeom/metrics.h>
+#include <pxr/usd/sdf/layerTree.h>
+#include <pxr/usd/sdf/primSpec.h>
+#include <pxr/usd/sdf/types.h>
+#include <pxr/usd/sdf/reference.h>
 
 UiUSDTreeView::UiUSDTreeView(QWidget *parent)
     : QWidget(parent)
@@ -62,7 +66,7 @@ void UiUSDTreeView::loadUSDStage(const pxr::UsdStageRefPtr stage)
 
     m_topTreeView->expandToDepth(1);
 
-    populateBottomTree();
+    populateBottomTree(stage);
 }
 
 void UiUSDTreeView::populateTopTree(const pxr::UsdPrim &prim, QStandardItem *parentItem)
@@ -87,38 +91,50 @@ void UiUSDTreeView::populateTopTree(const pxr::UsdPrim &prim, QStandardItem *par
     }
 }
 
-void UiUSDTreeView::populateBottomTree()
+void UiUSDTreeView::populateBottomTree(const pxr::UsdStageRefPtr &stage)
 {
     m_bottomModel->clear();
-    QSet<QString> usdFiles;
-
-    collectUSDFiles(m_topModel->invisibleRootItem(), usdFiles);
-
     QStandardItem *rootItem = new QStandardItem("USD Files");
     m_bottomModel->appendRow(rootItem);
 
-    for (const QString &file : usdFiles) {
-        QFileInfo fileInfo(file);
-        QStandardItem *fileItem = new QStandardItem(fileInfo.fileName());
-        fileItem->setToolTip(file);
-        rootItem->appendRow(fileItem);
-    }
+    pxr::SdfLayerRefPtr rootLayer = stage->GetRootLayer();
+    addLayerToTree(rootLayer, rootItem);
 
     m_bottomTreeView->expandAll();
 }
 
-void UiUSDTreeView::collectUSDFiles(const QStandardItem *item, QSet<QString> &usdFiles)
+void UiUSDTreeView::addLayerToTree(const pxr::SdfLayerRefPtr &layer, QStandardItem *parentItem)
 {
-    if (!item) {
+    if (!layer) {
         return;
     }
 
-    QString path = item->data(Qt::UserRole).toString();
-    if (!path.isEmpty() && path.endsWith(".usd", Qt::CaseInsensitive)) {
-        usdFiles.insert(path);
+    QString layerPath = QString::fromStdString(layer->GetIdentifier());
+    QFileInfo fileInfo(layerPath);
+    QStandardItem *layerItem = new QStandardItem(fileInfo.fileName());
+    layerItem->setToolTip(layerPath);
+    parentItem->appendRow(layerItem);
+
+    // Add sublayers
+    for (const auto &sublayer : layer->GetSubLayerPaths()) {
+        pxr::SdfLayerRefPtr sublayerRef = pxr::SdfLayer::FindOrOpen(sublayer);
+        if (sublayerRef) {
+            addLayerToTree(sublayerRef, layerItem);
+        }
     }
 
-    for (int i = 0; i < item->rowCount(); ++i) {
-        collectUSDFiles(item->child(i), usdFiles);
+    // Add references
+    pxr::SdfPrimSpecHandle pseudoRoot = layer->GetPseudoRoot();
+    for (const auto &child : pseudoRoot->GetNameChildren()) {
+        if (pxr::SdfPrimSpecHandle primSpec = pxr::SdfPrimSpecHandle(child)) {
+            for (const auto &ref : primSpec->GetReferenceList().GetAddedOrExplicitItems()) {
+                if (!ref.GetAssetPath().empty()) {
+                    pxr::SdfLayerRefPtr refLayer = pxr::SdfLayer::FindOrOpen(ref.GetAssetPath());
+                    if (refLayer) {
+                        addLayerToTree(refLayer, layerItem);
+                    }
+                }
+            }
+        }
     }
 }
