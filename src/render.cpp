@@ -305,6 +305,12 @@ void render::lightsource_override(int index){
                 area_light->set_emission(spectrum::d65());
             else if(index == 2)
                 area_light->set_emission(spectrum::d50());
+            else if(index == 3)
+                area_light->set_emission(spectrum::studio_led());
+            else if(index == 4)
+                area_light->set_emission(spectrum::d65_cb());
+            else if(index == 5)
+                area_light->set_emission(spectrum::d50_cb());
         }
     }
     for(const auto& material : all_materials){
@@ -314,6 +320,12 @@ void render::lightsource_override(int index){
             material->set_fast_light_color(spectrum::d65());
         else if(index == 2)
             material->set_fast_light_color(spectrum::d50());
+        else if(index == 3)
+            material->set_fast_light_color(spectrum::studio_led());
+        else if(index == 4)
+            material->set_fast_light_color(spectrum::d65_cb());
+        else if(index == 5)
+            material->set_fast_light_color(spectrum::d50_cb());
     }
 }
 void render::render_mode_changed(int index){

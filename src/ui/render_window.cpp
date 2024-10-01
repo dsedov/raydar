@@ -58,7 +58,7 @@ void RenderWindow::setupUI()
     m_render_mode->setCurrentIndex(0);
     connect(m_render_mode, &UiDropdownMenu::index_changed, this, &RenderWindow::render_mode_changed);
 
-    QStringList lightsourceOptions = {"default", "D65", "D50"};
+    QStringList lightsourceOptions = {"default", "CIE D65", "CIE D50", "Studio LED", "D65 Color Booth", "D50 Color Booth"};
     m_lightsource = new UiDropdownMenu("Lightsource:", lightsourceOptions, this);
     m_lightsource->setCurrentIndex(0);
     connect(m_lightsource, &UiDropdownMenu::index_changed, this, &RenderWindow::lightsource_changed);
