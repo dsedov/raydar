@@ -81,6 +81,7 @@ set(SOURCES
     src/ui/components/uiint2.cpp
     src/ui/components/uiusdtreeview.cpp
     src/ui/components/usd_tree_component.cpp
+    src/ui/components/spd_file_list_component.cpp
 )
 add_executable(raydar ${SOURCES})
 

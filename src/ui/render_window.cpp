@@ -12,6 +12,7 @@
 #include "components/uiopenglimage.h"
 #include "components/uispectralgraph.h"
 #include "components/usd_tree_component.h"
+#include "components/spd_file_list_component.h"
 
 
 RenderWindow::RenderWindow(settings * settings_ptr, rd::usd::loader * loader, QWidget *parent)
@@ -50,15 +51,18 @@ void RenderWindow::setupUI()
     // Create the USD Tree Component
     m_usdTreeComponent = new USDTreeComponent(m_loader->get_stage(), this);
 
+    // Create the SPD File List Component
+    m_spdFileListComponent = new SPDFileListComponent(this);
+    connect(m_spdFileListComponent, &SPDFileListComponent::fileSelected, this, &RenderWindow::onSPDFileSelected);
+    connect(m_spdFileListComponent, &SPDFileListComponent::saveRequested, this, &RenderWindow::onSaveClicked);
+
     // Create the tab widget
     m_tabWidget = new QTabWidget(this);
     m_tabWidget->addTab(m_usdTreeComponent, "USD");
+    m_tabWidget->addTab(m_spdFileListComponent, "History");
 
     m_tabWidget->setTabPosition(QTabWidget::North); // Ensure tabs are at the top
     m_tabWidget->setUsesScrollButtons(false); // Disable scroll buttons
-
-    QWidget* historyWidget = new QWidget(this);
-    m_tabWidget->addTab(historyWidget, "History");
 
     m_openGLImage = new UIOpenGLImage(this);
 
@@ -188,6 +192,7 @@ void RenderWindow::updateGamma(float value)
 void RenderWindow::updateSamples(int samples) {
     m_samplesInput->blockSignals(true);
     m_samplesInput->setValue(samples);
+    m_samples = samples;
     m_samplesInput->blockSignals(false);
 }
 void RenderWindow::update_observer(int index)
@@ -289,11 +294,23 @@ QString RenderWindow::style_sheet()
     QComboBox::drop-down { background-color: #3a3a3a; color: #bababa;  border: 1px solid #3a3a3a; border-radius: 5px; margin-right: 1px;  } \
     QProgressBar { background-color: #252525; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 4px; text-align: center; padding:1px; } \
     QProgressBar::chunk { background-color: #515151; } \
-    QTreeView { background-color: #252525; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 4px; } \
+    QListWidget, QTreeView { background-color: #252525; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 4px; } \
     QTabWidget::pane { background-color: #252525; color: #bababa; border-radius: 5px; border: none; padding: 0px; margin: 0px; } \
     QTabWidget::tab-bar { alignment: left; left: 5px; bottom: -1px;} \
     QTabBar::tab { background-color: #3a3a3a; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 1px; padding-left: 15px; padding-right: 15px; border-bottom: 1px solid #252525; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; } \
     QTabBar::tab:selected { background-color: #252525; } \
     QTabWidget { background-color: #252525; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 0px; } \
     ";
+}
+void RenderWindow::onSaveClicked() {
+    // Handle the save button click here
+    auto file_name = m_settings_ptr->get_file_name(m_image_buffer->width(),m_image_buffer->height(), m_samples, 0, false);
+    file_name += ".spd";
+    m_image_buffer->save_spectrum(file_name.c_str(), m_gamma, m_gain);
+    // You can add your logic to save the current SPD file here
+}
+void RenderWindow::onSPDFileSelected(const QString &filePath) {
+    m_image_buffer->load_spectrum(filePath.toStdString());
+    need_to_update_image = true;
+    update_image();
 }

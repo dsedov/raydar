@@ -24,6 +24,7 @@
 #include "../usd/loader.h"
 #include <QTabWidget>
 #include "components/usd_tree_component.h"
+#include "components/spd_file_list_component.h"
 
 class RenderWindow : public QMainWindow
 {
@@ -42,6 +43,8 @@ private slots:
     void update_spectral_graph(int x, int y);
     void update_resolution(int width, int height);
     void update_observer(int index);
+    void onSPDFileSelected(const QString &filePath);
+    void onSaveClicked();
 signals:
     void render_requested();
     void spectrum_sampling_changed(int index); 
@@ -61,6 +64,8 @@ private:
     settings * m_settings_ptr;
     int m_width;
     int m_height;
+    int m_samples;
+    int m_depth;
     QImage *m_image;
     rd::usd::loader * m_loader;
     QScrollArea *m_scrollArea;
@@ -89,6 +94,7 @@ private:
     UISpectralGraph *m_spectralGraph;
     QTabWidget *m_tabWidget;
     USDTreeComponent *m_usdTreeComponent;
+    SPDFileListComponent *m_spdFileListComponent;
 };
 
 #endif // RENDER_WINDOW_H

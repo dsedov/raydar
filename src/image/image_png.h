@@ -99,7 +99,7 @@ public:
     spectrum uv_value(double u, double v) const {
         return get_pixel(u * width_, v * height_);
     }  
-    void save_spectrum(const char* filename) override {
+    void save_spectrum(const char* filename, float gamma, float exposure) override {
         // Get file pointer for writing
         FILE* file = fopen(filename, "wb");
         if (!file) {
@@ -107,11 +107,11 @@ public:
             return;
         }
 
-        // Write the SPD data to the file
-
         // Write resolution in binary format
         fwrite(&width_, sizeof(int), 1, file);
         fwrite(&height_, sizeof(int), 1, file);
+        fwrite(&gamma, sizeof(float), 1, file);
+        fwrite(&exposure, sizeof(float), 1, file);
         fwrite(&spectrum::RESPONSE_SAMPLES, sizeof(int), 1, file);
 
         // Write the SPD data to the file
@@ -125,6 +125,41 @@ public:
 
         fclose(file);
     }
+    void load_spectrum(const char* filename) override {
+        // Load the SPD data from the file
+        FILE* file = fopen(filename, "rb");
+        if (!file) {
+            printf("Failed to open the SPD file for reading\n");
+            return;
+        }
+
+        float gamma, exposure;
+
+        fread(&width_, sizeof(int), 1, file);
+        fread(&height_, sizeof(int), 1, file);
+        fread(&gamma, sizeof(float), 1, file);
+        fread(&exposure, sizeof(float), 1, file);
+        fread(&num_wavelengths_, sizeof(int), 1, file);
+
+        // Make the image buffer the correct size
+        row_size_ = width_ * num_wavelengths_;
+        image_buffer_ = std::vector<float>(width_ * height_ * num_wavelengths_ );
+        std::fill(image_buffer_.begin(), image_buffer_.end(), 0.0f);
+
+        // Read the SPD data from the file
+        for (int y = 0; y < height_; y++) {
+            for (int x = 0; x < width_; x++) {
+                std::vector<float> pixel_data(num_wavelengths_);
+                fread(pixel_data.data(), sizeof(float), num_wavelengths_, file);
+                spectrum spectrum(pixel_data);
+                set_pixel(x, y, spectrum);
+            }
+        }
+
+        fclose(file);
+    }
+
+    
 
     void save(const char* filename, float gamma = 2.2, float gain = 5) override {
         std::cout << "Saving image to " << filename << " with gamma:" << gamma << " and gain:" << gain << std::endl;
