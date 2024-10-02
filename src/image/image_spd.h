@@ -120,6 +120,9 @@ public:
         fwrite(&observer_type_, sizeof(int), 1, file);
         fwrite(&spectrum_type_, sizeof(int), 1, file);
 
+        fwrite(&samples_, sizeof(int), 1, file);
+        fwrite(&depth_, sizeof(int), 1, file);
+
         // Write the SPD data to the file
         for (int y = 0; y < height_; y++) {
             for (int x = 0; x < width_; x++) {
@@ -149,6 +152,9 @@ public:
         fread(&light_source_, sizeof(int), 1, file);
         fread(&observer_type_, sizeof(int), 1, file);
         fread(&spectrum_type_, sizeof(int), 1, file);
+
+        fread(&samples_, sizeof(int), 1, file);
+        fread(&depth_, sizeof(int), 1, file);
 
         // Make the image buffer the correct size
         row_size_ = width_ * num_wavelengths_;

@@ -88,6 +88,11 @@ void RenderWindow::setupUI()
     m_observer->setCurrentIndex(0);
     connect(m_observer, &UiDropdownMenu::index_changed, this, &RenderWindow::update_observer);
 
+    QStringList primariesOptions = {"Display P3", "sRGB"};
+    m_primaries = new UiDropdownMenu("Primaries:", primariesOptions, this);
+    m_primaries->setCurrentIndex(0);
+    connect(m_primaries, &UiDropdownMenu::index_changed, this, &RenderWindow::updatePrimaries);
+
     // Create UiFloat for exposure and gamma
     m_exposureInput = new UiFloat("Exposure:", this, 0.1, 1000, 0.1);
     m_exposureInput->setValue(m_exposure);
@@ -143,6 +148,7 @@ void RenderWindow::setupUI()
     controlLayout->addWidget(m_render_mode);
     controlLayout->addWidget(m_lightsource);
     controlLayout->addWidget(m_observer);
+    controlLayout->addWidget(m_primaries);
     controlLayout->addWidget(m_exposureInput);
     controlLayout->addWidget(m_gammaInput);
     controlLayout->addWidget(m_spectrumSamplingMenu); 
@@ -215,29 +221,43 @@ void RenderWindow::update_observer(int index)
     update_image();
 }
 
-void RenderWindow::update_spectral_graph(int x, int y)
-{
+void RenderWindow::update_spectral_graph(int x, int y) {
     spectrum color_spectrum = m_image_buffer->get_pixel(x, y) / ( m_exposure * m_exposure);
     m_spectralGraph->update_graph(color_spectrum);
 }
-
-void RenderWindow::update_image()
-{
+void RenderWindow::updatePrimaries(int index) {
+    need_to_update_image = true;
+    update_image();
+}
+void RenderWindow::update_image() {
     if(!need_to_update_image) return;
     need_to_update_image = false;
     static const interval intensity(0.000, 0.999);
 
     QImage updatedImage(m_width, m_height, QImage::Format_RGB888);
+    if(m_primaries->getCurrentIndex() == 0) {
+        for (int i = 0; i < m_image_buffer->width(); i++) {
+            for (int j = 0; j < m_image_buffer->height(); j++) {
+                spectrum color_spectrum = m_image_buffer->get_pixel(i, j)  * std::pow(2.0, m_exposure);
 
-    for (int i = 0; i < m_image_buffer->width(); i++) {
-        for (int j = 0; j < m_image_buffer->height(); j++) {
-            spectrum color_spectrum = m_image_buffer->get_pixel(i, j)  * std::pow(2.0, m_exposure);
-            //color color_rgb = color_spectrum.to_rgb(observer_ptr);
-            color color_rgb_displayP3 = color_spectrum.to_XYZ(observer_ptr).to_rgbDisplayP3();
-            float r = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb_displayP3.x(), m_gamma))); 
-            float g = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb_displayP3.y(), m_gamma)));
-            float b = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb_displayP3.z(), m_gamma)));
-            updatedImage.setPixelColor(i, j, QColor::fromRgb(r, g, b));
+                color color_rgb_displayP3 = color_spectrum.to_XYZ(observer_ptr).to_rgbDisplayP3();
+                float r = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb_displayP3.x(), m_gamma))); 
+                float g = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb_displayP3.y(), m_gamma)));
+                float b = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb_displayP3.z(), m_gamma)));
+                updatedImage.setPixelColor(i, j, QColor::fromRgb(r, g, b));
+            }
+        }
+    } else {
+        for (int i = 0; i < m_image_buffer->width(); i++) {
+            for (int j = 0; j < m_image_buffer->height(); j++) {
+                spectrum color_spectrum = m_image_buffer->get_pixel(i, j)  * std::pow(2.0, m_exposure);
+
+                color color_rgb = color_spectrum.to_rgb(observer_ptr);
+                float r = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.x(), m_gamma))); 
+                float g = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.y(), m_gamma)));
+                float b = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.z(), m_gamma)));
+                updatedImage.setPixelColor(i, j, QColor::fromRgb(r, g, b));
+            }
         }
     }
     
@@ -312,6 +332,8 @@ void RenderWindow::onSaveClicked() {
     m_image_buffer->light_source_ = m_lightsource->getCurrentIndex();
     m_image_buffer->render_mode_ = m_render_mode->getCurrentIndex();
     m_image_buffer->spectrum_type_ = m_spectrumSamplingMenu->getCurrentIndex();
+    m_image_buffer->samples_ = m_samplesInput->getValue();
+    m_image_buffer->depth_ = m_depthInput->getValue();
     m_image_buffer->save_spectrum(file_name.c_str());
     // You can add your logic to save the current SPD file here
 }
@@ -325,6 +347,8 @@ void RenderWindow::onSPDFileSelected(const QString &filePath) {
     m_lightsource->setCurrentIndex(m_image_buffer->light_source_);
     m_render_mode->setCurrentIndex(m_image_buffer->render_mode_);
     m_spectrumSamplingMenu->setCurrentIndex(m_image_buffer->spectrum_type_);
+    m_samplesInput->setValue(m_image_buffer->samples_);
+    m_depthInput->setValue(m_image_buffer->depth_);
 
     need_to_update_image = true;
     update_image();

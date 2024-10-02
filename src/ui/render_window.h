@@ -38,6 +38,7 @@ public slots:
     void updateExposure(float value);
     void updateGamma(float value);
     void updateSamples(int samples);
+    void updatePrimaries(int index);
 
 private slots:
     void update_spectral_graph(int x, int y);
@@ -54,6 +55,7 @@ signals:
     void depth_changed(int depth);
     void resolution_changed(int width, int height);
     void render_mode_changed(int index);
+    
 protected:
 
     void resizeEvent(QResizeEvent *event) override;
@@ -82,6 +84,7 @@ private:
     QPushButton *m_renderButton;  // New render button
     UiDropdownMenu *m_render_mode;
     UiDropdownMenu *m_lightsource;
+    UiDropdownMenu *m_primaries;
     UiDropdownMenu *m_observer;
     UiDropdownMenu *m_spectrumSamplingMenu;  // Replace QComboBox with UiDropdownMenu
     UiInt *m_samplesInput;  // New samples input
