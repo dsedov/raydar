@@ -211,10 +211,11 @@ void RenderWindow::update_image()
     for (int i = 0; i < m_image_buffer->width(); i++) {
         for (int j = 0; j < m_image_buffer->height(); j++) {
             spectrum color_spectrum = m_image_buffer->get_pixel(i, j) / ( m_gain * m_gain);
-            color color_rgb = color_spectrum.to_rgb(observer_ptr);
-            float r = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.x(), m_gamma))); 
-            float g = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.y(), m_gamma)));
-            float b = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.z(), m_gamma)));
+            //color color_rgb = color_spectrum.to_rgb(observer_ptr);
+            color color_rgb_displayP3 = color_spectrum.to_XYZ(observer_ptr).to_rgbDisplayP3();
+            float r = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb_displayP3.x(), m_gamma))); 
+            float g = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb_displayP3.y(), m_gamma)));
+            float b = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb_displayP3.z(), m_gamma)));
             updatedImage.setPixelColor(i, j, QColor::fromRgb(r, g, b));
         }
     }

@@ -106,10 +106,9 @@ public:
         static const rgb_colorspace rec2020(whitepoint(0.95047, 1.0, 1.08883), 0.708, 0.292, 0.170, 0.797, 0.131, 0.046);
         return rec2020;
     }
-
-    static const rgb_colorspace& P3() {
-        static const rgb_colorspace p3(whitepoint(0.95047, 1.0, 1.08883), 0.680, 0.320, 0.265, 0.690, 0.150, 0.060);
-        return p3;
+    static const rgb_colorspace& AppleDisplayP3() {
+        static const rgb_colorspace displayP3(whitepoint(0.95047, 1.0, 1.08883), 0.680, 0.320, 0.265, 0.690, 0.150, 0.060);
+        return displayP3;
     }
 };
 
@@ -139,10 +138,19 @@ class color : public vec3 {
         // Add conversion constructor from vec3
         color(const vec3& v) : vec3(v) {}
         color(float r, float g, float b, ColorSpace color_space) : vec3(r, g, b), color_space_(color_space) {}
+        const color to_rgbDisplayP3() {
+            if (color_space_ == ColorSpace::XYZ) {
+                const mat3x3& m = xyz_rgb_matrix(rgb_colorspace::AppleDisplayP3());
+                color result = mat3x3_times(m, color(x(), y(), z()));
+                result.set_color_space(ColorSpace::RGB_LIN);
+                return result;
+            } else {
+                throw std::range_error("Color space not supported");
+            }
+        }
         const color to_rgb() {
             if(color_space_ == ColorSpace::RGB_LIN) {
                 return *this;
-
             } else if (color_space_ == ColorSpace::SRGB) {
                 color result(srgb_to_linear(x()), srgb_to_linear(y()), srgb_to_linear(z()));
                 result.set_color_space(ColorSpace::RGB_LIN);
