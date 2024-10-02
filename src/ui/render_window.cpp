@@ -50,8 +50,11 @@ void RenderWindow::setupUI()
     m_openGLImage = new UIOpenGLImage(this);
 
     m_progressBar = new QProgressBar(this);
+    m_progressBar->setFixedHeight(5); 
+    m_progressBar->setTextVisible(false); 
     m_progressBar->setRange(0, 100);
     m_progressBar->setValue(0);
+    m_progressBar->hide();
 
     QStringList renderModeOptions = {"Full", "Fast"};
     m_render_mode = new UiDropdownMenu("Render Mode:", renderModeOptions, this);
@@ -226,6 +229,11 @@ void RenderWindow::update_image()
 void RenderWindow::updateProgress(int progress, int total)
 {
     int percentage = static_cast<int>((static_cast<double>(progress) / total) * 100);
+    if (percentage <= 0 || percentage >= 99) {
+        m_progressBar->hide();
+    } else {
+        m_progressBar->show();
+    }
     m_progressBar->setValue(percentage);
 }
 
