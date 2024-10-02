@@ -58,8 +58,9 @@ void RenderWindow::setupUI()
 
     // Create the tab widget
     m_tabWidget = new QTabWidget(this);
-    m_tabWidget->addTab(m_usdTreeComponent, "USD");
     m_tabWidget->addTab(m_spdFileListComponent, "History");
+    m_tabWidget->addTab(m_usdTreeComponent, "USD");
+    
 
     m_tabWidget->setTabPosition(QTabWidget::North); // Ensure tabs are at the top
     m_tabWidget->setUsesScrollButtons(false); // Disable scroll buttons

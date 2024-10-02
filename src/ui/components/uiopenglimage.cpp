@@ -4,12 +4,19 @@
 #include <QKeyEvent>
 #include <QPainter>
 #include <QFontMetrics>
+#include <QColorSpace>
 
 UIOpenGLImage::UIOpenGLImage(QWidget *parent)
     : QOpenGLWidget(parent), m_texture(nullptr), m_program(nullptr), m_zoom(1.0f), m_translation(0, 0),
       m_textTexture(nullptr), m_mousePos(0, 0) {
     setFocusPolicy(Qt::StrongFocus);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+    QSurfaceFormat format;
+    format.setColorSpace(QColorSpace::DisplayP3);
+    format.setProfile(QSurfaceFormat::CoreProfile);
+
+    setFormat(format);
 }
 
 UIOpenGLImage::~UIOpenGLImage() {
