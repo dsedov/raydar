@@ -12,7 +12,7 @@
 #include <QPushButton>
 #include <QComboBox>  // Add this include
 #include <QSpinBox>  // Add this include
-#include "../image/image_png.h"
+#include "../image/image_spd.h"
 #include "components/uiint2.h"
 #include "components/uiint.h"
 #include "components/uifloat.h"
@@ -34,8 +34,8 @@ public:
 
 public slots:
     void updateProgress(int progress, int total);
-    void updateBucket(int x, int y, ImagePNG* image);
-    void updateGain(float value);
+    void updateBucket(int x, int y, ImageSPD* image);
+    void updateExposure(float value);
     void updateGamma(float value);
     void updateSamples(int samples);
 
@@ -72,10 +72,10 @@ private:
     QMap<QString, QString> m_metadata;
     QProgressBar *m_progressBar;
     observer * observer_ptr;
-    ImagePNG * m_image_buffer;
-    UiFloat *m_gainInput;
+    ImageSPD * m_image_buffer;
+    UiFloat *m_exposureInput;
     UiFloat *m_gammaInput;
-    float m_gain;
+    float m_exposure;
     float m_gamma;
     float m_whitebalance;
     QSplitter *m_splitter;

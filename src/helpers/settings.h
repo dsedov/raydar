@@ -10,7 +10,7 @@ class settings {
     int image_width = 1024; 
     int image_height = 768;
     float gamma = 1.0;
-    float gain = 1.0;
+    float exposure = 1.0;
     int samples = 4;
     int max_depth = 3;
     bool show_ui = false;
@@ -30,7 +30,7 @@ class settings {
             ("d,depth", "Max depth", cxxopts::value<int>()->default_value("10"))
             ("h,help", "Print usage")
             ("gm,gamma", "Gamma", cxxopts::value<float>()->default_value("2.2"))
-            ("gn,gain", "Gain", cxxopts::value<float>()->default_value("2.7"))
+            ("ex,exposure", "Exposure", cxxopts::value<float>()->default_value("1.0"))
             ("ui", "Show UI", cxxopts::value<bool>()->default_value("false"));
 
         auto result = options.parse(argc, argv);    
@@ -85,9 +85,9 @@ class settings {
         if (result.count("gamma")) gamma = result["gamma"].as<float>();
         std::cout << "Gamma: " << gamma << std::endl;
 
-        // GAIN
-        if (result.count("gain")) gain = result["gain"].as<float>();
-        std::cout << "Gain: " << gain << std::endl;
+        // EXPOSURE
+        if (result.count("exposure")) exposure = result["exposure"].as<float>();
+        std::cout << "Exposure: " << exposure << std::endl;
     }
 
     std::string get_file_name(int width, int height, int samples, int seconds, bool with_extension = true) const{

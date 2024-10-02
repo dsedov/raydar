@@ -16,7 +16,7 @@ public:
     }
 
     virtual ~Image() {}
-    virtual void save(const char* filename, float gamma, float gain) = 0;
+    virtual void save(const char* filename, float gamma, float exposure) = 0;
     virtual void save_spectrum(const char* filename, float gamma, float exposure) = 0;
     virtual void load_spectrum(const char* filename) = 0;
 

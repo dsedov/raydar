@@ -244,11 +244,7 @@ public:
     static const std::vector<std::vector<std::vector<vec3>>>& getLookupTable() { return lookup_table; }
 
     spectrum() : data_(RESPONSE_SAMPLES) {}
-    spectrum(const std::vector<float>& data) : data_(data) {
-        for(int i; i < data.size(); i++){
-            std::cout << " D: " << data[i];
-        }
-    }
+    spectrum(const std::vector<float>& data) : data_(data) { }
     spectrum(const float* data) : data_(data, data + RESPONSE_SAMPLES) {}
     spectrum(float r, float g, float b, float coeff_a, float coeff_b, float coeff_c) : data_(RESPONSE_SAMPLES) {
         // Convert RGB to XYZ

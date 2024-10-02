@@ -16,16 +16,16 @@
 
 
 RenderWindow::RenderWindow(settings * settings_ptr, rd::usd::loader * loader, QWidget *parent)
-    : QMainWindow(parent), m_width(settings_ptr->image_width), m_height(settings_ptr->image_height), m_gain(300.0f), m_gamma(2.2f)
+    : QMainWindow(parent), m_width(settings_ptr->image_width), m_height(settings_ptr->image_height), m_exposure(1.0f), m_gamma(2.2f)
 {
     setWindowTitle("Render Window");
     m_settings_ptr = settings_ptr;
     m_loader = loader;
     observer_ptr = new observer(observer::CIE1931_2Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
-    m_image_buffer = new ImagePNG(m_width, m_height, spectrum::RESPONSE_SAMPLES, observer_ptr);
+    m_image_buffer = new ImageSPD(m_width, m_height, spectrum::RESPONSE_SAMPLES, observer_ptr);
     m_image = new QImage(m_width, m_height, QImage::Format_RGB888);
     m_image->fill(Qt::black);
-    m_gain = settings_ptr->gain;
+    m_exposure = settings_ptr->exposure;
     m_gamma = settings_ptr->gamma;
     m_whitebalance = 5400.0f;
 
@@ -88,10 +88,10 @@ void RenderWindow::setupUI()
     m_observer->setCurrentIndex(0);
     connect(m_observer, &UiDropdownMenu::index_changed, this, &RenderWindow::update_observer);
 
-    // Create UiFloat for gain and gamma
-    m_gainInput = new UiFloat("Gain:", this, 0.1, 1000, 0.1);
-    m_gainInput->setValue(m_gain);
-    connect(m_gainInput, &UiFloat::value_changed, this, &RenderWindow::updateGain);
+    // Create UiFloat for exposure and gamma
+    m_exposureInput = new UiFloat("Exposure:", this, 0.1, 1000, 0.1);
+    m_exposureInput->setValue(m_exposure);
+    connect(m_exposureInput, &UiFloat::value_changed, this, &RenderWindow::updateExposure);
 
     m_gammaInput = new UiFloat("Gamma:", this,0.1, 10.0, 0.1);
     m_gammaInput->setValue(m_gamma);
@@ -143,7 +143,7 @@ void RenderWindow::setupUI()
     controlLayout->addWidget(m_render_mode);
     controlLayout->addWidget(m_lightsource);
     controlLayout->addWidget(m_observer);
-    controlLayout->addWidget(m_gainInput);
+    controlLayout->addWidget(m_exposureInput);
     controlLayout->addWidget(m_gammaInput);
     controlLayout->addWidget(m_spectrumSamplingMenu); 
     controlLayout->addWidget(m_samplesInput);
@@ -176,9 +176,9 @@ void RenderWindow::setupUI()
     connect(m_openGLImage, &UIOpenGLImage::image_position_changed, this, &RenderWindow::update_spectral_graph);
 }
 
-void RenderWindow::updateGain(float value)
+void RenderWindow::updateExposure(float value)
 {
-    m_gain = value;
+    m_exposure = value;
     need_to_update_image = true;
     update_image();
 }
@@ -217,7 +217,7 @@ void RenderWindow::update_observer(int index)
 
 void RenderWindow::update_spectral_graph(int x, int y)
 {
-    spectrum color_spectrum = m_image_buffer->get_pixel(x, y) / ( m_gain * m_gain);
+    spectrum color_spectrum = m_image_buffer->get_pixel(x, y) / ( m_exposure * m_exposure);
     m_spectralGraph->update_graph(color_spectrum);
 }
 
@@ -231,7 +231,7 @@ void RenderWindow::update_image()
 
     for (int i = 0; i < m_image_buffer->width(); i++) {
         for (int j = 0; j < m_image_buffer->height(); j++) {
-            spectrum color_spectrum = m_image_buffer->get_pixel(i, j) / ( m_gain * m_gain);
+            spectrum color_spectrum = m_image_buffer->get_pixel(i, j)  * std::pow(2.0, m_exposure);
             //color color_rgb = color_spectrum.to_rgb(observer_ptr);
             color color_rgb_displayP3 = color_spectrum.to_XYZ(observer_ptr).to_rgbDisplayP3();
             float r = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb_displayP3.x(), m_gamma))); 
@@ -255,7 +255,7 @@ void RenderWindow::updateProgress(int progress, int total)
     m_progressBar->setValue(percentage);
 }
 
-void RenderWindow::updateBucket(int x, int y, ImagePNG* image)
+void RenderWindow::updateBucket(int x, int y, ImageSPD* image)
 {
     
     for (int i = 0; i < image->width(); i++) {
@@ -274,7 +274,7 @@ void RenderWindow::update_resolution(int width, int height)
 {
     m_width = width;
     m_height = height;
-    m_image_buffer = new ImagePNG(m_width, m_height, spectrum::RESPONSE_SAMPLES, observer_ptr);
+    m_image_buffer = new ImageSPD(m_width, m_height, spectrum::RESPONSE_SAMPLES, observer_ptr);
     m_image = new QImage(m_width, m_height, QImage::Format_RGB888);
     m_image->fill(Qt::black);
     need_to_update_image = true;
@@ -306,11 +306,11 @@ void RenderWindow::onSaveClicked() {
     // Handle the save button click here
     auto file_name = m_settings_ptr->get_file_name(m_image_buffer->width(),m_image_buffer->height(), m_samples, 0, false);
     file_name += ".spd";
-    m_image_buffer->save_spectrum(file_name.c_str(), m_gamma, m_gain);
+    m_image_buffer->save_spectrum(file_name.c_str(), m_gamma, m_exposure);
     // You can add your logic to save the current SPD file here
 }
 void RenderWindow::onSPDFileSelected(const QString &filePath) {
-    m_image_buffer->load_spectrum(filePath.toStdString());
+    m_image_buffer->load_spectrum(filePath.toStdString().c_str());
     need_to_update_image = true;
     update_image();
 }

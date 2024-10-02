@@ -10,7 +10,7 @@ render::render(settings * settings, rd::usd::loader * loader) : QObject() {
     observer_ptr = new observer(observer::CIE1931_2Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
 
     // IMAGE
-    image_buffer = new ImagePNG(settings_ptr->image_width, settings_ptr->image_height, spectrum::RESPONSE_SAMPLES, observer_ptr);
+    image_buffer = new ImageSPD(settings_ptr->image_width, settings_ptr->image_height, spectrum::RESPONSE_SAMPLES, observer_ptr);
     world = new hittable_list();
     lights = new hittable_list();
     this->loader = loader;
@@ -78,7 +78,7 @@ int render::render_scene() {
     // image_buffer->normalize();
     image_buffer->save(
         settings_ptr->get_file_name(image_buffer->width(),image_buffer->height(), settings_ptr->samples, seconds_to_render).c_str(),
-        settings_ptr->gamma, settings_ptr->gain);
+        settings_ptr->gamma, settings_ptr->exposure);
     //auto file_name = settings_ptr->get_file_name(image_buffer->width(),image_buffer->height(), settings_ptr->samples, seconds_to_render, false);
     //file_name += ".spd";
     //image_buffer->save_spectrum(file_name.c_str());
@@ -244,7 +244,7 @@ void render::process_bucket(const Bucket& bucket) {
             }
         }
     }
-    ImagePNG * bucket_image = new ImagePNG(bucket.end_x - bucket.start_x, bucket.end_y - bucket.start_y, spectrum::RESPONSE_SAMPLES, observer_ptr);
+    ImageSPD * bucket_image = new ImageSPD(bucket.end_x - bucket.start_x, bucket.end_y - bucket.start_y, spectrum::RESPONSE_SAMPLES, observer_ptr);
     for (int pj = 0; pj < bucket.end_y - bucket.start_y; ++pj) {
         for (int pi = 0; pi < bucket.end_x - bucket.start_x; ++pi) { 
             bucket_image->set_pixel(pi, pj, image_buffer->get_pixel(bucket.start_x + pi, bucket.start_y + pj));
@@ -344,7 +344,7 @@ void render::samples_changed(int samples){
     initialize();
 }
 void render::resolution_changed(int width, int height){
-    image_buffer = new ImagePNG(width, height, spectrum::RESPONSE_SAMPLES, observer_ptr);
+    image_buffer = new ImageSPD(width, height, spectrum::RESPONSE_SAMPLES, observer_ptr);
     initialize();
 }
 void render::spectrum_sampling_changed(int index){

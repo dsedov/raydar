@@ -12,7 +12,7 @@
 #include "data/bvh.h"
 
 
-#include "image/image_png.h"
+#include "image/image_spd.h"
 #include "helpers/settings.h"
 
 #include "usd/light.h"
@@ -91,7 +91,7 @@ public slots:
     void render_mode_changed(int index);
 signals:
     void progressUpdated(int progress, int total);
-    void bucketFinished(int x, int y, ImagePNG* image);
+    void bucketFinished(int x, int y, ImageSPD* image);
     void samples_changed_internal(int samples);
 
 private:

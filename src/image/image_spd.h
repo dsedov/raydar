@@ -4,14 +4,14 @@
 #include <vector>
 #include <cstdio>
 
-class ImagePNG : public Image {
+class ImageSPD : public Image {
 public:
-    ImagePNG(int width, int height, int num_wavelengths, observer * observer) 
+    ImageSPD(int width, int height, int num_wavelengths, observer * observer) 
         : Image(width, height, num_wavelengths, observer) {}
 
-    ~ImagePNG() override = default;
+    ~ImageSPD() override = default;
     
-    static ImagePNG load(const char* filename, observer * obs) {
+    static ImageSPD load(const char* filename, observer * obs) {
         FILE* file = fopen(filename, "rb");
         if (!file) {
             throw std::runtime_error("Failed to open the PNG file for reading");
@@ -74,7 +74,7 @@ public:
 
         png_read_image(png, row_pointers.data());
 
-        ImagePNG image(width, height, spectrum::RESPONSE_SAMPLES, obs);
+        ImageSPD image(width, height, spectrum::RESPONSE_SAMPLES, obs);
 
         // Convert pixel by pixel to spectrum
         for (int y = 0; y < height; y++) {
@@ -100,6 +100,8 @@ public:
         return get_pixel(u * width_, v * height_);
     }  
     void save_spectrum(const char* filename, float gamma, float exposure) override {
+        gamma_ = gamma;
+        exposure_ = exposure;
         // Get file pointer for writing
         FILE* file = fopen(filename, "wb");
         if (!file) {
@@ -110,8 +112,8 @@ public:
         // Write resolution in binary format
         fwrite(&width_, sizeof(int), 1, file);
         fwrite(&height_, sizeof(int), 1, file);
-        fwrite(&gamma, sizeof(float), 1, file);
-        fwrite(&exposure, sizeof(float), 1, file);
+        fwrite(&gamma_, sizeof(float), 1, file);
+        fwrite(&exposure_, sizeof(float), 1, file);
         fwrite(&spectrum::RESPONSE_SAMPLES, sizeof(int), 1, file);
 
         // Write the SPD data to the file
@@ -133,12 +135,10 @@ public:
             return;
         }
 
-        float gamma, exposure;
-
         fread(&width_, sizeof(int), 1, file);
         fread(&height_, sizeof(int), 1, file);
-        fread(&gamma, sizeof(float), 1, file);
-        fread(&exposure, sizeof(float), 1, file);
+        fread(&gamma_, sizeof(float), 1, file);
+        fread(&exposure_, sizeof(float), 1, file);
         fread(&num_wavelengths_, sizeof(int), 1, file);
 
         // Make the image buffer the correct size
@@ -158,11 +158,12 @@ public:
 
         fclose(file);
     }
-
+    float exposure_ = 1.0f;
+    float gamma_ = 2.2f;
     
 
-    void save(const char* filename, float gamma = 2.2, float gain = 5) override {
-        std::cout << "Saving image to " << filename << " with gamma:" << gamma << " and gain:" << gain << std::endl;
+    void save(const char* filename, float gamma = 2.2, float exposure = 1.0) override {
+        std::cout << "Saving image to " << filename << " with gamma:" << gamma << " and exposure:" << exposure << std::endl;
         std::vector<png_byte> png_buffer(height_ * width_ * 3);
         static const interval intensity(0.000, 0.999);
 
@@ -170,7 +171,7 @@ public:
             png_bytep row = png_buffer.data() + y * width_ * 3;
             for (int x = 0; x < width_; x++) {
                 png_bytep pixel = row + x * 3;
-                spectrum spectrum = get_pixel(x, y)  / ( gain * gain);
+                spectrum spectrum = get_pixel(x, y) * std::pow(2.0, exposure);
                 color rgb = spectrum.to_rgb(observer_);
 
                 pixel[0] = int(255.999 * intensity.clamp(linear_to_gamma2(rgb.x(), gamma))); // Red channel

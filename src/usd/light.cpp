@@ -96,7 +96,7 @@ namespace rd::usd::light {
         for(const auto& light : areaLightsDescriptors) {
             if (light.textureFilePath != "") {
                 std::cout << "Loading texture: " << light.textureFilePath << std::endl;
-                auto texture_ptr = new ImagePNG(ImagePNG::load(light.textureFilePath.c_str(), observer));
+                auto texture_ptr = new ImageSPD(ImageSPD::load(light.textureFilePath.c_str(), observer));
 
                 auto light_material = new rd::core::light(spectrum::d65(), light.intensity, texture_ptr, light.spread);
                 auto light_quad = new rd::core::area_light(light.Q, light.u, light.v, light_material);
