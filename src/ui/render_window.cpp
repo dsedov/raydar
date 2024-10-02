@@ -4,12 +4,14 @@
 #include <QMouseEvent>
 #include <QResizeEvent>
 #include <QTimer>
+#include <QTabWidget>
 #include "components/uiint2.h"
 #include "components/uiint.h"
 #include "components/uifloat.h"
 #include "components/uidropdownmenu.h"
 #include "components/uiopenglimage.h"
 #include "components/uispectralgraph.h"
+#include "components/usd_tree_component.h"
 
 
 RenderWindow::RenderWindow(settings * settings_ptr, rd::usd::loader * loader, QWidget *parent)
@@ -45,8 +47,19 @@ void RenderWindow::setupUI()
     
     this->setStyleSheet(style_sheet());
 
-    m_usdTreeView = new UiUSDTreeView(this);
-    m_usdTreeView->loadUSDStage(m_loader->get_stage());
+    // Create the USD Tree Component
+    m_usdTreeComponent = new USDTreeComponent(m_loader->get_stage(), this);
+
+    // Create the tab widget
+    m_tabWidget = new QTabWidget(this);
+    m_tabWidget->addTab(m_usdTreeComponent, "USD");
+
+    m_tabWidget->setTabPosition(QTabWidget::North); // Ensure tabs are at the top
+    m_tabWidget->setUsesScrollButtons(false); // Disable scroll buttons
+
+    QWidget* historyWidget = new QWidget(this);
+    m_tabWidget->addTab(historyWidget, "History");
+
     m_openGLImage = new UIOpenGLImage(this);
 
     m_progressBar = new QProgressBar(this);
@@ -141,7 +154,7 @@ void RenderWindow::setupUI()
     controlLayout->addWidget(m_renderButton);
 
     m_splitter = new QSplitter(Qt::Horizontal, this);
-    m_splitter->addWidget(m_usdTreeView);
+    m_splitter->addWidget(m_tabWidget);  // Add the tab widget instead of m_usdTreeView
     m_splitter->addWidget(imageWidget);
     m_splitter->addWidget(controlWidget);
     m_splitter->setStretchFactor(0, 0); 
@@ -277,5 +290,10 @@ QString RenderWindow::style_sheet()
     QProgressBar { background-color: #252525; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 4px; text-align: center; padding:1px; } \
     QProgressBar::chunk { background-color: #515151; } \
     QTreeView { background-color: #252525; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 4px; } \
+    QTabWidget::pane { background-color: #252525; color: #bababa; border-radius: 5px; border: none; padding: 0px; margin: 0px; } \
+    QTabWidget::tab-bar { alignment: left; left: 5px; bottom: -1px;} \
+    QTabBar::tab { background-color: #3a3a3a; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 1px; padding-left: 15px; padding-right: 15px; border-bottom: 1px solid #252525; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; } \
+    QTabBar::tab:selected { background-color: #252525; } \
+    QTabWidget { background-color: #252525; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 0px; } \
     ";
 }

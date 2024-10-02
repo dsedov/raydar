@@ -22,6 +22,8 @@
 #include "components/uispectralgraph.h"
 #include "components/uiusdtreeview.h"
 #include "../usd/loader.h"
+#include <QTabWidget>
+#include "components/usd_tree_component.h"
 
 class RenderWindow : public QMainWindow
 {
@@ -85,7 +87,8 @@ private:
     UIOpenGLImage *m_openGLImage;
     QString style_sheet();
     UISpectralGraph *m_spectralGraph;
-    UiUSDTreeView *m_usdTreeView;
+    QTabWidget *m_tabWidget;
+    USDTreeComponent *m_usdTreeComponent;
 };
 
 #endif // RENDER_WINDOW_H
