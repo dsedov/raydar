@@ -106,9 +106,9 @@ namespace rd::core {
                 
                 // Apply the intensity factor to the light intensity
                 double adjusted_intensity = light_intensity * intensity_factor;
-                return light_color * texture->uv_value(u, v) * adjusted_intensity;
+                return light_color * texture->uv_value(u, v) * adjusted_intensity * mult;
             }
-            return light_color * light_intensity;
+            return light_color * light_intensity * mult;
         }
         void set_emission(const spectrum& c){
             light_color = c;
@@ -119,7 +119,7 @@ namespace rd::core {
         double light_intensity;
         ImageSPD * texture;
         double light_spread = 1.0;
-
+        float mult = 0.1;
     };
     class metal : public material {
     public:

@@ -99,9 +99,8 @@ public:
     spectrum uv_value(double u, double v) const {
         return get_pixel(u * width_, v * height_);
     }  
-    void save_spectrum(const char* filename, float gamma, float exposure) override {
-        gamma_ = gamma;
-        exposure_ = exposure;
+    void save_spectrum(const char* filename) override {
+
         // Get file pointer for writing
         FILE* file = fopen(filename, "wb");
         if (!file) {
@@ -115,6 +114,11 @@ public:
         fwrite(&gamma_, sizeof(float), 1, file);
         fwrite(&exposure_, sizeof(float), 1, file);
         fwrite(&spectrum::RESPONSE_SAMPLES, sizeof(int), 1, file);
+
+        fwrite(&render_mode_, sizeof(int), 1, file);
+        fwrite(&light_source_, sizeof(int), 1, file);
+        fwrite(&observer_type_, sizeof(int), 1, file);
+        fwrite(&spectrum_type_, sizeof(int), 1, file);
 
         // Write the SPD data to the file
         for (int y = 0; y < height_; y++) {
@@ -141,6 +145,11 @@ public:
         fread(&exposure_, sizeof(float), 1, file);
         fread(&num_wavelengths_, sizeof(int), 1, file);
 
+        fread(&render_mode_, sizeof(int), 1, file);
+        fread(&light_source_, sizeof(int), 1, file);
+        fread(&observer_type_, sizeof(int), 1, file);
+        fread(&spectrum_type_, sizeof(int), 1, file);
+
         // Make the image buffer the correct size
         row_size_ = width_ * num_wavelengths_;
         image_buffer_ = std::vector<float>(width_ * height_ * num_wavelengths_ );
@@ -155,12 +164,19 @@ public:
                 set_pixel(x, y, spectrum);
             }
         }
-
+        std::cout << "Loaded SPD file with width: " << width_ << " and height: " << height_ << std::endl;
+        std::cout << "Loaded SPD file with exposure: " << exposure_ << " and gamma: " << gamma_ << std::endl;
         fclose(file);
     }
+
     float exposure_ = 1.0f;
     float gamma_ = 2.2f;
-    
+    int samples_ = 1024;
+    int depth_ = 1;
+    int light_source_ = 0;
+    int observer_type_ = 0;
+    int spectrum_type_ = 0;
+    int render_mode_ = 0;
 
     void save(const char* filename, float gamma = 2.2, float exposure = 1.0) override {
         std::cout << "Saving image to " << filename << " with gamma:" << gamma << " and exposure:" << exposure << std::endl;

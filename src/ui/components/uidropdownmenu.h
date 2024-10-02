@@ -15,6 +15,7 @@ public:
     void setCurrentIndex(int index);
     int getCurrentIndex() const;
     void addItem(const QString& item);
+    
 
 signals:
     void index_changed(int index);

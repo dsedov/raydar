@@ -306,11 +306,26 @@ void RenderWindow::onSaveClicked() {
     // Handle the save button click here
     auto file_name = m_settings_ptr->get_file_name(m_image_buffer->width(),m_image_buffer->height(), m_samples, 0, false);
     file_name += ".spd";
-    m_image_buffer->save_spectrum(file_name.c_str(), m_gamma, m_exposure);
+    m_image_buffer->exposure_ = m_exposure;
+    m_image_buffer->gamma_ = m_gamma;
+    m_image_buffer->observer_type_ = m_observer->getCurrentIndex();
+    m_image_buffer->light_source_ = m_lightsource->getCurrentIndex();
+    m_image_buffer->render_mode_ = m_render_mode->getCurrentIndex();
+    m_image_buffer->spectrum_type_ = m_spectrumSamplingMenu->getCurrentIndex();
+    m_image_buffer->save_spectrum(file_name.c_str());
     // You can add your logic to save the current SPD file here
 }
 void RenderWindow::onSPDFileSelected(const QString &filePath) {
     m_image_buffer->load_spectrum(filePath.toStdString().c_str());
+    m_exposure = m_image_buffer->exposure_;
+    m_gamma = m_image_buffer->gamma_;
+    m_gammaInput->setValue(m_gamma);
+    m_exposureInput->setValue(m_exposure);
+    m_observer->setCurrentIndex(m_image_buffer->observer_type_);
+    m_lightsource->setCurrentIndex(m_image_buffer->light_source_);
+    m_render_mode->setCurrentIndex(m_image_buffer->render_mode_);
+    m_spectrumSamplingMenu->setCurrentIndex(m_image_buffer->spectrum_type_);
+
     need_to_update_image = true;
     update_image();
 }
