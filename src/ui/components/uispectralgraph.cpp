@@ -60,7 +60,7 @@ void UISpectralGraph::paintEvent(QPaintEvent *)
     // Draw the background with rounded corners and border
     painter.setPen(QPen(QColor("#1e1e1e"), 1));  // 1px border with color #1e1e1e
     painter.setBrush(QColor("#252525"));
-    painter.drawRoundedRect(rect().adjusted(0, 0, -1, -1), 5, 5);  // Adjust rect to account for the border
+    painter.drawRoundedRect(rect().adjusted(0, 0, -1, -1), 0, 0);  // Adjust rect to account for the border
 
     // Set up the drawing area
     int margin = 40;

@@ -17,6 +17,7 @@ SPDFileListComponent::SPDFileListComponent(QWidget *parent) : QWidget(parent) {
 void SPDFileListComponent::setupUI() {
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(0);
     m_fileListWidget = new QListWidget(this);
     layout->addWidget(m_fileListWidget);
 

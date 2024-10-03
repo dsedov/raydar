@@ -98,6 +98,7 @@ private:
     QTabWidget *m_tabWidget;
     USDTreeComponent *m_usdTreeComponent;
     SPDFileListComponent *m_spdFileListComponent;
+    QTabWidget *m_rightTabWidget;
 };
 
 #endif // RENDER_WINDOW_H

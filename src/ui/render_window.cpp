@@ -19,6 +19,8 @@ RenderWindow::RenderWindow(settings * settings_ptr, rd::usd::loader * loader, QW
     : QMainWindow(parent), m_width(settings_ptr->image_width), m_height(settings_ptr->image_height), m_exposure(1.0f), m_gamma(2.2f)
 {
     setWindowTitle("Render Window");
+    this->setContentsMargins(0, 0, 0, 0);
+
     m_settings_ptr = settings_ptr;
     m_loader = loader;
     observer_ptr = new observer(observer::CIE1931_2Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
@@ -66,7 +68,7 @@ void RenderWindow::setupUI()
     m_tabWidget->setUsesScrollButtons(false); // Disable scroll buttons
 
     m_openGLImage = new UIOpenGLImage(this);
-
+    
     m_progressBar = new QProgressBar(this);
     m_progressBar->setFixedHeight(5); 
     m_progressBar->setTextVisible(false); 
@@ -124,8 +126,12 @@ void RenderWindow::setupUI()
     connect(m_resolutionInput, &UiInt2::values_changed, this, &RenderWindow::resolution_changed);
     connect(m_resolutionInput, &UiInt2::values_changed, this, &RenderWindow::update_resolution);
 
+    m_renderButton = new QPushButton("Render", this);
+    connect(m_renderButton, &QPushButton::clicked, this, &RenderWindow::render_requested);
+
     // Create a QHBoxLayout for the spectral graph and its label
-    QHBoxLayout *spectralLayout = new QHBoxLayout();
+    QWidget *spectralWidget = new QWidget(this);
+    QHBoxLayout *spectralLayout = new QHBoxLayout(spectralWidget);
     spectralLayout->setContentsMargins(0, 0, 0, 0);
     QLabel *spectralLabel = new QLabel("Spectral Graph:", this);
     spectralLabel->setAlignment(Qt::AlignRight | Qt::AlignTop);
@@ -142,38 +148,65 @@ void RenderWindow::setupUI()
     imageLayout->addWidget(m_openGLImage, 1); 
     imageLayout->addWidget(m_progressBar);
 
+    // Create the right-side tab widget
+    QTabWidget *rightTabWidget = new QTabWidget(this);
+    rightTabWidget->setTabPosition(QTabWidget::North);
+    rightTabWidget->setUsesScrollButtons(false);
 
-    QWidget *controlWidget = new QWidget(this);
-    QVBoxLayout *controlLayout = new QVBoxLayout(controlWidget);
-    controlLayout->setContentsMargins(0, 0, 0, 0);
-    controlLayout->addWidget(m_render_mode);
-    controlLayout->addWidget(m_lightsource);
-    controlLayout->addWidget(m_observer);
-    controlLayout->addWidget(m_primaries);
-    controlLayout->addWidget(m_exposureInput);
-    controlLayout->addWidget(m_gammaInput);
-    controlLayout->addWidget(m_spectrumSamplingMenu); 
-    controlLayout->addWidget(m_samplesInput);
-    controlLayout->addWidget(m_depthInput);
-    controlLayout->addWidget(m_resolutionInput);
-    controlLayout->addLayout(spectralLayout);  // Add the new spectral layout
-    controlLayout->addStretch(1);
+    // Create widgets for each tab
+    QWidget *viewerTab = new QWidget();
+    QWidget *environmentTab = new QWidget();
+    QWidget *settingsTab = new QWidget();
 
-    // Add render button
-    m_renderButton = new QPushButton("Render", this);
-    connect(m_renderButton, &QPushButton::clicked, this, &RenderWindow::render_requested);
-    controlLayout->addWidget(m_renderButton);
+    // Create layouts for each tab
+    QVBoxLayout *viewerLayout = new QVBoxLayout(viewerTab);
+    QVBoxLayout *environmentLayout = new QVBoxLayout(environmentTab);
+    QVBoxLayout *settingsLayout = new QVBoxLayout(settingsTab);
 
+    // Populate Viewer tab
+    viewerLayout->addWidget(m_observer);
+    viewerLayout->addWidget(m_primaries);
+    viewerLayout->addWidget(m_exposureInput);
+    viewerLayout->addWidget(m_gammaInput);
+    viewerLayout->addWidget(spectralWidget);
+    viewerLayout->addStretch(1);
+
+    // Populate Environment tab
+    environmentLayout->addWidget(m_lightsource);
+    environmentLayout->addStretch(1);
+
+    // Populate Settings tab
+    settingsLayout->addWidget(m_render_mode);
+    settingsLayout->addWidget(m_spectrumSamplingMenu);
+    settingsLayout->addWidget(m_samplesInput);
+    settingsLayout->addWidget(m_depthInput);
+    settingsLayout->addWidget(m_resolutionInput);
+    settingsLayout->addStretch(1);
+
+    // Add tabs to the right tab widget
+    rightTabWidget->addTab(viewerTab, "Viewer");
+    rightTabWidget->addTab(environmentTab, "Environment");
+    rightTabWidget->addTab(settingsTab, "Settings");
+
+    // Create a widget to hold the right tab widget and the render button
+    QWidget *rightSideWidget = new QWidget();
+    QVBoxLayout *rightSideLayout = new QVBoxLayout(rightSideWidget);
+    rightSideLayout->setSpacing(5);
+    rightSideLayout->setContentsMargins(0, 0, 0, 0);
+    rightSideLayout->addWidget(rightTabWidget);
+    rightSideLayout->addWidget(m_renderButton);
+
+    // Update the splitter
     m_splitter = new QSplitter(Qt::Horizontal, this);
     m_splitter->addWidget(m_tabWidget);  // Add the tab widget instead of m_usdTreeView
     m_splitter->addWidget(imageWidget);
-    m_splitter->addWidget(controlWidget);
-    m_splitter->setStretchFactor(0, 0); 
+    m_splitter->addWidget(rightSideWidget);
+    m_splitter->setStretchFactor(0, 0);
     m_splitter->setStretchFactor(1, 50);
     m_splitter->setStretchFactor(2, 0);
 
     mainLayout->addWidget(m_splitter);
-    
+    mainLayout->setContentsMargins(10, 10, 10, 10);
     setCentralWidget(centralWidget);
     
     m_openGLImage->setMouseTracking(true);
@@ -303,24 +336,31 @@ void RenderWindow::update_resolution(int width, int height)
 }
 QString RenderWindow::style_sheet()
 {
-    return "* { background-color: #323232; font-size: 12px; color: #bababa;} \
+    return "* { font-size: 12px; color: #bababa; border-radius: 0px;} \
+    QMainWindow { background-color: #262626; padding: 5px; } \
     QLabel { color: #bababa; } \
-    QPushButton { background-color: #515151; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 4px; } \
+    QPushButton { background-color: #515151; color: #bababa; border-radius: 0px; border: 1px solid #212121; padding: 4px; } \
     QPushButton:hover { background-color: #616161; } \
     QPushButton:pressed { background-color: #414141; } \
-    QDoubleSpinBox, QSpinBox { background-color: #252525; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 4px; } \
-    QDoubleSpinBox::up-button, QSpinBox::up-button { background-color: #3a3a3a; color: #bababa; border-top-right-radius: 5px; margin-right: 1px; } \
-    QDoubleSpinBox::down-button, QSpinBox::down-button { background-color: #3a3a3a; color: #bababa; border-bottom-right-radius: 5px; margin-right: 1px; } \
-    QComboBox { background-color: #3a3a3a; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 4px; } \
-    QComboBox::drop-down { background-color: #3a3a3a; color: #bababa;  border: 1px solid #3a3a3a; border-radius: 5px; margin-right: 1px;  } \
-    QProgressBar { background-color: #252525; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 4px; text-align: center; padding:1px; } \
+    QDoubleSpinBox, QSpinBox { background-color: #262626; color: #bababa; border-radius: 0px; border: 1px solid #212121; padding: 4px; } \
+    QDoubleSpinBox::down-button, QSpinBox::down-button, QDoubleSpinBox::up-button, QSpinBox::up-button { background-color: #323232; color: #bababa; margin-right: 1px; } \
+    QComboBox { background-color: #262626; color: #bababa; border-radius: 0px; border: 1px solid #212121; padding: 4px; } \
+    QComboBox::drop-down { background-color: #262626; color: #bababa;  border: none; margin-right: 1px;  } \
+    QProgressBar { background-color: #262626; color: #bababa; border-radius: 0px; border: 1px solid #212121; padding: 4px; text-align: center; padding:1px; } \
     QProgressBar::chunk { background-color: #515151; } \
-    QListWidget, QTreeView { background-color: #252525; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 4px; } \
-    QTabWidget::pane { background-color: #252525; color: #bababa; border-radius: 5px; border: none; padding: 0px; margin: 0px; } \
-    QTabWidget::tab-bar { alignment: left; left: 5px; bottom: -1px;} \
-    QTabBar::tab { background-color: #3a3a3a; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 1px; padding-left: 15px; padding-right: 15px; border-bottom: 1px solid #252525; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; } \
-    QTabBar::tab:selected { background-color: #252525; } \
-    QTabWidget { background-color: #252525; color: #bababa; border-radius: 5px; border: 1px solid #1e1e1e; padding: 0px; } \
+    QListWidget, QTreeView { background-color: #262626; color: #bababa; border-radius: 0px; border: none; padding: 0px; } \
+    QTreeView::item, QListWidget::item { background-color: #323232; padding:5px; border-bottom: 1px solid #2b2b2b;} \
+    QTreeView::item:selected, QListWidget::item:selected { background-color: #4a4a4a; } \
+    QTabWidget::pane { background-color: #323232; color: #bababa; border-radius: 0px; border: 1px solid #212121; padding: 0px; margin: 0px; } \
+    QTabWidget::tab-bar { alignment: left; bottom: -1px; border-bottom: none; } \
+    QTabBar::tab { background-color: #262626; color: #bababa; border-radius: 0px; border: 1px solid #212121; padding: 4px; padding-left: 15px; padding-right: 15px; border-bottom: 1px solid #262626; } \
+    QTabBar::tab:selected { background-color: #323232; border-bottom: 1px solid #323232;} \
+    QTabWidget { color: #bababa; padding: 0px; } \
+    QSplitter { margin: 0px; padding: 0px; background-color: #262626; } \
+    QScrollBar:vertical { background-color: #292929; width: 5px; } \
+    QScrollBar::handle:vertical { background-color: #474747; min-height: 20px; } \
+    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; background: none; } \
+    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: none; } \
     ";
 }
 void RenderWindow::onSaveClicked() {
