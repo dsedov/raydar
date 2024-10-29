@@ -1,7 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 project(raydar)
+
+find_package(ZLIB REQUIRED)
+find_package(PNG REQUIRED)
+
 if(WIN32)  
-    set(CMAKE_PREFIX_PATH "C:/Qt/6.7.2/msvc2019_64/lib/cmake")
+    set(CMAKE_PREFIX_PATH "C:/Qt/6.8.0/msvc2022_64/lib/cmake")
 endif()
 find_package(Qt6 COMPONENTS Core Widgets OpenGLWidgets REQUIRED)
 set(CMAKE_AUTOMOC ON)
@@ -24,10 +28,7 @@ if(APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native -mtune=native")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvectorize -fslp-vectorize")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffast-math -funroll-loops")
-    
-    # Disable warnings for class conversions and pragma messages for Clang
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-class-conversion -Wno-#pragma-messages")
-
 elseif(WIN32)   
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /O2 /arch:AVX2")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:fast /GL")
@@ -40,12 +41,7 @@ if(OpenMP_CXX_FOUND)
 endif()
 
 if (WIN32)
-    set(PNG_INCLUDE_DIR "D:/dev/vcpkg/packages/libpng_x64-windows/include")
-    set(PNG_LIBRARY "D:/dev/vcpkg/packages/libpng_x64-windows/lib/libpng16.lib")
-    set(ZLIB_INCLUDE_DIR "D:/dev/vcpkg/packages/zlib_x64-windows/include")
-    set(ZLIB_LIBRARY "D:/dev/vcpkg/packages/zlib_x64-windows/lib/zlib.dylib")
-    set(PNG_PNG_INCLUDE_DIR ${PNG_INCLUDE_DIR})
-    set(USD_ROOT "D:/Dev/pxr")
+    set(USD_ROOT "c:/Dev/pxr")
 else()
     set(PNG_INCLUDE_DIR "/opt/homebrew/opt/libpng/include")
     set(PNG_LIBRARY "/opt/homebrew/opt/libpng/lib/libpng.dylib")
@@ -53,7 +49,7 @@ else()
     set(USD_ROOT "/Users/dennissedov/Dev/pxr")
 endif()
 
-find_package(PNG REQUIRED)
+
 include_directories(${USD_ROOT}/include)
 link_directories(${USD_ROOT}/lib)
 

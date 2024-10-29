@@ -1,4 +1,5 @@
 # Prerequisites
+vcpkg_installed
 *.d
 *.csv
 *.pt
