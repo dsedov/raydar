@@ -129,7 +129,13 @@
         "hash_set": "cpp",
         "qapplication": "cpp",
         "future": "cpp",
-        "stdfloat": "cpp"
+        "stdfloat": "cpp",
+        "codecvt": "cpp",
+        "csignal": "cpp",
+        "expected": "cpp",
+        "coroutine": "cpp",
+        "resumable": "cpp",
+        "filesystem": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

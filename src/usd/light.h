@@ -32,7 +32,7 @@ namespace rd::usd::light {
         pxr::GfVec3f rotation;
         pxr::GfVec3f scale;
         pxr::GfVec3d translation;
-
+        pxr::VtArray<float> spectrumValues;
         point3 Q;
         vec3 u;
         vec3 v;

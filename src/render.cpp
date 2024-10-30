@@ -79,7 +79,15 @@ int render::render_scene() {
     image_buffer->save(
         settings_ptr->get_file_name(image_buffer->width(),image_buffer->height(), settings_ptr->samples, seconds_to_render).c_str(),
         settings_ptr->gamma, settings_ptr->exposure);
-    //auto file_name = settings_ptr->get_file_name(image_buffer->width(),image_buffer->height(), settings_ptr->samples, seconds_to_render, false);
+    if(!in_ui_mode) {
+        std::cout << "Finished rendering" << std::endl;
+        image_buffer->exposure_ = settings_ptr->exposure;
+        image_buffer->gamma_ = settings_ptr->gamma;
+        auto file_name = settings_ptr->get_file_name(image_buffer->width(),image_buffer->height(), settings_ptr->samples, seconds_to_render, false);
+        file_name += ".spd";
+        image_buffer->save_spectrum(file_name.c_str());
+    }
+    //
     //file_name += ".spd";
     //image_buffer->save_spectrum(file_name.c_str());
     //std::cout << "Finished rendering" << std::endl;

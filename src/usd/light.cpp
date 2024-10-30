@@ -44,7 +44,14 @@ namespace rd::usd::light {
                 light.textureFilePath = texturePath.GetAssetPath();
             }
         }
-        
+        pxr::UsdAttribute spectrumAttr = prim.GetAttribute(pxr::TfToken("inputs:spectrum"));
+        if (spectrumAttr) {
+            std::cout << "Spectrum input found" << std::endl;
+            spectrumAttr.Get(&light.spectrumValues);
+        } else{
+            std::cout << "Spectrum input not found" << std::endl;
+        }
+
         pxr::UsdAttribute verticesAttr = prim.GetAttribute(pxr::TfToken("primvars:arnold:vertices"));
         if (verticesAttr) {verticesAttr.Get(&light.vertices);
             for(auto& v : light.vertices) {
@@ -98,14 +105,28 @@ namespace rd::usd::light {
                 std::cout << "Loading texture: " << light.textureFilePath << std::endl;
                 auto texture_ptr = new ImageSPD(ImageSPD::load(light.textureFilePath.c_str(), observer));
 
-                auto light_material = new rd::core::light(spectrum::d65(), light.intensity, texture_ptr, light.spread);
-                auto light_quad = new rd::core::area_light(light.Q, light.u, light.v, light_material);
-                area_lights.push_back(light_quad);
+                if(light.spectrumValues.size() > 0) {
+                    auto light_material = new rd::core::light(spectrum(light.spectrumValues.data()), light.intensity, texture_ptr, light.spread);
+                    auto light_quad = new rd::core::area_light(light.Q, light.u, light.v, light_material);
+                    area_lights.push_back(light_quad);
+                }
+                else {
+                    auto light_material = new rd::core::light(spectrum::d65(), light.intensity, texture_ptr, light.spread);
+                    auto light_quad = new rd::core::area_light(light.Q, light.u, light.v, light_material);
+                    area_lights.push_back(light_quad);
+                }
             }
             else {
-                auto light_material = new rd::core::light(spectrum::d65(), light.intensity, nullptr, light.spread);
-                auto light_quad = new rd::core::area_light(light.Q, light.u, light.v, light_material);
-                area_lights.push_back(light_quad);
+                if(light.spectrumValues.size() > 0) {
+                    auto light_material = new rd::core::light(spectrum(light.spectrumValues.data()), light.intensity, nullptr, light.spread);
+                    auto light_quad = new rd::core::area_light(light.Q, light.u, light.v, light_material);
+                    area_lights.push_back(light_quad);
+                }
+                else {
+                    auto light_material = new rd::core::light(spectrum::d65(), light.intensity, nullptr, light.spread);
+                    auto light_quad = new rd::core::area_light(light.Q, light.u, light.v, light_material);
+                    area_lights.push_back(light_quad);
+                }
             }
             
         }

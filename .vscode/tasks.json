@@ -22,7 +22,26 @@
         },
         {
             "type": "shell",
-            "label": "cmake configure",
+            "label": "CMake: Clean Rebuild (Debug)",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "${workspaceFolder}/build",
+                "--config",
+                "Debug",
+                "--clean-first"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "cmake configure release",
             "command": "cmake",
             "args": [
                 "-S",
@@ -30,6 +49,25 @@
                 "-B",
                 "${workspaceFolder}/build",
                 "-DCMAKE_BUILD_TYPE=Release"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "cmake configure debug",
+            "command": "cmake",
+            "args": [
+                "-S",
+                "${workspaceFolder}",
+                "-B",
+                "${workspaceFolder}/build",
+                "-DCMAKE_BUILD_TYPE=Debug"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
@@ -60,7 +98,31 @@
                 "isDefault": true
             },
             "dependsOn": [
-                "cmake configure"
+                "cmake configure release"
+            ]
+        },
+        {
+            "type": "shell",
+            "label": "CMake: build debug",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "${workspaceFolder}/build",
+                "--config",
+                "Debug"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "dependsOn": [
+                "cmake configure debug"
             ]
         },
         {

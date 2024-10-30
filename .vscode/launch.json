@@ -31,10 +31,10 @@
             "name": "Release (Windows)",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bin/raydar.exe",
+            "program": "${workspaceFolder}/bin/Release/raydar.exe",
             "args": ["--file", "spectral_lightbooth.usda", "--image", "out_release.png", "--samples", "1024", "--depth", "4", "--resolution", "1024,1024"],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/bin/Release",
             "environment": [],
             "console": "externalTerminal",
             "preLaunchTask": "CMake: build release"
@@ -43,13 +43,13 @@
             "name": "Debug (Windows)",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bin/raydar.exe",
+            "program": "${workspaceFolder}/bin/Debug/raydar.exe",
             "args": ["--file", "spectral_lightbooth.usda", "--image", "out_debug.png", "--samples", "4", "--depth", "4", "--resolution", "512,512"],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/bin/Debug",
             "environment": [],
-            "console": "externalTerminal",
-            "preLaunchTask": "CMake: build"
+            "console": "integratedTerminal",
+            "preLaunchTask": "CMake: build debug"
         }
     ]
 }

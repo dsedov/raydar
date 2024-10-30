@@ -19,6 +19,7 @@ int main(int argc, char *argv[]) {
 
     render render(&settings, &loader);
     if(settings.show_ui){
+        render.in_ui_mode = true;
         QApplication app(argc, argv);
         RenderWindow window(&settings, &loader);
         // connect the render window to the render object

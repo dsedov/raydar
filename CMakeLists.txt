@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
+
 project(raydar)
+# Specify the C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 
 find_package(ZLIB REQUIRED)
 find_package(PNG REQUIRED)
@@ -8,15 +14,14 @@ if(WIN32)
     set(CMAKE_PREFIX_PATH "C:/Qt/6.8.0/msvc2022_64/lib/cmake")
 endif()
 find_package(Qt6 COMPONENTS Core Widgets OpenGLWidgets REQUIRED)
+
+
 set(CMAKE_AUTOMOC ON)
 
 if(APPLE)
     set(CMAKE_OSX_ARCHITECTURES "arm64")
 endif()
-# Specify the C++ standard
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+
 
 # Set output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
@@ -32,6 +37,7 @@ if(APPLE)
 elseif(WIN32)   
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /O2 /arch:AVX2")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:fast /GL")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:16777216")
 endif()
 
 # Enable OpenMP if available
@@ -40,14 +46,8 @@ if(OpenMP_CXX_FOUND)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
-if (WIN32)
-    set(USD_ROOT "c:/Dev/pxr")
-else()
-    set(PNG_INCLUDE_DIR "/opt/homebrew/opt/libpng/include")
-    set(PNG_LIBRARY "/opt/homebrew/opt/libpng/lib/libpng.dylib")
-    set(PNG_PNG_INCLUDE_DIR ${PNG_INCLUDE_DIR})
-    set(USD_ROOT "/Users/dennissedov/Dev/pxr")
-endif()
+set(USD_ROOT "d:/Dev/pxr")
+
 
 
 include_directories(${USD_ROOT}/include)
@@ -92,7 +92,7 @@ target_include_directories(raydar PRIVATE ${Qt6OpenGL_INCLUDE_DIRS})
 
 # Link libraries
 target_link_libraries(raydar PRIVATE 
-                                ${PNG_LIBRARY} 
+                                PNG::PNG 
                                 ${USD_LIBRARIES}
                                 ${Qt6Core_LIBRARIES}
                                 ${Qt6Gui_LIBRARIES}
@@ -115,3 +115,15 @@ if (WIN32)
             /wd4458  # Disable warning on class member hiding
         )
 endif()
+
+# Function to copy DLLs after build
+function(copy_dll_files TARGET_NAME)
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+        # Copy PNG DLL
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:PNG::PNG>
+            $<TARGET_FILE_DIR:${TARGET_NAME}>
+
+    )
+endfunction()
+copy_dll_files(${PROJECT_NAME})

@@ -78,6 +78,7 @@ public:
 
     int samples_per_pixel = 64;
     int max_depth         = 10;
+    bool in_ui_mode       = false;
     rd::core::camera camera;
 
     render(settings * settings, rd::usd::loader * loader);
@@ -100,7 +101,7 @@ private:
     hittable_list * lights;
     rd::usd::loader * loader;
     std::vector<rd::core::material*> all_materials;
-    Image * image_buffer;
+    ImageSPD * image_buffer;
     observer * observer_ptr ;
     settings * settings_ptr;
     int saved_samples_per_pixel = 256;
