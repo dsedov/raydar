@@ -179,6 +179,33 @@ class color : public vec3 {
                 return color(0, 0, 0);
             }
         }
+        void adjustColorTemperature(double wb_shift) {
+            // Constrain temperature adjustment
+            wb_shift = std::max(-1.0, std::min(1.0, wb_shift));
+        
+            if (wb_shift > 0) {
+                // Warmer: enhance red, reduce blue
+                double factor = 1.0 + wb_shift * 0.2;  // Max 20% increase
+                e[0] *= factor;                   // Increase red
+                e[2] *= (1.0 - wb_shift * 0.2);    // Decrease blue
+                
+                // Subtle green adjustment for more natural look
+                e[1] *= (1.0 + wb_shift * 0.05);
+            } else {
+                // Cooler: enhance blue, reduce red
+                double factor = 1.0 - wb_shift * 0.2;  // Note: temp is negative
+                e[2] *= factor;                   // Increase blue
+                e[0] *= (1.0 + wb_shift * 0.2);    // Decrease red
+                
+                // Subtle green adjustment for more natural look
+                e[1] *= (1.0 - wb_shift * 0.05);
+            }
+    
+            // Ensure values stay in valid range
+            for (int i = 0; i < 3; i++) {
+                e[i] = std::max(0.0, std::min(1.0, e[i]));
+            }
+        }
         const color to_xyz(const whitepoint& wp = whitepoint::D65()) {
             if(color_space_ == ColorSpace::RGB_LIN) {
                 const mat3x3& m = rgb_xyz_matrix(rgb_colorspace::sRGB());

@@ -44,6 +44,7 @@ private slots:
     void update_spectral_graph(int x, int y);
     void update_resolution(int width, int height);
     void update_observer(int index);
+    void update_whitebalance(float value);
     void onSPDFileSelected(const QString &filePath);
     void onSaveClicked();
 signals:
@@ -77,6 +78,7 @@ private:
     ImageSPD * m_image_buffer;
     UiFloat *m_exposureInput;
     UiFloat *m_gammaInput;
+    UiFloat *m_whitebalanceInput;
     float m_exposure;
     float m_gamma;
     float m_whitebalance;

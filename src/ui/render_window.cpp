@@ -29,7 +29,7 @@ RenderWindow::RenderWindow(settings * settings_ptr, rd::usd::loader * loader, QW
     m_image->fill(Qt::black);
     m_exposure = settings_ptr->exposure;
     m_gamma = settings_ptr->gamma;
-    m_whitebalance = 5400.0f;
+    m_whitebalance = 0.0f;
 
     setupUI();
 
@@ -95,6 +95,11 @@ void RenderWindow::setupUI()
     m_primaries = new UiDropdownMenu("Primaries:", primariesOptions, this);
     m_primaries->setCurrentIndex(0);
     connect(m_primaries, &UiDropdownMenu::index_changed, this, &RenderWindow::updatePrimaries);
+
+    // Whitebalance input
+    m_whitebalanceInput = new UiFloat("Whitebalance:", this, -2.0, 2.0, 0.01);
+    m_whitebalanceInput->setValue(m_whitebalance);
+    connect(m_whitebalanceInput, &UiFloat::value_changed, this, &RenderWindow::update_whitebalance);
 
     // Create UiFloat for exposure and gamma
     m_exposureInput = new UiFloat("Exposure:", this, 0.1, 1000, 0.1);
@@ -166,6 +171,7 @@ void RenderWindow::setupUI()
     // Populate Viewer tab
     viewerLayout->addWidget(m_observer);
     viewerLayout->addWidget(m_primaries);
+    viewerLayout->addWidget(m_whitebalanceInput);
     viewerLayout->addWidget(m_exposureInput);
     viewerLayout->addWidget(m_gammaInput);
     viewerLayout->addWidget(spectralWidget);
@@ -263,6 +269,11 @@ void RenderWindow::updatePrimaries(int index) {
     need_to_update_image = true;
     update_image();
 }
+void RenderWindow::update_whitebalance(float value) {
+    m_whitebalance = value;
+    need_to_update_image = true;
+    update_image();
+}
 void RenderWindow::update_image() {
     if(!need_to_update_image) return;
     need_to_update_image = false;
@@ -275,6 +286,7 @@ void RenderWindow::update_image() {
                 spectrum color_spectrum = m_image_buffer->get_pixel(i, j)  * std::pow(2.0, m_exposure);
 
                 color color_rgb_displayP3 = color_spectrum.to_XYZ(observer_ptr).to_rgbDisplayP3();
+                color_rgb_displayP3.adjustColorTemperature(m_whitebalance);
                 float r = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb_displayP3.x(), m_gamma))); 
                 float g = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb_displayP3.y(), m_gamma)));
                 float b = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb_displayP3.z(), m_gamma)));
@@ -287,6 +299,7 @@ void RenderWindow::update_image() {
                 spectrum color_spectrum = m_image_buffer->get_pixel(i, j)  * std::pow(2.0, m_exposure);
 
                 color color_rgb = color_spectrum.to_rgb(observer_ptr);
+                color_rgb.adjustColorTemperature(m_whitebalance);
                 float r = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.x(), m_gamma))); 
                 float g = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.y(), m_gamma)));
                 float b = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.z(), m_gamma)));
