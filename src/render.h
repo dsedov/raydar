@@ -66,7 +66,7 @@ private:
     int total;
     std::atomic<int> last_printed;
 };
-const int BUCKET_SIZE = 32; // Adjust this value as needed
+const int BUCKET_SIZE = 16; // Adjust this value as needed
 
 struct Bucket {
     int start_x, start_y, end_x, end_y;
@@ -105,6 +105,11 @@ private:
     observer * observer_ptr ;
     settings * settings_ptr;
     int saved_samples_per_pixel = 256;
+
+    int region_x = -1;  
+    int region_y = -1;
+    int region_width = -1;
+    int region_height = -1;
 
     bool full_spectrum_sampling = true;
     

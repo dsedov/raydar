@@ -9,8 +9,25 @@ render::render(settings * settings, rd::usd::loader * loader) : QObject() {
     // Initialize SpectralConverter
     observer_ptr = new observer(observer::CIE1931_2Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
 
+
     // IMAGE
     image_buffer = new ImageSPD(settings_ptr->image_width, settings_ptr->image_height, spectrum::RESPONSE_SAMPLES, observer_ptr);
+    if(settings_ptr->spd_file != "") {
+        image_buffer->load_spectrum(settings_ptr->spd_file.c_str());
+    }
+
+    if(settings_ptr->region_x >= 0) {
+        region_x = settings_ptr->region_x;
+        region_y = settings_ptr->region_y;
+        region_width = settings_ptr->region_width;
+        region_height = settings_ptr->region_height;
+    } else {
+        region_x = 0;
+        region_y = 0;
+        region_width = settings_ptr->image_width;
+        region_height = settings_ptr->image_height;
+    }
+
     world = new hittable_list();
     lights = new hittable_list();
     this->loader = loader;
@@ -219,6 +236,9 @@ void render::process_bucket(const Bucket& bucket) {
     const int total_samples = sqrt_spp * sqrt_spp;
     for (int j = bucket.start_y; j < bucket.end_y; j += PACKET_SIZE) {
         for (int i = bucket.start_x; i < bucket.end_x; i += PACKET_SIZE) {
+            if(i < region_x || i >= region_x + region_width || j < region_y || j >= region_y + region_height) {
+                continue;
+            }
             std::array<spectrum, PACKET_SIZE * PACKET_SIZE> pixel_colors;
             pixel_colors.fill( spectrum(color(0, 0, 0)));
 

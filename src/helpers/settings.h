@@ -9,6 +9,12 @@ class settings {
   public:
     int image_width = 1024; 
     int image_height = 768;
+
+    int region_x = 0;
+    int region_y = 0;
+    int region_width = 0;
+    int region_height = 0;
+
     float gamma = 1.0;
     float exposure = 1.0;
     int samples = 4;
@@ -16,6 +22,7 @@ class settings {
     bool show_ui = false;
     std::string usd_file;
     std::string image_file = "output.png";
+    std::string spd_file = "";
 
     int error = 0;
 
@@ -25,7 +32,9 @@ class settings {
         options.add_options()
             ("f,file", "USD file name", cxxopts::value<std::string>())
             ("i,image", "Output file name", cxxopts::value<std::string>())
+            ("spd,spd_file", "Preload SPD file", cxxopts::value<std::string>()->default_value(""))
             ("r,resolution", "Resolution (two integers)", cxxopts::value<std::vector<int>>()->default_value("1024,768"))
+            ("rg,region", "Region (x,y,width,height)", cxxopts::value<std::vector<int>>()->default_value("-1,-1,-1,-1"))
             ("s,samples", "Number of samples", cxxopts::value<int>()->default_value("4"))
             ("d,depth", "Max depth", cxxopts::value<int>()->default_value("10"))
             ("h,help", "Print usage")
@@ -54,6 +63,10 @@ class settings {
         if (result.count("image")) image_file = result["image"].as<std::string>();
         std::cout << "Image: " << image_file << std::endl;
 
+        // SPD FILE
+        if (result.count("spd_file")) spd_file = result["spd_file"].as<std::string>();
+        std::cout << "SPD File: " << spd_file << std::endl;
+
         // RESOLUTION
         if (result.count("resolution")) {
             std::vector<int> resolution = result["resolution"].as<std::vector<int>>();
@@ -67,6 +80,21 @@ class settings {
             image_height = resolution[1];
         } 
         std::cout << "Resolution: " << image_width << "x" << image_height << std::endl;
+
+        // REGION
+        if(result.count("region")){
+            std::vector<int> region = result["region"].as<std::vector<int>>();
+            if(region.size() != 4){
+                std::cerr << "Error: Region must consist of exactly four integers." << std::endl;
+                error = 1; 
+                return;
+            }
+            std::cout << "Region: " << region[0] << "," << region[1] << "," << region[2] << "," << region[3] << std::endl;
+            region_x = region[0];
+            region_y = region[1];
+            region_width = region[2];
+            region_height = region[3];
+        }
 
         // MAX DEPTH
         if (result.count("depth")) max_depth = result["depth"].as<int>();
