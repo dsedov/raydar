@@ -28,9 +28,9 @@ namespace rd::usd::light {
         bool shadowEnable;
         float specular;
         std::string textureFilePath;
-        pxr::VtArray<pxr::GfVec3f> vertices;
-        pxr::GfVec3f rotation;
-        pxr::GfVec3f scale;
+        pxr::VtArray<pxr::GfVec3d> vertices;
+        pxr::GfVec3d rotation;
+        pxr::GfVec3d scale;
         pxr::GfVec3d translation;
         pxr::VtArray<float> spectrumValues;
         point3 Q;
