@@ -29,7 +29,7 @@ RenderWindow::RenderWindow(settings * settings_ptr, rd::usd::loader * loader, QW
     m_image->fill(Qt::black);
     m_exposure = settings_ptr->exposure;
     m_gamma = settings_ptr->gamma;
-    m_whitebalance = 5400.0f;
+    m_whitebalance = 0.0f;
 
     setupUI();
 
@@ -96,6 +96,11 @@ void RenderWindow::setupUI()
     m_primaries->setCurrentIndex(0);
     connect(m_primaries, &UiDropdownMenu::index_changed, this, &RenderWindow::updatePrimaries);
 
+    // Whitebalance input
+    m_whitebalanceInput = new UiFloat("Whitebalance:", this, -2.0, 2.0, 0.01);
+    m_whitebalanceInput->setValue(m_whitebalance);
+    connect(m_whitebalanceInput, &UiFloat::value_changed, this, &RenderWindow::update_whitebalance);
+
     // Create UiFloat for exposure and gamma
     m_exposureInput = new UiFloat("Exposure:", this, 0.1, 1000, 0.1);
     m_exposureInput->setValue(m_exposure);
@@ -126,8 +131,14 @@ void RenderWindow::setupUI()
     connect(m_resolutionInput, &UiInt2::values_changed, this, &RenderWindow::resolution_changed);
     connect(m_resolutionInput, &UiInt2::values_changed, this, &RenderWindow::update_resolution);
 
+    m_regionStart = new UiInt2("Region Start:", this, -1, 16384, 16);
+    m_regionSize = new UiInt2("Region Size:", this, -1, 16384, 16);
+    m_regionStart->setValues(-1, -1);
+    m_regionSize->setValues(-1, -1);
+
     m_renderButton = new QPushButton("Render", this);
     connect(m_renderButton, &QPushButton::clicked, this, &RenderWindow::render_requested);
+    connect(m_renderButton, &QPushButton::clicked, this, &RenderWindow::render_button_clicked);
 
     // Create a QHBoxLayout for the spectral graph and its label
     QWidget *spectralWidget = new QWidget(this);
@@ -166,6 +177,7 @@ void RenderWindow::setupUI()
     // Populate Viewer tab
     viewerLayout->addWidget(m_observer);
     viewerLayout->addWidget(m_primaries);
+    viewerLayout->addWidget(m_whitebalanceInput);
     viewerLayout->addWidget(m_exposureInput);
     viewerLayout->addWidget(m_gammaInput);
     viewerLayout->addWidget(spectralWidget);
@@ -181,6 +193,8 @@ void RenderWindow::setupUI()
     settingsLayout->addWidget(m_samplesInput);
     settingsLayout->addWidget(m_depthInput);
     settingsLayout->addWidget(m_resolutionInput);
+    settingsLayout->addWidget(m_regionStart);
+    settingsLayout->addWidget(m_regionSize);
     settingsLayout->addStretch(1);
 
     // Add tabs to the right tab widget
@@ -263,6 +277,11 @@ void RenderWindow::updatePrimaries(int index) {
     need_to_update_image = true;
     update_image();
 }
+void RenderWindow::update_whitebalance(float value) {
+    m_whitebalance = value;
+    need_to_update_image = true;
+    update_image();
+}
 void RenderWindow::update_image() {
     if(!need_to_update_image) return;
     need_to_update_image = false;
@@ -275,6 +294,7 @@ void RenderWindow::update_image() {
                 spectrum color_spectrum = m_image_buffer->get_pixel(i, j)  * std::pow(2.0, m_exposure);
 
                 color color_rgb_displayP3 = color_spectrum.to_XYZ(observer_ptr).to_rgbDisplayP3();
+                color_rgb_displayP3.adjustColorTemperature(m_whitebalance);
                 float r = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb_displayP3.x(), m_gamma))); 
                 float g = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb_displayP3.y(), m_gamma)));
                 float b = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb_displayP3.z(), m_gamma)));
@@ -287,6 +307,7 @@ void RenderWindow::update_image() {
                 spectrum color_spectrum = m_image_buffer->get_pixel(i, j)  * std::pow(2.0, m_exposure);
 
                 color color_rgb = color_spectrum.to_rgb(observer_ptr);
+                color_rgb.adjustColorTemperature(m_whitebalance);
                 float r = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.x(), m_gamma))); 
                 float g = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.y(), m_gamma)));
                 float b = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.z(), m_gamma)));
@@ -367,6 +388,9 @@ void RenderWindow::onSaveClicked() {
     // Handle the save button click here
     auto file_name = m_settings_ptr->get_file_name(m_image_buffer->width(),m_image_buffer->height(), m_samples, 0, false);
     file_name += ".spd";
+    if (overwrite_loaded_file) {
+        file_name = loaded_file_name;
+    }
     m_image_buffer->exposure_ = m_exposure;
     m_image_buffer->gamma_ = m_gamma;
     m_image_buffer->observer_type_ = m_observer->getCurrentIndex();
@@ -378,8 +402,13 @@ void RenderWindow::onSaveClicked() {
     m_image_buffer->save_spectrum(file_name.c_str());
     // You can add your logic to save the current SPD file here
 }
+void RenderWindow::render_button_clicked() {
+    overwrite_loaded_file = false;
+}
 void RenderWindow::onSPDFileSelected(const QString &filePath) {
     m_image_buffer->load_spectrum(filePath.toStdString().c_str());
+    loaded_file_name = filePath.toStdString();
+    overwrite_loaded_file = true;
     m_exposure = m_image_buffer->exposure_;
     m_gamma = m_image_buffer->gamma_;
     m_gammaInput->setValue(m_gamma);
