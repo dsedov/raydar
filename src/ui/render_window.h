@@ -47,6 +47,7 @@ private slots:
     void update_whitebalance(float value);
     void onSPDFileSelected(const QString &filePath);
     void onSaveClicked();
+    void render_button_clicked();
 signals:
     void render_requested();
     void spectrum_sampling_changed(int index); 
@@ -65,6 +66,8 @@ private:
     void updateImageLabelSize();
     void setupUI();
     settings * m_settings_ptr;
+    std::string loaded_file_name = "";
+    bool overwrite_loaded_file = false;
     int m_width;
     int m_height;
     int m_samples;
@@ -92,6 +95,8 @@ private:
     UiInt *m_samplesInput;  // New samples input
     UiInt *m_depthInput;  // New depth input
     UiInt2 *m_resolutionInput;  // New resolution input
+    UiInt2 *m_regionStart;
+    UiInt2 *m_regionSize;
     void update_image();
     bool need_to_update_image;
     UIOpenGLImage *m_openGLImage;
