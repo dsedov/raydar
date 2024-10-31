@@ -1,4 +1,5 @@
 #include "uiopenglimage.h"
+#include <iostream>
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QKeyEvent>
@@ -144,6 +145,7 @@ void UIOpenGLImage::paintGL() {
     m_program->release();
 
     // Render text
+
     if (m_image) {
         int mx = static_cast<int>(m_mousePos.x());
         int my = static_cast<int>(m_mousePos.y());
@@ -151,10 +153,12 @@ void UIOpenGLImage::paintGL() {
         float r = pixelColor.redF();
         float g = pixelColor.greenF();
         float b = pixelColor.blueF();
-        renderText(QString("R:%1, G:%2, B:%3")
-            .arg(r, 0, 'f', 2)
-            .arg(g, 0, 'f', 2)
-            .arg(b, 0, 'f', 2), 0, height() - 30);
+        renderText(QString("X:%1, Y:%2, R:%3, G:%4, B:%5")
+                .arg(mx)
+                .arg(my)
+                .arg(r, 0, 'f', 2)
+                .arg(g, 0, 'f', 2)
+                .arg(b, 0, 'f', 2), 0, height() - 30);
     }
 }
 
@@ -323,41 +327,47 @@ void UIOpenGLImage::renderText(const QString& text, int x, int y)
 
 QPointF UIOpenGLImage::screenToImageCoordinates(const QPointF& screenPos)
 {
-    QMatrix4x4 mvp = m_projection * m_view;
-    QMatrix4x4 invMvp = mvp.inverted();
+    try {
+        QMatrix4x4 mvp = m_projection * m_view;
+        QMatrix4x4 invMvp = mvp.inverted();
 
-    float imageAspect = float(image_width) / float(image_height);
+        float imageAspect = float(image_width) / float(image_height);
 
-    // Adjust for aspect ratio
-    float x, y;
-    if (imageAspect <= 1.0f) {
-        // Image is wider than the widget
-        x = 1.0f;
-        y = imageAspect;
-    } else {
-        // Image is taller than the widget
-        x = imageAspect;
-        y = 1.0f;
+        // Adjust for aspect ratio
+        float x, y;
+        if (imageAspect <= 1.0f) {
+            // Image is wider than the widget
+            x = 1.0f;
+            y = imageAspect;
+        } else {
+            // Image is taller than the widget
+            x = imageAspect;
+            y = 1.0f;
+        }
+        
+        // Convert screen coordinates to normalized device coordinates
+        QVector4D normalizedPos(
+            (screenPos.x() / width() * 2.0f - 1.0f) ,
+            (1.0f - screenPos.y() / height() * 2.0f) ,
+            0.0f,
+            1.0f
+        );
+        
+        QVector4D imagePos = invMvp * normalizedPos;
+        
+        QPointF imageCoord(
+            ((imagePos.x() / imagePos.w() + x) / (2 * x)) * image_width,
+            ((y - imagePos.y() / imagePos.w()) / (2 * y)) * image_height
+        );
+
+        // Clamp coordinates to image bounds
+        imageCoord.setX(qBound(0.0, imageCoord.x(), static_cast<qreal>(image_width - 1)));
+        imageCoord.setY(qBound(0.0, imageCoord.y(), static_cast<qreal>(image_height - 1)));
+        return imageCoord;
+    }
+    catch(const std::exception& e) {
+        std::cerr << e.what() << '\n';
+        return QPointF(0,0);
     }
     
-    // Convert screen coordinates to normalized device coordinates
-    QVector4D normalizedPos(
-        (screenPos.x() / width() * 2.0f - 1.0f) ,
-        (1.0f - screenPos.y() / height() * 2.0f) ,
-        0.0f,
-        1.0f
-    );
-    
-    QVector4D imagePos = invMvp * normalizedPos;
-    
-    QPointF imageCoord(
-        ((imagePos.x() / imagePos.w() + x) / (2 * x)) * image_width,
-        ((y - imagePos.y() / imagePos.w()) / (2 * y)) * image_height
-    );
-
-    // Clamp coordinates to image bounds
-    imageCoord.setX(qBound(0.0, imageCoord.x(), static_cast<qreal>(image_width - 1)));
-    imageCoord.setY(qBound(0.0, imageCoord.y(), static_cast<qreal>(image_height - 1)));
-
-    return imageCoord;
 }

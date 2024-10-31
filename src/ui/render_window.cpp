@@ -68,7 +68,7 @@ void RenderWindow::setupUI()
     m_tabWidget->setUsesScrollButtons(false); // Disable scroll buttons
 
     m_openGLImage = new UIOpenGLImage(this);
-    
+
     m_progressBar = new QProgressBar(this);
     m_progressBar->setFixedHeight(5); 
     m_progressBar->setTextVisible(false); 

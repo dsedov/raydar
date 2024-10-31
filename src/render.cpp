@@ -104,10 +104,6 @@ int render::render_scene() {
         file_name += ".spd";
         image_buffer->save_spectrum(file_name.c_str());
     }
-    //
-    //file_name += ".spd";
-    //image_buffer->save_spectrum(file_name.c_str());
-    //std::cout << "Finished rendering" << std::endl;
     return seconds_to_render;
 }
 
