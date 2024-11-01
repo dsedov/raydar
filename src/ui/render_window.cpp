@@ -16,7 +16,7 @@
 
 
 RenderWindow::RenderWindow(settings * settings_ptr, rd::usd::loader * loader, QWidget *parent)
-    : QMainWindow(parent), m_width(settings_ptr->image_width), m_height(settings_ptr->image_height), m_exposure(1.0f), m_gamma(2.2f)
+    : QMainWindow(parent), m_width(settings_ptr->image_width), m_height(settings_ptr->image_height), m_exposure(100.0f), m_shutter(125.0f), m_gamma(2.2f)
 {
     setWindowTitle("Render Window");
     this->setContentsMargins(0, 0, 0, 0);
@@ -29,7 +29,13 @@ RenderWindow::RenderWindow(settings * settings_ptr, rd::usd::loader * loader, QW
     m_image->fill(Qt::black);
     m_exposure = settings_ptr->exposure;
     m_gamma = settings_ptr->gamma;
+    m_shutter = settings_ptr->shutter;
     m_whitebalance = 0.0f;
+
+    m_region_x = settings_ptr->region_x;
+    m_region_y = settings_ptr->region_y;
+    m_region_width = settings_ptr->region_width;
+    m_region_height = settings_ptr->region_height;
 
     setupUI();
 
@@ -102,9 +108,13 @@ void RenderWindow::setupUI()
     connect(m_whitebalanceInput, &UiFloat::value_changed, this, &RenderWindow::update_whitebalance);
 
     // Create UiFloat for exposure and gamma
-    m_exposureInput = new UiFloat("Exposure:", this, 0.1, 1000, 0.1);
+    m_exposureInput = new UiFloat("Exposure (ISO):", this, 1, 10000000, 1);
     m_exposureInput->setValue(m_exposure);
     connect(m_exposureInput, &UiFloat::value_changed, this, &RenderWindow::updateExposure);
+
+    m_shutterInput = new UiFloat("Shutter (1/s):", this, 1, 48000.0, 1);
+    m_shutterInput->setValue(m_shutter);
+    connect(m_shutterInput, &UiFloat::value_changed, this, &RenderWindow::updateShutter);
 
     m_gammaInput = new UiFloat("Gamma:", this,0.1, 10.0, 0.1);
     m_gammaInput->setValue(m_gamma);
@@ -135,6 +145,8 @@ void RenderWindow::setupUI()
     m_regionSize = new UiInt2("Region Size:", this, -1, 16384, 16);
     m_regionStart->setValues(-1, -1);
     m_regionSize->setValues(-1, -1);
+    connect(m_regionStart, &UiInt2::values_changed, this, &RenderWindow::updateRegionStart);
+    connect(m_regionSize, &UiInt2::values_changed, this, &RenderWindow::updateRegionSize);
 
     m_renderButton = new QPushButton("Render", this);
     connect(m_renderButton, &QPushButton::clicked, this, &RenderWindow::render_requested);
@@ -179,6 +191,7 @@ void RenderWindow::setupUI()
     viewerLayout->addWidget(m_primaries);
     viewerLayout->addWidget(m_whitebalanceInput);
     viewerLayout->addWidget(m_exposureInput);
+    viewerLayout->addWidget(m_shutterInput);
     viewerLayout->addWidget(m_gammaInput);
     viewerLayout->addWidget(spectralWidget);
     viewerLayout->addStretch(1);
@@ -230,13 +243,16 @@ void RenderWindow::setupUI()
     connect(m_openGLImage, &UIOpenGLImage::image_position_changed, this, &RenderWindow::update_spectral_graph);
 }
 
-void RenderWindow::updateExposure(float value)
-{
+void RenderWindow::updateExposure(float value){
     m_exposure = value;
     need_to_update_image = true;
     update_image();
 }
-
+void RenderWindow::updateShutter(float value){
+    m_shutter = value;
+    need_to_update_image = true;
+    update_image();
+}
 void RenderWindow::updateGamma(float value)
 {
     m_gamma = value;
@@ -286,31 +302,46 @@ void RenderWindow::update_image() {
     if(!need_to_update_image) return;
     need_to_update_image = false;
     static const interval intensity(0.000, 0.999);
+    double base_iso = 100.0;
 
     QImage updatedImage(m_width, m_height, QImage::Format_RGB888);
     if(m_primaries->getCurrentIndex() == 0) {
         for (int i = 0; i < m_image_buffer->width(); i++) {
             for (int j = 0; j < m_image_buffer->height(); j++) {
-                spectrum color_spectrum = m_image_buffer->get_pixel(i, j)  * std::pow(2.0, m_exposure);
+                spectrum color_spectrum = m_image_buffer->get_pixel(i, j) * (m_exposure / base_iso) * (1.0 / m_shutter) * 1000.0;
 
                 color color_rgb_displayP3 = color_spectrum.to_XYZ(observer_ptr).to_rgbDisplayP3();
                 color_rgb_displayP3.adjustColorTemperature(m_whitebalance);
                 float r = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb_displayP3.x(), m_gamma))); 
                 float g = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb_displayP3.y(), m_gamma)));
                 float b = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb_displayP3.z(), m_gamma)));
+                if (m_region_x > -1){
+                    if (i < m_region_x || i >= m_region_x + m_region_width || j < m_region_y || j >= m_region_y + m_region_height) {
+                        r *= 0.5;
+                        g *= 0.5;
+                        b *= 0.5;
+                    }
+                }
                 updatedImage.setPixelColor(i, j, QColor::fromRgb(r, g, b));
             }
         }
     } else {
         for (int i = 0; i < m_image_buffer->width(); i++) {
             for (int j = 0; j < m_image_buffer->height(); j++) {
-                spectrum color_spectrum = m_image_buffer->get_pixel(i, j)  * std::pow(2.0, m_exposure);
+                spectrum color_spectrum = m_image_buffer->get_pixel(i, j) * (m_exposure / base_iso) * (1.0 / m_shutter) * 1000.0;
 
                 color color_rgb = color_spectrum.to_rgb(observer_ptr);
                 color_rgb.adjustColorTemperature(m_whitebalance);
                 float r = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.x(), m_gamma))); 
                 float g = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.y(), m_gamma)));
                 float b = int(255.999 * intensity.clamp(linear_to_gamma2(color_rgb.z(), m_gamma)));
+                if (m_region_x > -1){
+                    if (i < m_region_x || i >= m_region_x + m_region_width || j < m_region_y || j >= m_region_y + m_region_height) {
+                        r *= 0.5;
+                        g *= 0.5;
+                        b *= 0.5;
+                    }
+                }
                 updatedImage.setPixelColor(i, j, QColor::fromRgb(r, g, b));
             }
         }
@@ -318,7 +349,18 @@ void RenderWindow::update_image() {
     
     m_openGLImage->setImage(updatedImage);
 }
-
+void RenderWindow::updateRegionStart(int x, int y){
+    m_region_x = x;
+    m_region_y = y;
+    need_to_update_image = true;
+    update_image();
+}
+void RenderWindow::updateRegionSize(int width, int height){
+    m_region_width = width;
+    m_region_height = height;
+    need_to_update_image = true;
+    update_image();
+}
 void RenderWindow::updateProgress(int progress, int total)
 {
     int percentage = static_cast<int>((static_cast<double>(progress) / total) * 100);
@@ -409,10 +451,10 @@ void RenderWindow::onSPDFileSelected(const QString &filePath) {
     m_image_buffer->load_spectrum(filePath.toStdString().c_str());
     loaded_file_name = filePath.toStdString();
     overwrite_loaded_file = true;
-    m_exposure = m_image_buffer->exposure_;
-    m_gamma = m_image_buffer->gamma_;
-    m_gammaInput->setValue(m_gamma);
-    m_exposureInput->setValue(m_exposure);
+    //m_exposure = m_image_buffer->exposure_;
+    //m_gamma = m_image_buffer->gamma_;
+    //m_gammaInput->setValue(m_gamma);
+    // m_exposureInput->setValue(m_exposure);
     m_observer->setCurrentIndex(m_image_buffer->observer_type_);
     m_lightsource->setCurrentIndex(m_image_buffer->light_source_);
     m_render_mode->setCurrentIndex(m_image_buffer->render_mode_);

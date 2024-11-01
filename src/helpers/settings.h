@@ -16,7 +16,8 @@ class settings {
     int region_height = 0;
 
     float gamma = 1.0;
-    float exposure = 1.0;
+    float exposure = 100.0;
+    float shutter = 125.0;
     int samples = 4;
     int max_depth = 3;
     bool show_ui = false;
@@ -39,7 +40,8 @@ class settings {
             ("d,depth", "Max depth", cxxopts::value<int>()->default_value("10"))
             ("h,help", "Print usage")
             ("gm,gamma", "Gamma", cxxopts::value<float>()->default_value("2.2"))
-            ("ex,exposure", "Exposure", cxxopts::value<float>()->default_value("1.0"))
+            ("ex,exposure", "Exposure", cxxopts::value<float>()->default_value("100.0"))
+            ("sh,shutter", "Shutter", cxxopts::value<float>()->default_value("125.0"))
             ("ui", "Show UI", cxxopts::value<bool>()->default_value("false"));
 
         auto result = options.parse(argc, argv);    
@@ -116,6 +118,10 @@ class settings {
         // EXPOSURE
         if (result.count("exposure")) exposure = result["exposure"].as<float>();
         std::cout << "Exposure: " << exposure << std::endl;
+
+        // EXPOSURE
+        if (result.count("shutter")) shutter = result["shutter"].as<float>();
+        std::cout << "Shutter: " << shutter << std::endl;
     }
 
     std::string get_file_name(int width, int height, int samples, int seconds, bool with_extension = true) const{

@@ -36,9 +36,13 @@ public slots:
     void updateProgress(int progress, int total);
     void updateBucket(int x, int y, ImageSPD* image);
     void updateExposure(float value);
+    void updateShutter(float value);
     void updateGamma(float value);
     void updateSamples(int samples);
     void updatePrimaries(int index);
+    void updateRegionStart(int x, int y);
+    void updateRegionSize(int width, int height);
+
 
 private slots:
     void update_spectral_graph(int x, int y);
@@ -72,6 +76,12 @@ private:
     int m_height;
     int m_samples;
     int m_depth;
+
+    int m_region_x = -1;
+    int m_region_y = -1;
+    int m_region_width = -1;
+    int m_region_height = -1;
+
     QImage *m_image;
     rd::usd::loader * m_loader;
     QScrollArea *m_scrollArea;
@@ -80,9 +90,11 @@ private:
     observer * observer_ptr;
     ImageSPD * m_image_buffer;
     UiFloat *m_exposureInput;
+    UiFloat *m_shutterInput;
     UiFloat *m_gammaInput;
     UiFloat *m_whitebalanceInput;
     float m_exposure;
+    float m_shutter;
     float m_gamma;
     float m_whitebalance;
     QSplitter *m_splitter;

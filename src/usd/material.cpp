@@ -48,7 +48,7 @@ namespace rd::usd::material {
         std::cout << "No shader found for the material." << std::endl;
         return pxr::UsdShadeShader();
     }
-    std::unordered_map<std::string, rd::core::material*> load_materials_from_stage(const pxr::UsdStageRefPtr& stage) {
+    std::unordered_map<std::string, rd::core::material*> load_materials_from_stage(const pxr::UsdStageRefPtr& stage, int verbose) {
 
         std::unordered_map<std::string, rd::core::material*> materials;
 
@@ -70,15 +70,15 @@ namespace rd::usd::material {
             // get shader
             pxr::UsdShadeShader shader = usdMaterial.ComputeSurfaceSource();
             if (shader) {
-                std::cout << "Shader: " << shader.GetPath().GetString() << std::endl;
+                if(verbose > 0) std::cout << "Shader: " << shader.GetPath().GetString() << std::endl;
 
                 // base weight
                 pxr::UsdShadeInput baseWeightInput = shader.GetInput(pxr::TfToken("base"));
                 if (baseWeightInput) {
                     if (baseWeightInput.Get(&base_weight)) {
-                        std::cout << "Successfully read base weight: " << base_weight << std::endl;
+                        if(verbose > 0) std::cout << "Successfully read base weight: " << base_weight << std::endl;
                     } else {
-                        std::cout << "Failed to read base weight, using default" << std::endl;
+                        if(verbose > 0) std::cout << "Failed to read base weight, using default" << std::endl;
                         base_weight = 1.0f;
                     }
                 }
@@ -88,26 +88,26 @@ namespace rd::usd::material {
                     // Read the value of the input
                     
                     if (baseColorInput.Get(&baseColor)) {
-                        std::cout << "Successfully read base color: " << baseColor[0] << ", " << baseColor[1] << ", " << baseColor[2] << std::endl;
+                        if(verbose > 0) std::cout << "Successfully read base color: " << baseColor[0] << ", " << baseColor[1] << ", " << baseColor[2] << std::endl;
                     } else {
-                        std::cout << "Failed to read base color, using default" << std::endl;
+                       if(verbose > 0)  std::cout << "Failed to read base color, using default" << std::endl;
                         baseColor = pxr::GfVec3f(1.0f, 0.0f, 0.0f);
                     }
                     color diffuseColor(baseColor[0], baseColor[1], baseColor[2]);
-                    std::cout << "Base Color: " << baseColor[0] << ", " << baseColor[1] << ", " << baseColor[2] << std::endl;
+                    if(verbose > 0) std::cout << "Base Color: " << baseColor[0] << ", " << baseColor[1] << ", " << baseColor[2] << std::endl;
                 } else {
                     baseColorInput = shader.GetInput(pxr::TfToken("diffuseColor"));
                     if (baseColorInput) {
                         // Read the value of the input
                         
                         if (baseColorInput.Get(&baseColor)) {
-                            std::cout << "Successfully read base color: " << baseColor[0] << ", " << baseColor[1] << ", " << baseColor[2] << std::endl;
+                            if(verbose > 0) std::cout << "Successfully read base color: " << baseColor[0] << ", " << baseColor[1] << ", " << baseColor[2] << std::endl;
                         } else {
-                            std::cout << "Failed to read base color, using default" << std::endl;
+                            if(verbose > 0) std::cout << "Failed to read base color, using default" << std::endl;
                             baseColor = pxr::GfVec3f(1.0f, 0.0f, 0.0f);
                         }
                         color diffuseColor(baseColor[0], baseColor[1], baseColor[2]);
-                        std::cout << "Base Color: " << baseColor[0] << ", " << baseColor[1] << ", " << baseColor[2] << std::endl;
+                        if(verbose > 0) std::cout << "Base Color: " << baseColor[0] << ", " << baseColor[1] << ", " << baseColor[2] << std::endl;
                     }
 
                 }
@@ -117,19 +117,19 @@ namespace rd::usd::material {
                     // Read the value of the input
                     
                     if (spectrumInput.Get(&spectrumValues)) {
-                        std::cout << "Successfully read spectrum: " << spectrumValues << std::endl;
+                        if(verbose > 0) std::cout << "Successfully read spectrum: " << spectrumValues << std::endl;
                         hasSpectral = true;
                     } else {
-                        std::cout << "Failed to read spectrum, using default" << std::endl;
+                        if(verbose > 0) std::cout << "Failed to read spectrum, using default" << std::endl;
                     }
                 }
                 // Get metalness
                 pxr::UsdShadeInput metalnessInput = shader.GetInput(pxr::TfToken("metalness"));
                 if (metalnessInput) {
                     if (metalnessInput.Get(&metalness)) {
-                        std::cout << "Successfully read metalness: " << metalness << std::endl;
+                        if(verbose > 0) std::cout << "Successfully read metalness: " << metalness << std::endl;
                     } else {
-                        std::cout << "Failed to read metalness, using default" << std::endl;
+                        if(verbose > 0) std::cout << "Failed to read metalness, using default" << std::endl;
                         metalness = 0.0f;
                     }
                 }
@@ -137,9 +137,9 @@ namespace rd::usd::material {
                 pxr::UsdShadeInput transmissionInput = shader.GetInput(pxr::TfToken("transmission"));
                 if (transmissionInput) {
                     if (transmissionInput.Get(&transmission)) {
-                        std::cout << "Successfully read transmission: " << transmission << std::endl;
+                        if(verbose > 0) std::cout << "Successfully read transmission: " << transmission << std::endl;
                     } else {
-                        std::cout << "Failed to read transmission, using default" << std::endl;
+                        if(verbose > 0) std::cout << "Failed to read transmission, using default" << std::endl;
                         transmission = 0.0f;
                     }
                 }
@@ -147,9 +147,9 @@ namespace rd::usd::material {
                 pxr::UsdShadeInput specularInput = shader.GetInput(pxr::TfToken("specular"));
                 if (specularInput) {
                     if (specularInput.Get(&specular)) {
-                        std::cout << "Successfully read specular: " << specular << std::endl;
+                        if(verbose > 0) std::cout << "Successfully read specular: " << specular << std::endl;
                     } else {
-                        std::cout << "Failed to read specular, using default" << std::endl;
+                        if(verbose > 0) std::cout << "Failed to read specular, using default" << std::endl;
                         specular = 0.0f;
                     }
                 }
@@ -157,9 +157,9 @@ namespace rd::usd::material {
                 pxr::UsdShadeInput specularRoughnessInput = shader.GetInput(pxr::TfToken("specular_roughness"));
                 if (specularRoughnessInput) {
                     if (specularRoughnessInput.Get(&specular_roughness)) {
-                        std::cout << "Successfully read specular roughness: " << specular_roughness << std::endl;
+                        if(verbose > 0) std::cout << "Successfully read specular roughness: " << specular_roughness << std::endl;
                     } else {
-                        std::cout << "Failed to read specular roughness, using default" << std::endl;
+                        if(verbose > 0) std::cout << "Failed to read specular roughness, using default" << std::endl;
                         specular_roughness = 0.0f;
                     }
                 }
@@ -167,9 +167,9 @@ namespace rd::usd::material {
                 pxr::UsdShadeInput emissionInput = shader.GetInput(pxr::TfToken("emission"));
                 if (emissionInput) {
                     if (emissionInput.Get(&emission)) {
-                        std::cout << "Successfully read emission: " << emission << std::endl;
+                        if(verbose > 0) std::cout << "Successfully read emission: " << emission << std::endl;
                     } else {
-                        std::cout << "Failed to read emission, using default" << std::endl;
+                        if(verbose > 0) std::cout << "Failed to read emission, using default" << std::endl;
                         emission = 0.0f;
                     }
                 }
@@ -179,9 +179,9 @@ namespace rd::usd::material {
                     // Read the value of the input
                     
                     if (emissionColorInput.Get(&emission_color)) {
-                        std::cout << "Successfully read emission color: " << emission_color[0] << ", " << emission_color[1] << ", " << emission_color[2] << std::endl;
+                        if(verbose > 0) std::cout << "Successfully read emission color: " << emission_color[0] << ", " << emission_color[1] << ", " << emission_color[2] << std::endl;
                     } else {
-                        std::cout << "Failed to read emission color, using default" << std::endl;
+                        if(verbose > 0) std::cout << "Failed to read emission color, using default" << std::endl;
                         emission_color = pxr::GfVec3f(0.0f, 0.0f, 0.0f);
                     }
                 }

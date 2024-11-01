@@ -1,6 +1,6 @@
 #include "../usd/light.h"
 namespace rd::usd::light {
-    AreaLight extractAreaLightProperties(const pxr::UsdPrim& prim, const pxr::GfMatrix4d& transform) {
+    AreaLight extractAreaLightProperties(const pxr::UsdPrim& prim, const pxr::GfMatrix4d& transform, int verbose) {
         AreaLight light;
         
         // Extract properties
@@ -46,26 +46,26 @@ namespace rd::usd::light {
         }
         pxr::UsdAttribute spectrumAttr = prim.GetAttribute(pxr::TfToken("inputs:spectrum"));
         if (spectrumAttr) {
-            std::cout << "Spectrum input found" << std::endl;
+            if(verbose > 0) std::cout << "Spectrum input found" << std::endl;
             spectrumAttr.Get(&light.spectrumValues);
         } else{
-            std::cout << "Spectrum input not found" << std::endl;
+            if(verbose > 0) std::cout << "Spectrum input not found" << std::endl;
         }
 
         pxr::UsdAttribute verticesAttr = prim.GetAttribute(pxr::TfToken("primvars:arnold:vertices"));
         if (verticesAttr) {verticesAttr.Get(&light.vertices);
             for(auto& v : light.vertices) {
-                std::cout << "Vertex: " << v << std::endl;
+                if(verbose > 0) std::cout << "Vertex: " << v << std::endl;
                 v = transform.Transform(v);
-                std::cout << "Vertex: " << v << std::endl;
+                if(verbose > 0) std::cout << "Vertex: " << v << std::endl;
             }
         }
         else {
             light.vertices = {{light.width/2, -light.height/2, 0}, {-light.width/2, -light.height/2, 0}, {-light.width/2, light.height/2, 0}, {light.width/2, light.height/2, 0}};
             for(auto& v : light.vertices) {
-                std::cout << "Vertex: " << v << std::endl;
+                if(verbose > 0) std::cout << "Vertex: " << v << std::endl;
                 v = transform.Transform(v);
-                std::cout << "Vertex: " << v << std::endl;
+                if(verbose > 0) std::cout << "Vertex: " << v << std::endl;
             }
         }
 
@@ -101,29 +101,30 @@ namespace rd::usd::light {
             }
         }
         for(const auto& light : areaLightsDescriptors) {
+            double light_intensity = light.intensity;
             if (light.textureFilePath != "") {
                 std::cout << "Loading texture: " << light.textureFilePath << std::endl;
                 auto texture_ptr = new ImageSPD(ImageSPD::load(light.textureFilePath.c_str(), observer));
 
                 if(light.spectrumValues.size() > 0) {
-                    auto light_material = new rd::core::light(spectrum(light.spectrumValues.data()), light.intensity, texture_ptr, light.spread);
+                    auto light_material = new rd::core::light(spectrum(light.spectrumValues.data()), light_intensity, texture_ptr, light.spread);
                     auto light_quad = new rd::core::area_light(light.Q, light.u, light.v, light_material);
                     area_lights.push_back(light_quad);
                 }
                 else {
-                    auto light_material = new rd::core::light(spectrum::d65(), light.intensity, texture_ptr, light.spread);
+                    auto light_material = new rd::core::light(spectrum::d65(), light_intensity, texture_ptr, light.spread);
                     auto light_quad = new rd::core::area_light(light.Q, light.u, light.v, light_material);
                     area_lights.push_back(light_quad);
                 }
             }
             else {
                 if(light.spectrumValues.size() > 0) {
-                    auto light_material = new rd::core::light(spectrum(light.spectrumValues.data()), light.intensity, nullptr, light.spread);
+                    auto light_material = new rd::core::light(spectrum(light.spectrumValues.data()), light_intensity, nullptr, light.spread);
                     auto light_quad = new rd::core::area_light(light.Q, light.u, light.v, light_material);
                     area_lights.push_back(light_quad);
                 }
                 else {
-                    auto light_material = new rd::core::light(spectrum::d65(), light.intensity, nullptr, light.spread);
+                    auto light_material = new rd::core::light(spectrum::d65(), light_intensity, nullptr, light.spread);
                     auto light_quad = new rd::core::area_light(light.Q, light.u, light.v, light_material);
                     area_lights.push_back(light_quad);
                 }

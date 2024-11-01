@@ -146,7 +146,7 @@ void UIOpenGLImage::paintGL() {
 
     // Render text
 
-    if (m_image) {
+    if (false && m_image) {
         int mx = static_cast<int>(m_mousePos.x());
         int my = static_cast<int>(m_mousePos.y());
         QColor pixelColor = m_image->pixelColor(mx, my);

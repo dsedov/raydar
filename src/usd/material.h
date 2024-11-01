@@ -31,7 +31,7 @@ namespace rd::usd::material {
     extern pxr::UsdShadeShader findShaderInNodeGraph(const pxr::UsdPrim& nodeGraphPrim);
     extern void findMaterialsRecursive(const pxr::UsdPrim& prim, std::vector<pxr::UsdShadeMaterial>& materials);
     extern pxr::UsdShadeShader GetShader(const pxr::UsdShadeMaterial& usdMaterial);
-    extern std::unordered_map<std::string, rd::core::material*> load_materials_from_stage(const pxr::UsdStageRefPtr& stage) ;
+    extern std::unordered_map<std::string, rd::core::material*> load_materials_from_stage(const pxr::UsdStageRefPtr& stage, int verbose = 0);
 
 }
 #endif

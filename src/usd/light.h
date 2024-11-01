@@ -37,7 +37,7 @@ namespace rd::usd::light {
         vec3 u;
         vec3 v;
     };
-    extern AreaLight extractAreaLightProperties(const pxr::UsdPrim& prim, const pxr::GfMatrix4d& transform);
+    extern AreaLight extractAreaLightProperties(const pxr::UsdPrim& prim, const pxr::GfMatrix4d& transform, int verbose = 0);
     extern std::vector<rd::core::area_light*> extractAreaLightsFromUsdStage(const pxr::UsdStageRefPtr& stage, observer * observer) ;
 }
 
