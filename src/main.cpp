@@ -31,7 +31,9 @@ int main(int argc, char *argv[]) {
         QObject::connect(&window, &RenderWindow::resolution_changed, &render, &render::resolution_changed);
         QObject::connect(&window, &RenderWindow::lightsource_changed, &render, &render::lightsource_override);
         QObject::connect(&window, &RenderWindow::render_mode_changed, &render, &render::render_mode_changed);
+        QObject::connect(&window, &RenderWindow::render_region_changed, &render, &render::render_region_changed);
         QObject::connect(&render, &render::samples_changed_internal, &window, &RenderWindow::updateSamples);
+        QObject::connect(&window, &RenderWindow::spd_file_loaded, &render, &render::set_render_buffer);
         window.show();
         return app.exec();
     } else {

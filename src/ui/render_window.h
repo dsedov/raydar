@@ -61,6 +61,8 @@ signals:
     void depth_changed(int depth);
     void resolution_changed(int width, int height);
     void render_mode_changed(int index);
+    void render_region_changed(int x, int y, int width, int height);
+    void spd_file_loaded(ImageSPD * image);
     
 protected:
 

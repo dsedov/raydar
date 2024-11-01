@@ -265,8 +265,7 @@ void RenderWindow::updateSamples(int samples) {
     m_samples = samples;
     m_samplesInput->blockSignals(false);
 }
-void RenderWindow::update_observer(int index)
-{   
+void RenderWindow::update_observer(int index) {   
     switch (index) {
         case 0:
             observer_ptr = new observer(observer::CIE1931_2Deg, spectrum::RESPONSE_SAMPLES, spectrum::START_WAVELENGTH, spectrum::END_WAVELENGTH);
@@ -308,7 +307,7 @@ void RenderWindow::update_image() {
     if(m_primaries->getCurrentIndex() == 0) {
         for (int i = 0; i < m_image_buffer->width(); i++) {
             for (int j = 0; j < m_image_buffer->height(); j++) {
-                spectrum color_spectrum = m_image_buffer->get_pixel(i, j) * (m_exposure / base_iso) * (1.0 / m_shutter) * 1000.0;
+                spectrum color_spectrum = m_image_buffer->get_pixel(i, j) * (m_exposure / base_iso) * (1.0 / m_shutter) * 0.3;
 
                 color color_rgb_displayP3 = color_spectrum.to_XYZ(observer_ptr).to_rgbDisplayP3();
                 color_rgb_displayP3.adjustColorTemperature(m_whitebalance);
@@ -328,7 +327,7 @@ void RenderWindow::update_image() {
     } else {
         for (int i = 0; i < m_image_buffer->width(); i++) {
             for (int j = 0; j < m_image_buffer->height(); j++) {
-                spectrum color_spectrum = m_image_buffer->get_pixel(i, j) * (m_exposure / base_iso) * (1.0 / m_shutter) * 1000.0;
+                spectrum color_spectrum = m_image_buffer->get_pixel(i, j) * (m_exposure / base_iso) * (1.0 / m_shutter) * 0.3;
 
                 color color_rgb = color_spectrum.to_rgb(observer_ptr);
                 color_rgb.adjustColorTemperature(m_whitebalance);
@@ -353,16 +352,17 @@ void RenderWindow::updateRegionStart(int x, int y){
     m_region_x = x;
     m_region_y = y;
     need_to_update_image = true;
+    emit render_region_changed(m_region_x, m_region_y, m_region_width, m_region_height);
     update_image();
 }
 void RenderWindow::updateRegionSize(int width, int height){
     m_region_width = width;
     m_region_height = height;
     need_to_update_image = true;
+    emit render_region_changed(m_region_x, m_region_y, m_region_width, m_region_height);
     update_image();
 }
-void RenderWindow::updateProgress(int progress, int total)
-{
+void RenderWindow::updateProgress(int progress, int total){
     int percentage = static_cast<int>((static_cast<double>(progress) / total) * 100);
     if (percentage <= 0 || percentage >= 99) {
         m_progressBar->hide();
@@ -372,8 +372,7 @@ void RenderWindow::updateProgress(int progress, int total)
     m_progressBar->setValue(percentage);
 }
 
-void RenderWindow::updateBucket(int x, int y, ImageSPD* image)
-{
+void RenderWindow::updateBucket(int x, int y, ImageSPD* image){
     
     for (int i = 0; i < image->width(); i++) {
         for (int j = 0; j < image->height(); j++) {
@@ -383,12 +382,10 @@ void RenderWindow::updateBucket(int x, int y, ImageSPD* image)
     need_to_update_image = true;
 }
 
-void RenderWindow::resizeEvent(QResizeEvent *event)
-{
+void RenderWindow::resizeEvent(QResizeEvent *event){
     QMainWindow::resizeEvent(event);
 }
-void RenderWindow::update_resolution(int width, int height)
-{
+void RenderWindow::update_resolution(int width, int height){
     m_width = width;
     m_height = height;
     m_image_buffer = new ImageSPD(m_width, m_height, spectrum::RESPONSE_SAMPLES, observer_ptr);
@@ -397,8 +394,7 @@ void RenderWindow::update_resolution(int width, int height)
     need_to_update_image = true;
     update_image();
 }
-QString RenderWindow::style_sheet()
-{
+QString RenderWindow::style_sheet(){
     return "* { font-size: 12px; color: #bababa; border-radius: 0px;} \
     QMainWindow { background-color: #262626; padding: 5px; } \
     QLabel { color: #bababa; } \
@@ -451,17 +447,13 @@ void RenderWindow::onSPDFileSelected(const QString &filePath) {
     m_image_buffer->load_spectrum(filePath.toStdString().c_str());
     loaded_file_name = filePath.toStdString();
     overwrite_loaded_file = true;
-    //m_exposure = m_image_buffer->exposure_;
-    //m_gamma = m_image_buffer->gamma_;
-    //m_gammaInput->setValue(m_gamma);
-    // m_exposureInput->setValue(m_exposure);
     m_observer->setCurrentIndex(m_image_buffer->observer_type_);
     m_lightsource->setCurrentIndex(m_image_buffer->light_source_);
     m_render_mode->setCurrentIndex(m_image_buffer->render_mode_);
     m_spectrumSamplingMenu->setCurrentIndex(m_image_buffer->spectrum_type_);
     m_samplesInput->setValue(m_image_buffer->samples_);
     m_depthInput->setValue(m_image_buffer->depth_);
-
     need_to_update_image = true;
+    emit spd_file_loaded(m_image_buffer);
     update_image();
 }

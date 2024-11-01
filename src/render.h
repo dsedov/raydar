@@ -82,6 +82,7 @@ public:
     rd::core::camera camera;
 
     render(settings * settings, rd::usd::loader * loader);
+    
     int render_scene();
 public slots:
     void render_scene_slot();
@@ -90,6 +91,8 @@ public slots:
     void resolution_changed(int width, int height);
     void lightsource_override(int index);
     void render_mode_changed(int index);
+    void render_region_changed(int x, int y, int width, int height);
+    void set_render_buffer(ImageSPD * buffer);
 signals:
     void progressUpdated(int progress, int total);
     void bucketFinished(int x, int y, ImageSPD* image);

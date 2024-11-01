@@ -164,6 +164,9 @@ int render::mtpool_bucket_prog_render() {
     std::cout << "Rendering time: " << duration.count() << " seconds" << std::endl;
     return duration.count();
 }
+void render::set_render_buffer(ImageSPD * buffer){
+    image_buffer->load_from_spd_image(buffer);
+}
 void render::initialize(bool is_vertical_fov, bool fov_in_degrees) {
     auto focal_length = (camera.center - camera.look_at).length();
     
@@ -375,7 +378,13 @@ void render::spectrum_sampling_changed(int index){
     full_spectrum_sampling = index == 0;
     std::cout << "Spectrum sampling changed to: " << (full_spectrum_sampling ? "full" : "stochastic") << std::endl;
 }
-// Internal
+void render::render_region_changed(int x, int y, int width, int height){
+    region_x = x;
+    region_y = y;
+    region_width = width;
+    region_height = height;
+}
+    // Internal
 void render::load_lookup_table() {
     std::vector<std::vector<std::vector<vec3>>> lookup_table;
     std::ifstream file("lookup_table.bin", std::ios::binary);

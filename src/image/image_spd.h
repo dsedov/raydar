@@ -134,6 +134,13 @@ public:
 
         fclose(file);
     }
+    void load_from_spd_image(ImageSPD * image) {
+        for (int y = 0; y < height_; y++) {
+            for (int x = 0; x < width_; x++) {
+                set_pixel(x, y, image->get_pixel(x, y));
+            }
+        }
+    }
     void load_spectrum(const char* filename) override {
         // Load the SPD data from the file
         FILE* file = fopen(filename, "rb");

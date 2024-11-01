@@ -146,19 +146,21 @@ void UIOpenGLImage::paintGL() {
 
     // Render text
 
-    if (false && m_image) {
+    if (m_image && m_image->width() > 0 && m_image->height() > 0) {
         int mx = static_cast<int>(m_mousePos.x());
         int my = static_cast<int>(m_mousePos.y());
-        QColor pixelColor = m_image->pixelColor(mx, my);
-        float r = pixelColor.redF();
-        float g = pixelColor.greenF();
-        float b = pixelColor.blueF();
-        renderText(QString("X:%1, Y:%2, R:%3, G:%4, B:%5")
-                .arg(mx)
-                .arg(my)
-                .arg(r, 0, 'f', 2)
-                .arg(g, 0, 'f', 2)
-                .arg(b, 0, 'f', 2), 0, height() - 30);
+        if (mx >= 0 && mx < m_image->width() && my >= 0 && my < m_image->height()) {
+            QColor pixelColor = m_image->pixelColor(mx, my);
+            float r = pixelColor.redF();
+            float g = pixelColor.greenF();
+            float b = pixelColor.blueF();
+            renderText(QString("X:%1, Y:%2, R:%3, G:%4, B:%5")
+                    .arg(mx)
+                    .arg(my)
+                    .arg(r, 0, 'f', 2)
+                    .arg(g, 0, 'f', 2)
+                    .arg(b, 0, 'f', 2), 0, height() - 30);
+        }
     }
 }
 
